@@ -60,7 +60,8 @@ ys.forEach(y=>{
 - `Math.sin(y*0.01)*50` ha ampiezza 50 px e periodo di circa 628 px (2π/0.01): nei 1000 px del
   tratto curvo ci sono circa una curva e mezza.
 - La larghezza si dimezza (`width/4` per lato invece di `width/2`): 90 px, una corsia e mezzo.
-  Le linee delle corsie sono commentate e i bordi sono disegnati tratteggiati.
+  Le corsie spariscono del tutto, insieme a `laneCount` e `getLaneCenter`, e i bordi sono
+  disegnati tratteggiati.
 - Tutti i punti, compresi quelli in cima e in fondo, passano da `#curveOffset`. La `y` viene
   bloccata dentro il tratto curvo, quindi fuori da lì la strada torna dritta e mantiene lo
   spostamento dell'ultimo punto: in basso è zero (`sin(0)`), in alto è circa 27 px
@@ -139,7 +140,8 @@ update(x,y,angle,roadBorders,traffic){
 non dipende più dalla struttura di `Car` e si potrebbe montare su qualsiasi oggetto.
 
 L'apertura dei raggi scende a 45° (`PI/4`): su una strada stretta servono raggi concentrati in
-avanti più che di lato. Il tratto nero disegnato oltre il punto di contatto è commentato.
+avanti più che di lato. Il raggio viene disegnato solo in giallo fino al punto di contatto: il
+tratto nero oltre quel punto non c'è più.
 
 ## Rete senza strato nascosto
 
@@ -175,7 +177,8 @@ Rispetto al capitolo 8 il file è più asciutto:
 - **Nessun pulsante**: `save()` e `discard()` esistono ancora, ma si chiamano dalla console.
 - `networkCanvas.width=298` e nell'HTML i due `<canvas>` sono sulla stessa riga senza spazi: il
   whitespace tra due elementi inline creerebbe uno spazio, così invece i canvas sono attaccati.
-- Le auto partono tutte da x=100, il centro della strada, senza `getLaneCenter`.
+- Le auto partono tutte da x=100, il centro della strada nel rettilineo iniziale: senza corsie
+  non serve più `getLaneCenter`.
 
 ### Traffico
 
