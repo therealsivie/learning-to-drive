@@ -8,8 +8,9 @@ const networkCtx=networkCanvas.getContext("2d");
 const road=new Road(carCanvas.width/2,carCanvas.width*0.9);
 const N=100;
 const cars=generateCars(N);
+const trafficOffset=-20;
 const traffic=[
-   new Car(100,-100,30,50,"DUMMY",2)
+   new Car(road.getCenter(-100)+trafficOffset,-100,30,50,"DUMMY",2)
 ];
 let bestCar=cars[0];
 if(localStorage.getItem("bestBrain")){
@@ -26,7 +27,10 @@ animate();
 
 function animate(){
    for(let i=0;i<traffic.length;i++){
-      traffic[i].update([],[]);
+      const car=traffic[i];
+      car.x=road.getCenter(car.y)+trafficOffset;
+      car.angle=road.getAngle(car.y);
+      car.update([],[]);
    }
    for(let i=0;i<cars.length;i++){
       cars[i].update(road.borders,traffic);

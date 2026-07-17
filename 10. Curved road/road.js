@@ -27,6 +27,14 @@ class Road{
       });
    }
 
+   getCenter(y){
+      return this.x+this.#curveOffset(y);
+   }
+
+   getAngle(y){
+      return Math.atan(this.getCenter(y)-this.getCenter(y-1));
+   }
+
    #curveOffset(y){
       const curveY=Math.min(Math.max(y,this.curveTop),this.curveBottom);
       return Math.sin(curveY*0.01)*50;

@@ -180,16 +180,34 @@ Rispetto al capitolo 8 il file è più asciutto:
 ### Traffico
 
 ```js
+const trafficOffset=-20;
 const traffic=[
-   new Car(100,-100,30,50,"DUMMY",2)
+   new Car(road.getCenter(-100)+trafficOffset,-100,30,50,"DUMMY",2)
 ];
 ...
-traffic[i].update([],[]);
+const car=traffic[i];
+car.x=road.getCenter(car.y)+trafficOffset;
+car.angle=road.getAngle(car.y);
+car.update([],[]);
 ```
 
-Una sola auto, aggiornata con bordi vuoti: non si rompe mai, nemmeno quando la curva porta il bordo
-sulla sua traiettoria (lei va sempre dritta a x=100, la strada ondeggia di 50 px). Per le auto AI
-resta comunque un ostacolo da evitare.
+Una sola auto, che segue la strada. A ogni frame viene rimessa sulla curva prima di muoversi:
+
+- `road.getCenter(y)` restituisce la x del centro della strada a quell'altezza, cioè `x` più lo
+  stesso `#curveOffset` usato per i bordi.
+- `road.getAngle(y)` restituisce la pendenza della curva in quel punto: `atan` della differenza
+  tra il centro a `y` e quello a `y-1`. È l'angolo che, con la convenzione di `#move`
+  (`x-=sin(angle)*speed`), fa avanzare l'auto lungo la tangente, inclinata al massimo di circa
+  27°. Fuori dal tratto curvo la differenza è zero e l'auto torna dritta.
+
+`trafficOffset` sposta l'auto di 20 px a sinistra del centro. Su una strada larga 90 px un'auto
+larga 30 px messa al centro lascerebbe 30 px per lato, quindi nessun varco. Spostata a sinistra
+lascia sulla destra almeno 40 px anche nel punto più inclinato della curva, abbastanza per
+sorpassare.
+
+L'aggiornamento avviene ancora con bordi vuoti, quindi l'auto non si rompe mai. Ma ora non serve
+più come trucco: prima andava sempre dritta a x=100 e attraversava il bordo quando la strada
+ondeggiava, ora resta sempre in carreggiata.
 
 ### Mutazione più forte
 
