@@ -67,10 +67,12 @@ e poi aprire `http://localhost:8000` e scegliere la cartella.
 
 ### Attenzione al localStorage
 
-La rete salvata finisce in `localStorage` con la chiave `bestBrain`, che è condivisa da tutte le
-pagine della stessa origine. Se i capitoli 8, 9 e 10 vengono aperti dallo stesso server (o tutti
-da `file://`), si leggono a vicenda la rete salvata. Siccome il capitolo 10 usa una rete `[5,4]` e
-gli altri `[5,6,4]`, quando si passa da uno all'altro conviene fare prima un `discard()`.
+Il `localStorage` è condiviso da tutte le pagine della stessa origine: se i capitoli vengono
+aperti dallo stesso server (o tutti da `file://`), vedono le stesse chiavi. I capitoli 8 e 9
+salvano la rete in `bestBrain` e si leggono a vicenda la rete salvata. Va bene così: entrambi
+usano una rete `[5,6,4]` su una strada dritta a 3 corsie. Il capitolo 10 usa una rete `[5,4]` su
+una strada curva, quindi salva in una chiave sua, `curvedRoadBestBrain`, e non si mescola con gli
+altri.
 
 ## Note tecniche
 

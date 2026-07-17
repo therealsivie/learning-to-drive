@@ -13,10 +13,11 @@ const traffic=[
    new Car(road.getCenter(-100)+trafficOffset,-100,30,50,"DUMMY",2)
 ];
 let bestCar=cars[0];
-if(localStorage.getItem("bestBrain")){
+const brainKey="curvedRoadBestBrain";
+if(localStorage.getItem(brainKey)){
    for(let i=0;i<cars.length;i++){
       cars[i].brain=JSON.parse(
-         localStorage.getItem("bestBrain"));
+         localStorage.getItem(brainKey));
       if(i>0){
          NeuralNetwork.mutate(cars[i].brain,0.4);
       }
@@ -69,10 +70,10 @@ function generateCars(N){
 }
 
 function save(){
-   localStorage.setItem("bestBrain",
+   localStorage.setItem(brainKey,
       JSON.stringify(bestCar.brain));
 }
 
 function discard(){
-   localStorage.removeItem("bestBrain");
+   localStorage.removeItem(brainKey);
 }

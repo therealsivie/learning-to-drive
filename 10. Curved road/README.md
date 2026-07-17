@@ -17,7 +17,7 @@ cambiare nel resto del codice perché bordi non rettilinei funzionino.
 | Sensore | Legato all'auto, apertura 90° | Indipendente dall'auto, apertura 45° |
 | Traffico | 7 auto | 1 auto |
 | Mutazione | 0.1 | 0.4 |
-| Salvataggio | Pulsanti 💾 e 🗑️ | `save()` e `discard()` dalla console |
+| Salvataggio | Pulsanti 💾 e 🗑️, chiave `bestBrain` | `save()` e `discard()` dalla console, chiave `curvedRoadBestBrain` |
 | Visualizer | Linee tratteggiate animate, nodi da 18 | Linee piene, nodi da 14 |
 
 Anche la formattazione cambia: indentazione a 3 spazi invece di 4.
@@ -227,10 +227,15 @@ differenza pratica è trascurabile: cambia qualcosa solo nel frame esatto in cui
 ## Come provarlo
 
 1. Apri `index.html` e la console del browser (F12).
-2. Lancia `discard()` se hai già usato i capitoli 8 o 9 dalla stessa origine: il `bestBrain`
-   salvato lì è una rete `[5,6,4]`, non `[5,4]`.
+2. La prima generazione è casuale: quasi tutte le auto si schiantano subito o restano ferme.
+   Ricarica finché una non va un po' più avanti delle altre.
 3. Quando un'auto va lontano scrivi `save()` e ricarica. `discard()` per ricominciare da capo.
 4. I parametri da provare sono `N` in `main.js` e la quantità di mutazione (0.4).
+
+La rete viene salvata con la chiave `curvedRoadBestBrain`, non con il `bestBrain` dei capitoli 8
+e 9. Il `localStorage` è condiviso da tutte le pagine della stessa origine: con la stessa chiave
+questo capitolo caricherebbe una rete `[5,6,4]` allenata su una strada dritta, che gira senza
+errori ma va subito contro il muro.
 
 Ogni volta che cambi la struttura della rete o il numero di raggi serve un `discard()`, altrimenti
 dal `localStorage` torna una rete con dimensioni sbagliate.
