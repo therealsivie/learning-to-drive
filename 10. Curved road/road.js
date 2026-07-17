@@ -18,7 +18,7 @@ class Road{
          [topLeft],
          [topRight]
       ];
-      for(let y=-1000;y<=0;y++){
+      for(let y=-1000;y<=0;y+=10){
          const x=Math.sin(y*0.01)*50;
          this.borders[0].push({x:x+this.left,y:y});
          this.borders[1].push({x:x+this.right,y:y});

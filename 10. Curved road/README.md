@@ -12,7 +12,7 @@ cambiare nel resto del codice perché bordi non rettilinei funzionino.
 | Aspetto | Capitolo 8 | Capitolo 10 |
 |---------|------------|-------------|
 | Strada | Dritta, 3 corsie, larga 180 px | Tratto sinusoidale, larga 90 px, corsie non disegnate |
-| Bordi | 2 segmenti | 2 polilinee di oltre 1000 punti |
+| Bordi | 2 segmenti | 2 polilinee di circa 100 punti |
 | Rete | `[5,6,4]` | `[5,4]` |
 | Sensore | Legato all'auto, apertura 90° | Indipendente dall'auto, apertura 45° |
 | Traffico | 7 auto | 1 auto |
@@ -34,7 +34,7 @@ this.borders=[
    [topLeft],
    [topRight]
 ];
-for(let y=-1000;y<=0;y++){
+for(let y=-1000;y<=0;y+=10){
    const x=Math.sin(y*0.01)*50;
    this.borders[0].push({x:x+this.left,y:y});
    this.borders[1].push({x:x+this.right,y:y});
@@ -43,8 +43,11 @@ this.borders[0].push(bottomLeft);
 this.borders[1].push(bottomRight);
 ```
 
-- Ogni bordo non è più un segmento ma una **polilinea**: un punto in alto, un punto per ogni pixel
+- Ogni bordo non è più un segmento ma una **polilinea**: un punto in alto, un punto ogni 10 px
   tra y=-1000 e y=0 spostato in orizzontale da una sinusoide, un punto in basso.
+- 10 px bastano: tra due punti la corda si scosta dalla curva di circa 0,06 px (`A·k²·h²/8` con
+  ampiezza 50, `k=0.01` e passo 10), quindi la strada è identica a una campionata ogni pixel ma
+  con dieci volte meno segmenti.
 - `Math.sin(y*0.01)*50` ha ampiezza 50 px e periodo di circa 628 px (2π/0.01): nei 1000 px del
   tratto curvo ci sono circa una curva e mezza.
 - La larghezza si dimezza (`width/4` per lato invece di `width/2`): 90 px, una corsia e mezzo.
@@ -84,10 +87,10 @@ polysIntersect(
 Il sensore fa lo stesso ragionamento: scorre i bordi segmento per segmento (`border[i-1]`,
 `border[i]`) e usa il modulo solo per i poligoni delle auto, che sono chiusi.
 
-Il prezzo è il numero di intersezioni. Ogni raggio controlla circa 2000 segmenti di bordo, e lo
-stesso vale per i quattro lati di ogni auto ancora integra. Con 100 auto si arriva a quasi due
-milioni di chiamate a `getIntersection` per frame, contro le circa 15.000 del capitolo 9: la
-simulazione è visibilmente meno fluida.
+Il prezzo è il numero di intersezioni. Ogni raggio controlla circa 200 segmenti di bordo, e lo
+stesso vale per i quattro lati di ogni auto ancora integra. Con 100 auto si arriva a circa 180.000
+chiamate a `getIntersection` per frame, contro le circa 15.000 del capitolo 9. Campionando la curva
+ogni pixel sarebbero quasi due milioni, e la simulazione diventerebbe visibilmente meno fluida.
 
 ## Sensore indipendente dall'auto
 
