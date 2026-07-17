@@ -25,11 +25,12 @@ class Car{
    }
 
    update(roadBorders,traffic){
-      if(!this.damaged){
-         this.#move();  
-         this.polygon=this.#createPolygon();
-         this.damaged=this.#assessDamage(roadBorders,traffic);
+      if(this.damaged){
+         return;
       }
+      this.#move();
+      this.polygon=this.#createPolygon();
+      this.damaged=this.#assessDamage(roadBorders,traffic);
       if(this.sensor){
          this.sensor.update(this.x,this.y,this.angle,roadBorders,traffic);
          const offsets=this.sensor.readings.map(

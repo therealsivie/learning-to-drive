@@ -92,6 +92,22 @@ stesso vale per i quattro lati di ogni auto ancora integra. Con 100 auto si arri
 chiamate a `getIntersection` per frame, contro le circa 15.000 del capitolo 9. Campionando la curva
 ogni pixel sarebbero quasi due milioni, e la simulazione diventerebbe visibilmente meno fluida.
 
+Per lo stesso motivo un'auto rotta smette del tutto di lavorare:
+
+```js
+update(roadBorders,traffic){
+   if(this.damaged){
+      return;
+   }
+   ...
+```
+
+Nei capitoli 8 e 9 solo movimento e collisioni erano protetti da `if(!this.damaged)`: sensore e
+rete continuavano a girare anche per le auto ferme contro il muro, calcolando comandi che nessuno
+avrebbe più usato. Lì costava poco, qui ogni auto rotta sprecherebbe circa 1000 intersezioni a
+frame. Il disegno non cambia: se l'auto migliore è rotta, i raggi mostrano le ultime letture, che
+restano valide perché l'auto non si muove più.
+
 ## Sensore indipendente dall'auto
 
 ```js
