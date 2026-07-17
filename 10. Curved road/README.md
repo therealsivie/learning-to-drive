@@ -30,17 +30,26 @@ this.right=x+width/4;
 
 const infinity=10000;
 ...
-this.borders=[
-   [topLeft],
-   [topRight]
-];
-for(let y=-1000;y<=0;y+=10){
-   const x=Math.sin(y*0.01)*50;
-   this.borders[0].push({x:x+this.left,y:y});
-   this.borders[1].push({x:x+this.right,y:y});
+this.curveTop=-1000;
+this.curveBottom=0;
+
+const ys=[this.top];
+for(let y=this.curveTop;y<=this.curveBottom;y+=10){
+   ys.push(y);
 }
-this.borders[0].push(bottomLeft);
-this.borders[1].push(bottomRight);
+ys.push(this.bottom);
+
+this.borders=[[],[]];
+ys.forEach(y=>{
+   const offset=this.#curveOffset(y);
+   this.borders[0].push({x:this.left+offset,y:y});
+   this.borders[1].push({x:this.right+offset,y:y});
+});
+...
+#curveOffset(y){
+   const curveY=Math.min(Math.max(y,this.curveTop),this.curveBottom);
+   return Math.sin(curveY*0.01)*50;
+}
 ```
 
 - Ogni bordo non è più un segmento ma una **polilinea**: un punto in alto, un punto ogni 10 px
@@ -52,9 +61,11 @@ this.borders[1].push(bottomRight);
   tratto curvo ci sono circa una curva e mezza.
 - La larghezza si dimezza (`width/4` per lato invece di `width/2`): 90 px, una corsia e mezzo.
   Le linee delle corsie sono commentate e i bordi sono disegnati tratteggiati.
-- Fuori dal tratto curvo la strada torna dritta. In basso si raccorda senza scalini perché
-  `sin(0)` vale zero; in alto no: a y=-1000 il bordo è spostato di circa 27 px (`sin(-10)*50`),
-  quindi il segmento finale fino a y=-10000 è leggermente inclinato.
+- Tutti i punti, compresi quelli in cima e in fondo, passano da `#curveOffset`. La `y` viene
+  bloccata dentro il tratto curvo, quindi fuori da lì la strada torna dritta e mantiene lo
+  spostamento dell'ultimo punto: in basso è zero (`sin(0)`), in alto è circa 27 px
+  (`sin(-10)*50`). Così la strada è continua e il segmento finale fino a y=-10000 resta
+  verticale, invece di tornare inclinato verso la x di partenza.
 - "Infinito" vale 10000 invece di un milione: basta, visto che il tratto interessante è lungo
   1000 px.
 

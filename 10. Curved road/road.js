@@ -10,21 +10,26 @@ class Road{
       this.top=-infinity;
       this.bottom=infinity;
 
-      const topLeft={x:this.left,y:this.top};
-      const bottomLeft={x:this.left,y:this.bottom};
-      const topRight={x:this.right,y:this.top};
-      const bottomRight={x:this.right,y:this.bottom};
-      this.borders=[
-         [topLeft],
-         [topRight]
-      ];
-      for(let y=-1000;y<=0;y+=10){
-         const x=Math.sin(y*0.01)*50;
-         this.borders[0].push({x:x+this.left,y:y});
-         this.borders[1].push({x:x+this.right,y:y});
+      this.curveTop=-1000;
+      this.curveBottom=0;
+
+      const ys=[this.top];
+      for(let y=this.curveTop;y<=this.curveBottom;y+=10){
+         ys.push(y);
       }
-      this.borders[0].push(bottomLeft);
-      this.borders[1].push(bottomRight);
+      ys.push(this.bottom);
+
+      this.borders=[[],[]];
+      ys.forEach(y=>{
+         const offset=this.#curveOffset(y);
+         this.borders[0].push({x:this.left+offset,y:y});
+         this.borders[1].push({x:this.right+offset,y:y});
+      });
+   }
+
+   #curveOffset(y){
+      const curveY=Math.min(Math.max(y,this.curveTop),this.curveBottom);
+      return Math.sin(curveY*0.01)*50;
    }
 
    getLaneCenter(laneIndex){
