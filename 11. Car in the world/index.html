@@ -10,6 +10,7 @@
       <div id="controls">
       </div>
 
+      <script src="js/math/graph.js"></script>
       <script src="js/primitives/point.js"></script>
       <script src="js/primitives/segment.js"></script>
       <script>
@@ -28,12 +29,8 @@
          const s3 = new Segment(p1, p4);
          const s4 = new Segment(p2, p3);
 
-         for (const seg of [s1, s2, s3, s4]) {
-            seg.draw(ctx);
-         }
-         for (const point of [p1, p2, p3, p4]) {
-            point.draw(ctx);
-         }
+         const graph = new Graph([p1, p2, p3, p4], [s1, s2, s3, s4]);
+         graph.draw(ctx);
       </script>
    </body>
 </html>
