@@ -17,6 +17,7 @@ che chiude quella parte.
 | Parte | Cosa aggiunge |
 |-------|---------------|
 | 1. Spatial Graphs | Punti, segmenti e un grafo che li tiene insieme |
+| 2. Graph Editor | Editor con il mouse: aggiungere, collegare, trascinare e cancellare punti |
 
 Anche lo stile cambia: indentazione a 3 spazi, spazi intorno agli operatori e alle virgole, punto
 e virgola sempre presente.
@@ -116,3 +117,97 @@ Apri `index.html`: su un canvas verde compaiono quattro punti neri collegati da 
 c'è ancora nessuna interazione; per giocare con il grafo si possono chiamare dalla console
 `graph.tryAddPoint(new Point(300, 500))` o `graph.removePoint(graph.points[0])`, poi
 `ctx.clearRect(0, 0, 600, 600)` e `graph.draw(ctx)` per ridisegnare.
+
+## Parte 2. Graph Editor
+
+Costruire il grafo a mano da codice non scala: per disegnare una città serve un editor. Questa
+parte aggiunge una classe che ascolta il mouse sul canvas e modifica il grafo, più il ciclo di
+animazione che lo ridisegna a ogni frame.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `js/primitives/point.js` | `draw` accetta `outline` e `fill` per evidenziare un punto |
+| `js/primitives/segment.js` | `draw` accetta `dash` per le linee tratteggiate |
+| `js/math/utils.js` | Nuovo: `distance` e `getNearestPoint` |
+| `js/graphEditor.js` | Nuovo: classe `GraphEditor` |
+| `index.html` | Crea l'editor e avvia il ciclo `animate()` |
+
+### Opzioni di disegno
+
+```js
+draw(ctx, { size = 18, color = "black", outline = false, fill = false } = {})
+```
+
+I parametri passano in un oggetto con destructuring e valori di default, invece che in posizione.
+Chi chiama scrive solo quello che gli serve, `point.draw(ctx, { fill: true })`, e il `= {}` finale
+permette di non passare niente. L'editor usa `fill` per il punto sotto il mouse, `outline` per
+quello selezionato e `dash: [3, 3]` per il segmento che si sta tracciando.
+
+`Segment.draw` chiama `setLineDash([])` alla fine: il contesto del canvas è uno stato condiviso, e
+senza il reset tutti i segmenti disegnati dopo resterebbero tratteggiati.
+
+### getNearestPoint
+
+```js
+function getNearestPoint(loc, points, threshold = Number.MAX_SAFE_INTEGER) {
+```
+
+Cerca il punto più vicino a `loc`, ma solo entro `threshold`. L'editor passa 10 pixel: il mouse
+"aggancia" un punto quando ci passa vicino, senza doverlo centrare esattamente.
+
+### GraphEditor
+
+L'editor tiene quattro informazioni di stato:
+
+| Campo | Significato |
+|-------|-------------|
+| `mouse` | Posizione attuale del mouse, come `Point` |
+| `hovered` | Punto entro 10 px dal mouse, oppure `null` |
+| `selected` | Ultimo punto selezionato, da cui parte il prossimo segmento |
+| `dragging` | `true` mentre si trascina il punto selezionato |
+
+Gli handler degli eventi aggiornano solo lo stato; `display()` lo disegna. I comandi:
+
+| Azione | Effetto |
+|--------|---------|
+| Click sinistro nel vuoto | Crea un punto, lo collega al selezionato e lo seleziona |
+| Click sinistro su un punto | Lo collega al selezionato, lo seleziona e inizia il trascinamento |
+| Trascinamento | Sposta il punto selezionato |
+| Click destro con un punto selezionato | Deseleziona |
+| Click destro su un punto, senza selezione | Cancella il punto e i suoi segmenti |
+
+Il collegamento avviene in `#select`: se c'è già un punto selezionato, prova ad aggiungere un
+segmento verso il nuovo. `tryAddSegment` scarta doppioni e segmenti da un punto a se stesso, quindi
+l'editor non deve controllarli.
+
+Spostare un punto sposta anche i segmenti che lo toccano, perché un `Segment` tiene riferimenti agli
+oggetti `Point` e non copie delle coordinate.
+
+Il listener `contextmenu` con `preventDefault()` impedisce al browser di aprire il suo menu al click
+destro.
+
+Una piccola differenza dall'originale: in `display()` il segmento tratteggiato viene disegnato con
+`this.ctx` invece del `ctx` globale di `index.html`. Il risultato è identico, ma la classe usa solo
+il canvas che riceve nel costruttore.
+
+### index.html
+
+```js
+function animate() {
+   ctx.clearRect(0, 0, myCanvas.width, myCanvas.height);
+   graphEditor.display();
+   requestAnimationFrame(animate);
+}
+```
+
+Lo stesso schema dell'auto nei capitoli precedenti: pulire, disegnare, richiedere il frame
+successivo. Il ciclo sta fuori dall'editor perché più avanti disegnerà anche altre cose.
+
+### Come provarlo
+
+Apri `index.html` e disegna: ogni click nel vuoto aggiunge un punto collegato al precedente, la
+linea tratteggiata mostra il segmento che verrebbe creato. Click destro per interrompere la catena,
+poi click su un punto esistente per ripartire da lì. Trascina i punti per spostarli e usa il click
+destro su un punto per cancellarlo.
