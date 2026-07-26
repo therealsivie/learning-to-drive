@@ -5,6 +5,7 @@ class World {
       this.roadRoundness = roadRoundness;
 
       this.envelopes = [];
+      this.roadBorders = [];
 
       this.generate();
    }
@@ -16,6 +17,8 @@ class World {
             new Envelope(seg, this.roadWidth, this.roadRoundness)
          );
       }
+
+      this.roadBorders = Polygon.union(this.envelopes.map((e) => e.poly));
    }
 
    draw(ctx) {
@@ -24,6 +27,9 @@ class World {
       }
       for (const seg of this.graph.segments) {
          seg.draw(ctx, { color: "white", width: 4, dash: [10, 10] });
+      }
+      for (const seg of this.roadBorders) {
+         seg.draw(ctx, { color: "white", width: 4 });
       }
    }
 }
