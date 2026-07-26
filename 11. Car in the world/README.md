@@ -18,6 +18,7 @@ che chiude quella parte.
 |-------|---------------|
 | 1. Spatial Graphs | Punti, segmenti e un grafo che li tiene insieme |
 | 2. Graph Editor | Editor con il mouse: aggiungere, collegare, trascinare e cancellare punti |
+| 3. Dynamic Viewport | Zoom, spostamento della vista, salvataggio del grafo |
 
 Anche lo stile cambia: indentazione a 3 spazi, spazi intorno agli operatori e alle virgole, punto
 e virgola sempre presente.
@@ -211,3 +212,102 @@ Apri `index.html` e disegna: ogni click nel vuoto aggiunge un punto collegato al
 linea tratteggiata mostra il segmento che verrebbe creato. Click destro per interrompere la catena,
 poi click su un punto esistente per ripartire da lì. Trascina i punti per spostarli e usa il click
 destro su un punto per cancellarlo.
+
+## Parte 3. Dynamic Viewport
+
+Una città non sta in 600x600 pixel. Questa parte separa le coordinate del **mondo** da quelle dello
+**schermo**: il grafo resta dov'è, ed è la vista che si allontana o si sposta. In più il grafo
+sopravvive al ricaricamento della pagina.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `js/viewport.js` | Nuovo: classe `Viewport`, zoom e spostamento della vista |
+| `js/math/utils.js` | Operazioni sui vettori: `add`, `subtract`, `scale` |
+| `js/graphEditor.js` | Riceve il viewport invece del canvas; nuovo `dispose()` |
+| `js/math/graph.js` | Nuovo `Graph.load` per ricostruire un grafo salvato |
+| `index.html` | Pulsanti 🗑️ e 💾, caricamento da `localStorage` |
+
+### Viewport
+
+Il viewport tiene tre valori:
+
+| Campo | Significato |
+|-------|-------------|
+| `zoom` | Quanto mondo entra in un pixel: 1 all'inizio, fino a 5 allontanandosi |
+| `center` | Centro del canvas, attorno a cui avviene lo zoom |
+| `offset` | Spostamento della vista nel mondo |
+
+Prima di ogni frame `reset()` riporta il contesto allo stato pulito e applica le trasformazioni:
+
+```js
+this.ctx.restore();
+this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+this.ctx.save();
+this.ctx.translate(this.center.x, this.center.y);
+this.ctx.scale(1 / this.zoom, 1 / this.zoom);
+const offset = this.getOffset();
+this.ctx.translate(offset.x, offset.y);
+```
+
+Le trasformazioni del canvas si accumulano, quindi senza `restore()` ogni frame zoomerebbe sopra
+quello precedente. La coppia `restore()`/`save()` torna allo stato originale e lo salva di nuovo,
+pronto per il frame successivo.
+
+L'`offset` iniziale è `-center`: annulla la prima traslazione, così all'avvio l'origine del mondo
+coincide con l'angolo in alto a sinistra del canvas.
+
+`getMouse` fa il percorso inverso, dai pixel dello schermo alle coordinate del mondo. L'editor la
+usa al posto di `offsetX`/`offsetY`, altrimenti dopo uno zoom i punti comparirebbero lontano dal
+cursore. Per la stessa ragione la soglia di aggancio diventa `10 * zoom`: resta 10 pixel sullo
+schermo anche quando la vista si allontana.
+
+### Spostamento della vista
+
+Con il tasto centrale premuto il viewport registra un trascinamento in `drag`:
+
+- `mousedown` salva il punto di partenza;
+- `mousemove` aggiorna `drag.offset`, la differenza tra punto attuale e partenza;
+- `mouseup` somma `drag.offset` all'`offset` e azzera il trascinamento.
+
+`getOffset()` restituisce `offset + drag.offset`, così la vista segue il mouse già durante il
+trascinamento. L'editor chiama `getMouse(evt, true)` per sottrarre lo spostamento in corso e
+ottenere la vera posizione nel mondo.
+
+Viewport ed editor ascoltano gli stessi eventi sullo stesso canvas ma si dividono i tasti: il
+centrale muove la vista, sinistro e destro modificano il grafo.
+
+### Salvare e caricare
+
+```js
+function save() {
+   localStorage.setItem("graph", JSON.stringify(graph));
+}
+```
+
+Il salvataggio è una riga, il caricamento no: `JSON.parse` restituisce oggetti semplici senza i
+metodi delle classi, e ogni segmento contiene una copia dei suoi estremi invece di un riferimento.
+`Graph.load` ricrea prima i `Point`, poi collega ogni segmento ai punti appena creati cercandoli con
+`equals`. Così punti e segmenti tornano a condividere gli stessi oggetti, e trascinare un punto
+sposta ancora i suoi segmenti.
+
+Il pulsante 🗑️ chiama `graphEditor.dispose()`, che svuota il grafo e azzera anche `selected` e
+`hovered`: senza il reset il click successivo collegherebbe un punto che non esiste più. Il grafo
+salvato resta in `localStorage` finché non si preme di nuovo 💾.
+
+### Differenze dall'originale
+
+- L'evento della rotella è `wheel` invece di `mousewheel`, che non è standard e in Firefox non
+  arriva mai.
+- L'ordine dei `<script>` in `index.html` è rimasto quello delle parti precedenti. Non cambia
+  niente, perché lo script inline parte dopo che tutti i file sono stati caricati.
+
+### Come provarlo
+
+Apri `index.html` e disegna un grafo. Con la rotella la vista si allontana, con il tasto centrale
+si sposta; in entrambi i casi i nuovi punti devono comparire sotto il cursore. Premi 💾, ricarica
+la pagina e il grafo è ancora lì. 🗑️ lo cancella dal canvas.
+
+Senza un mouse con il tasto centrale, ad esempio con il solo trackpad, la vista si può allontanare
+ma non spostare.
