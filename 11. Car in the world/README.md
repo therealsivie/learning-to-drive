@@ -19,6 +19,7 @@ che chiude quella parte.
 | 1. Spatial Graphs | Punti, segmenti e un grafo che li tiene insieme |
 | 2. Graph Editor | Editor con il mouse: aggiungere, collegare, trascinare e cancellare punti |
 | 3. Dynamic Viewport | Zoom, spostamento della vista, salvataggio del grafo |
+| 4. Roads | Strade larghe attorno ai segmenti, con i bordi uniti negli incroci |
 
 Anche lo stile cambia: indentazione a 3 spazi, spazi intorno agli operatori e alle virgole, punto
 e virgola sempre presente.
@@ -311,3 +312,109 @@ la pagina e il grafo è ancora lì. 🗑️ lo cancella dal canvas.
 
 Senza un mouse con il tasto centrale, ad esempio con il solo trackpad, la vista si può allontanare
 ma non spostare.
+
+## Parte 4. Roads
+
+Finora un segmento era una linea di 2 pixel. Qui diventa una strada: una fascia d'asfalto larga
+100 unità con le estremità arrotondate, una mezzeria tratteggiata e i bordi bianchi. Il grafo
+resta lo scheletro, la strada si costruisce attorno.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `js/primitives/polygon.js` | Nuovo: classe `Polygon`, disegno, unione, test di contenimento |
+| `js/primitives/envelope.js` | Nuovo: classe `Envelope`, il poligono attorno a un segmento |
+| `js/world.js` | Nuovo: classe `World`, genera e disegna le strade dal grafo |
+| `js/math/utils.js` | `average`, `translate`, `angle`, `getIntersection`, `lerp`, `getRandomColor` |
+| `index.html` | Crea il `World` e lo disegna sotto l'editor |
+
+### Polygon
+
+Un poligono è una lista di punti; il costruttore crea anche i lati, collegando ogni punto al
+successivo e l'ultimo al primo (`points[i % points.length]`). `draw` riempie e contorna la forma
+con `fill`, `stroke` e `lineWidth`, con lo stesso stile di opzioni di `Point` e `Segment`.
+
+### Envelope
+
+```js
+const alpha = angle(subtract(p1, p2));
+const alpha_cw = alpha + Math.PI / 2;
+const alpha_ccw = alpha - Math.PI / 2;
+```
+
+`alpha` è la direzione del segmento. Attorno a `p1` l'involucro traccia mezzo cerchio di raggio
+`width / 2` da `alpha_ccw` a `alpha_cw`, attorno a `p2` lo stesso mezzo cerchio ruotato di 180°.
+Unendo i punti dei due semicerchi si ottiene una capsula. `roundness` è il numero di passi per
+semicerchio: con 1 le estremità sono piatte, con 10 sembrano tonde.
+
+`translate(loc, angle, offset)` sposta un punto di `offset` nella direzione `angle`, con coseno e
+seno: lo stesso calcolo dei raggi dei sensori nei capitoli dell'auto.
+
+### World
+
+```js
+generate() {
+   this.envelopes.length = 0;
+   for (const seg of this.graph.segments) {
+      this.envelopes.push(
+         new Envelope(seg, this.roadWidth, this.roadRoundness)
+      );
+   }
+
+   this.roadBorders = Polygon.union(this.envelopes.map((e) => e.poly));
+}
+```
+
+Un involucro per segmento, poi l'unione dei loro contorni. `draw` disegna in quest'ordine
+l'asfalto (`#BBB`), la mezzeria tratteggiata sopra i segmenti del grafo e infine i bordi bianchi.
+
+### Unire i contorni
+
+Due capsule che si incrociano si sovrappongono, e disegnando i loro contorni comparirebbero linee
+bianche in mezzo all'incrocio. `Polygon.union` tiene solo la parte esterna:
+
+1. `multiBreak` prende ogni coppia di poligoni e, con `break`, spezza i lati dove si incrociano: il
+   punto d'incrocio diventa l'estremo comune di due nuovi segmenti, uno per poligono;
+2. per ogni segmento di ogni poligono `union` controlla se sta dentro un altro poligono, e in quel
+   caso lo scarta;
+3. restano i segmenti del perimetro esterno, che diventano `roadBorders`.
+
+Dopo lo spezzamento ogni segmento è tutto dentro o tutto fuori, quindi `containsSegment` testa solo
+il suo punto medio. `containsPoint` usa il **ray casting**: traccia un segmento dal punto fino a
+`(-1000, -1000)` e conta quanti lati del poligono attraversa. Un numero dispari vuol dire che il
+punto è dentro.
+
+`getIntersection` è la formula parametrica già usata per i sensori; restituisce anche `offset`, la
+posizione dell'incrocio lungo il primo segmento. `break` ignora gli incroci con offset 0 o 1, che
+cadono su un vertice esistente: spezzare lì creerebbe segmenti lunghi zero.
+
+`drawSegments` non viene usato dal mondo: colora ogni lato di un poligono con `getRandomColor` ed è
+utile per vedere a occhio dove `break` ha spezzato.
+
+### index.html
+
+```js
+viewport.reset();
+world.generate();
+world.draw(ctx);
+ctx.globalAlpha = 0.3;
+graphEditor.display();
+```
+
+Il mondo si disegna sotto, l'editor sopra in trasparenza. `globalAlpha` non viene mai rimesso a 1
+perché ci pensa il `restore()` in `viewport.reset()` al frame successivo.
+
+### Limiti
+
+- `world.generate()` gira a ogni frame, e l'unione confronta ogni poligono con tutti gli altri:
+  con qualche decina di strade la pagina rallenta. La Parte 5 rigenera il mondo solo quando il
+  grafo cambia.
+- Il punto di partenza del ray casting è fisso a `(-1000, -1000)`: se un poligono lo contenesse,
+  il test sbaglierebbe. Con grafi disegnati a mano non succede.
+
+### Come provarlo
+
+Apri `index.html` e disegna un incrocio a croce o a T. Le strade sono grigie con la mezzeria
+tratteggiata, e i bordi bianchi girano attorno all'incrocio senza attraversarlo. Trascinando un
+punto le strade si ricalcolano in tempo reale.
