@@ -20,6 +20,7 @@ che chiude quella parte.
 | 2. Graph Editor | Editor con il mouse: aggiungere, collegare, trascinare e cancellare punti |
 | 3. Dynamic Viewport | Zoom, spostamento della vista, salvataggio del grafo |
 | 4. Roads | Strade larghe attorno ai segmenti, con i bordi uniti negli incroci |
+| 5. Buildings And Trees | Edifici lungo le strade, alberi negli spazi liberi |
 
 Anche lo stile cambia: indentazione a 3 spazi, spazi intorno agli operatori e alle virgole, punto
 e virgola sempre presente.
@@ -418,3 +419,104 @@ perché ci pensa il `restore()` in `viewport.reset()` al frame successivo.
 Apri `index.html` e disegna un incrocio a croce o a T. Le strade sono grigie con la mezzeria
 tratteggiata, e i bordi bianchi girano attorno all'incrocio senza attraversarlo. Trascinando un
 punto le strade si ricalcolano in tempo reale.
+
+## Parte 5. Buildings And Trees
+
+Le strade da sole non fanno una città. Questa parte riempie il mondo: file di edifici
+parallele alle strade e alberi sparsi negli spazi rimasti liberi. Tutto viene generato dal grafo,
+senza disegnare niente a mano.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `js/math/graph.js` | `hash()`, per sapere quando il grafo è cambiato |
+| `js/math/utils.js` | `dot`, `normalize`, `magnitude`; soglia in `getIntersection` |
+| `js/primitives/segment.js` | `length`, `directionVector`, `projectPoint`, `distanceToPoint` |
+| `js/primitives/polygon.js` | `distanceToPoint`, `distanceToPoly`, `intersectsPoly` |
+| `js/world.js` | Parametri e generazione di edifici e alberi |
+| `index.html` | Rigenera il mondo solo se il grafo cambia |
+
+### Rigenerare solo quando serve
+
+```js
+let oldGraphHash = graph.hash();
+...
+if (graph.hash() != oldGraphHash) {
+   world.generate();
+   oldGraphHash = graph.hash();
+}
+```
+
+`hash()` è `JSON.stringify(this)`: non un vero hash, ma due grafi uguali danno la stessa stringa.
+Serializzare il grafo a ogni frame costa molto meno che rifare unioni di poligoni, e zoom e
+spostamento della vista non lo toccano affatto. Serve anche per gli alberi: sono generati a caso, e
+senza questo controllo cambierebbero posto a ogni frame.
+
+### Segmenti quasi paralleli
+
+```js
+const eps = 0.001;
+if (Math.abs(bottom) > eps) {
+```
+
+In `getIntersection` il denominatore `bottom` vale zero quando i due segmenti sono paralleli. Con
+i numeri in virgola mobile, però, segmenti quasi paralleli danno valori minuscoli ma non nulli, e
+dividere per quei valori produce incroci che non esistono. Con gli edifici capita spesso, perché
+nascono da contorni paralleli alle strade.
+
+### Distanze
+
+Per tenere edifici e alberi alla giusta distanza da tutto il resto servono misure di distanza:
+
+- `projectPoint` proietta un punto sulla retta del segmento con il prodotto scalare (`dot`) e
+  restituisce anche `offset`, la posizione lungo il segmento da 0 a 1;
+- `distanceToPoint` usa la proiezione se cade dentro il segmento, altrimenti la distanza
+  dall'estremo più vicino;
+- `Polygon.distanceToPoint` è il minimo sulle distanze dai lati, `distanceToPoly` il minimo sui
+  vertici dell'altro poligono;
+- `intersectsPoly` controlla se due poligoni hanno lati che si incrociano.
+
+### Edifici
+
+`#generateBuildings` lavora in quattro passi:
+
+1. **guide**: per ogni segmento crea un involucro largo quanto strada, edificio e due spazi di
+   separazione, e unisce i contorni con `Polygon.union`. Il risultato corre parallelo alle strade,
+   alla distanza giusta per appoggiarci gli edifici. Le guide più corte di `buildingMinLength`
+   vengono scartate;
+2. **supporti**: ogni guida viene divisa nel massimo numero di pezzi lunghi almeno
+   `buildingMinLength`, separati da `spacing`. La lunghezza dei pezzi viene allungata per riempire
+   la guida senza avanzi;
+3. **basi**: ogni supporto diventa un rettangolo largo `buildingWidth`, cioè un `Envelope` con
+   `roundness` 1;
+4. **pulizia**: dove due guide si incontrano gli edifici si sovrappongono, quindi per ogni coppia
+   il secondo viene scartato se tocca il primo o gli sta più vicino di `spacing`.
+
+| Parametro | Default | Significato |
+|-----------|---------|-------------|
+| `buildingWidth` | 150 | Profondità degli edifici |
+| `buildingMinLength` | 150 | Lunghezza minima di un edificio |
+| `spacing` | 50 | Distanza tra edifici e tra edifici e strada |
+
+### Alberi
+
+`#generateTrees` usa il **campionamento con rifiuto**: prende punti a caso dentro il rettangolo
+che racchiude strade ed edifici e tiene solo quelli che rispettano tre regole:
+
+1. non dentro una strada o un edificio, né a meno di mezzo albero da uno dei due;
+2. non a meno di un albero di distanza da un altro albero;
+3. non più lontano di due alberi da qualunque strada o edificio, per evitare alberi isolati nel
+   nulla ai margini.
+
+Il ciclo si ferma dopo 100 tentativi falliti di fila: `tryCount` torna a zero a ogni albero
+accettato, quindi si continua finché c'è spazio e ci si ferma quando restano solo buchi troppo
+piccoli.
+
+Un albero è un `Point` disegnato con `size: 160` e un nero semitrasparente.
+
+### Come provarlo
+
+Apri `index.html` e disegna un piccolo quartiere. Lungo le strade compaiono rettangoli blu, gli
+edifici, e negli spazi liberi cerchi scuri, gli alberi. Trascinando un punto il mondo si
+rigenera e gli alberi cambiano posizione; zoom e spostamento della vista non toccano niente.
