@@ -21,6 +21,7 @@ che chiude quella parte.
 | 3. Dynamic Viewport | Zoom, spostamento della vista, salvataggio del grafo |
 | 4. Roads | Strade larghe attorno ai segmenti, con i bordi uniti negli incroci |
 | 5. Buildings And Trees | Edifici lungo le strade, alberi negli spazi liberi |
+| 6. Fake 3D | Edifici con tetto e alberi a strati, in prospettiva rispetto al centro della vista |
 
 Anche lo stile cambia: indentazione a 3 spazi, spazi intorno agli operatori e alle virgole, punto
 e virgola sempre presente.
@@ -520,3 +521,109 @@ Un albero è un `Point` disegnato con `size: 160` e un nero semitrasparente.
 Apri `index.html` e disegna un piccolo quartiere. Lungo le strade compaiono rettangoli blu, gli
 edifici, e negli spazi liberi cerchi scuri, gli alberi. Trascinando un punto il mondo si
 rigenera e gli alberi cambiano posizione; zoom e spostamento della vista non toccano niente.
+
+## Parte 6. Fake 3D
+
+Il mondo resta un disegno 2D visto dall'alto, ma edifici e alberi acquistano altezza: si
+inclinano allontanandosi dal centro dello schermo, come in una foto aerea scattata con un
+grandangolo. Niente WebGL e niente matrici di proiezione, solo poligoni disegnati nell'ordine
+giusto.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `js/items/building.js` | Nuovo: edificio con pareti, soffitto e tetto a due falde |
+| `js/items/tree.js` | Nuovo: albero fatto di livelli sovrapposti |
+| `js/math/utils.js` | `getFake3dPoint`, `lerp2D` |
+| `js/primitives/polygon.js` | Opzione `join` in `draw` |
+| `js/world.js` | Edifici e alberi come oggetti, disegnati dal più lontano |
+| `index.html` | Passa a `world.draw` il punto di vista |
+
+### Il punto di vista
+
+```js
+const viewPoint = scale(viewport.getOffset(), -1);
+world.draw(ctx, viewPoint);
+```
+
+L'offset del viewport è la traslazione applicata al canvas, cioè l'opposto del punto del mondo
+inquadrato al centro dello schermo. Cambiandogli segno si ottiene quel punto: è da lì che
+"guarda" la telecamera.
+
+### Il finto 3D
+
+```js
+function getFake3dPoint(point, viewPoint, height) {
+   const dir = normalize(subtract(point, viewPoint));
+   const dist = distance(point, viewPoint);
+   const scaler = Math.atan(dist / 300) / (Math.PI / 2);
+   return add(point, scale(dir, height * scaler));
+}
+```
+
+Il punto in cima a un oggetto alto `height` viene spostato in direzione opposta al `viewPoint`.
+Lo spostamento cresce con la distanza: al centro dello schermo vale zero e l'oggetto si vede
+dritto dall'alto. L'arcotangente lo fa tendere a `height` senza superarlo mai, così ai bordi i
+tetti non schizzano via.
+
+### Edifici
+
+`Building` avvolge la base generata nella Parte 5, un rettangolo di quattro punti, e la
+disegna a strati:
+
+1. la **base**, con un bordo largo e semitrasparente che fa da ombra;
+2. le **pareti**, un quadrilatero per lato tra base e soffitto;
+3. il **soffitto**, la base proiettata al 60% dell'altezza;
+4. il **tetto**: due falde che salgono dai lati lunghi del soffitto fino al colmo. Il colmo è
+   la proiezione, ad altezza piena, dei punti medi dei lati corti della base.
+
+Pareti e falde vengono ordinate dalla più lontana alla più vicina al `viewPoint`, così quelle
+davanti coprono quelle dietro.
+
+Per gli spigoli del tetto `Polygon.draw` accetta ora `join` (`lineJoin` del canvas). Il
+default `"miter"` va impostato a ogni chiamata: lo stato del contesto è condiviso, e un
+`"round"` rimasto da un tetto finirebbe su tutto quello che viene disegnato dopo.
+
+### Alberi
+
+`Tree` disegna sette livelli dal centro alla cima proiettata, interpolando con `lerp2D`. Salendo
+ogni livello si restringe da `size` a 40 e passa da verde scuro a verde chiaro.
+
+Il contorno di ogni livello è frastagliato con un rumore deterministico:
+
+```js
+const kindOfRandom = Math.cos(((a + this.center.x) * size) % 17) ** 2;
+```
+
+Dipende solo dall'angolo e dalla posizione dell'albero, quindi è identico a ogni frame e non
+tremola, ma cambia da un albero all'altro.
+
+### Ordine di disegno
+
+```js
+const items = [...this.buildings, ...this.trees];
+items.sort(
+   (a, b) =>
+      b.base.distanceToPoint(viewPoint) -
+      a.base.distanceToPoint(viewPoint)
+);
+```
+
+È l'algoritmo del pittore: si disegna prima ciò che è lontano. Edifici e alberi stanno nella
+stessa lista perché hanno la stessa forma, una `base` e un `draw(ctx, viewPoint)`. La lista va
+riordinata a ogni frame, perché il `viewPoint` si muove con la vista.
+
+### Limiti
+
+- La distanza usata per ordinare è quella della base più vicina al `viewPoint`, non della sagoma
+  proiettata: un edificio lungo accanto a un albero può essere disegnato nell'ordine sbagliato.
+- Il tetto presuppone basi di esattamente quattro punti, garantite da `Envelope` con
+  `roundness` 1.
+
+### Come provarlo
+
+Apri `index.html` con un grafo salvato, oppure disegnane uno. Spostando la vista con il tasto
+centrale, gli edifici si inclinano sempre verso l'esterno dello schermo. Quelli al centro
+mostrano solo il tetto rosso, quelli ai bordi anche le pareti. Gli alberi davanti a un
+edificio lo coprono, quelli dietro restano nascosti.
