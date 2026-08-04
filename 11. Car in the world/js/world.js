@@ -1,6 +1,7 @@
 class World {
-   constructor(graph, 
-      roadWidth = 100, 
+   constructor(
+      graph,
+      roadWidth = 100,
       roadRoundness = 10,
       buildingWidth = 150,
       buildingMinLength = 150,
@@ -39,7 +40,7 @@ class World {
    #generateTrees() {
       const points = [
          ...this.roadBorders.map((s) => [s.p1, s.p2]).flat(),
-         ...this.buildings.map((b) => b.base.points).flat()
+         ...this.buildings.map((b) => b.base.points).flat(),
       ];
       const left = Math.min(...points.map((p) => p.x));
       const right = Math.max(...points.map((p) => p.x));
@@ -48,7 +49,7 @@ class World {
 
       const illegalPolys = [
          ...this.buildings.map((b) => b.base),
-         ...this.envelopes.map((e) => e.poly)
+         ...this.envelopes.map((e) => e.poly),
       ];
 
       const trees = [];
@@ -62,7 +63,10 @@ class World {
          // check if tree inside or nearby building / road
          let keep = true;
          for (const poly of illegalPolys) {
-            if (poly.containsPoint(p) || poly.distanceToPoint(p) < this.treeSize / 2) {
+            if (
+               poly.containsPoint(p) ||
+               poly.distanceToPoint(p) < this.treeSize / 2
+            ) {
                keep = false;
                break;
             }
