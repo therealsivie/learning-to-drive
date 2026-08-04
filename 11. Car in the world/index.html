@@ -10,6 +10,8 @@
       <div id="controls">
          <button onclick="dispose()">🗑️</button>
          <button onclick="save()">💾</button>
+         &nbsp;
+         <button id="graphBtn" onclick="setMode('graph')">🌐</button>
       </div>
 
       <script src="js/world.js"></script>
@@ -37,9 +39,15 @@
          const world = new World(graph);
 
          const viewport = new Viewport(myCanvas);
-         const graphEditor = new GraphEditor(viewport, graph);
+
+         const tools = {
+            graph: { button: graphBtn, editor: new GraphEditor(viewport, graph) },
+         };
 
          let oldGraphHash = graph.hash();
+
+         setMode("graph");
+
          animate();
 
          function animate() {
@@ -51,16 +59,33 @@
             const viewPoint = scale(viewport.getOffset(), -1);
             world.draw(ctx, viewPoint);
             ctx.globalAlpha = 0.3;
-            graphEditor.display();
+            for (const tool of Object.values(tools)) {
+               tool.editor.display();
+            }
             requestAnimationFrame(animate);
          }
 
          function dispose() {
-            graphEditor.dispose();
+            tools["graph"].editor.dispose();
          }
 
          function save() {
             localStorage.setItem("graph", JSON.stringify(graph));
+         }
+
+         function setMode(mode) {
+            dissableEditors();
+            tools[mode].button.style.backgroundColor = "white";
+            tools[mode].button.style.filter = "";
+            tools[mode].editor.enable();
+         }
+
+         function dissableEditors() {
+            for (const tool of Object.values(tools)) {
+               tool.button.style.backgroundColor = "gray";
+               tool.button.style.filter = "grayscale(100%)";
+               tool.editor.disable();
+            }
          }
       </script>
    </body>
