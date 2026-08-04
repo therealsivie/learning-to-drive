@@ -12,6 +12,7 @@
          <button onclick="save()">💾</button>
          &nbsp;
          <button id="graphBtn" onclick="setMode('graph')">🌐</button>
+         <button id="stopBtn" onclick="setMode('stop')">🛑</button>
       </div>
 
       <script src="js/world.js"></script>
@@ -22,8 +23,12 @@
       <script src="js/primitives/envelope.js"></script>
       <script src="js/items/tree.js"></script>
       <script src="js/items/building.js"></script>
+      <script src="js/markings/marking.js"></script>
+      <script src="js/markings/stop.js"></script>
       <script src="js/viewport.js"></script>
+      <script src="js/editors/markingEditor.js"></script>
       <script src="js/editors/graphEditor.js"></script>
+      <script src="js/editors/stopEditor.js"></script>
       <script src="js/math/utils.js"></script>
       <script>
          myCanvas.width = 600;
@@ -42,6 +47,7 @@
 
          const tools = {
             graph: { button: graphBtn, editor: new GraphEditor(viewport, graph) },
+            stop: { button: stopBtn, editor: new StopEditor(viewport, world) },
          };
 
          let oldGraphHash = graph.hash();
@@ -67,6 +73,7 @@
 
          function dispose() {
             tools["graph"].editor.dispose();
+            world.markings.length = 0;
          }
 
          function save() {
