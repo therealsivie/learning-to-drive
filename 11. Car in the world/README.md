@@ -22,6 +22,7 @@ che chiude quella parte.
 | 4. Roads | Strade larghe attorno ai segmenti, con i bordi uniti negli incroci |
 | 5. Buildings And Trees | Edifici lungo le strade, alberi negli spazi liberi |
 | 6. Fake 3D | Edifici con tetto e alberi a strati, in prospettiva rispetto al centro della vista |
+| 7. Markings | Barra degli strumenti e segnaletica sulle corsie: stop, precedenza, strisce, parcheggi, semafori, partenza e arrivo |
 
 Anche lo stile cambia: indentazione a 3 spazi, spazi intorno agli operatori e alle virgole, punto
 e virgola sempre presente.
@@ -627,3 +628,138 @@ Apri `index.html` con un grafo salvato, oppure disegnane uno. Spostando la vista
 centrale, gli edifici si inclinano sempre verso l'esterno dello schermo. Quelli al centro
 mostrano solo il tetto rosso, quelli ai bordi anche le pareti. Gli alberi davanti a un
 edificio lo coprono, quelli dietro restano nascosti.
+
+## Parte 7. Markings
+
+Sulle strade arriva la segnaletica. Una barra di pulsanti sceglie lo strumento attivo: l'editor
+del grafo oppure uno degli editor di segnaletica, che piazzano un elemento sulla corsia più
+vicina al mouse, orientato nel senso di marcia.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `js/editors/graphEditor.js` | Spostato da `js/`; nuovi `enable()` e `disable()` |
+| `js/editors/markingEditor.js` | Nuovo: classe base degli editor di segnaletica |
+| `js/editors/*Editor.js` | Nuovi: un editor per ogni tipo di segnaletica |
+| `js/markings/marking.js` | Nuovo: classe base, un rettangolo centrato su un punto |
+| `js/markings/*.js` | Nuovi: `Stop`, `Yield`, `Crossing`, `Parking`, `Light`, `Start`, `Target` |
+| `js/math/utils.js` | `getNearestSegment`, `perpendicular` |
+| `js/primitives/segment.js` | Opzione `cap` in `draw` |
+| `js/world.js` | Lane guides, elenco `markings`, fasi dei semafori |
+| `index.html` | Barra degli strumenti, `setMode` |
+| `styles.css` | Stile dei pulsanti |
+| `car.png` | Immagine dell'auto per il punto di partenza |
+
+### Barra degli strumenti
+
+```js
+const tools = {
+   graph: { button: graphBtn, editor: new GraphEditor(viewport, graph) },
+   stop: { button: stopBtn, editor: new StopEditor(viewport, world) },
+   // ...
+};
+```
+
+`setMode(mode)` spegne tutti gli editor, rende grigi i pulsanti con `grayscale(100%)` e poi
+riaccende solo quello scelto. Gli editor ora non ascoltano più il mouse dal costruttore: lo
+fanno in `enable()` e smettono in `disable()`.
+
+Per togliere un listener serve la stessa funzione passata ad `addEventListener`. Ma
+`this.#handleMouseDown.bind(this)` crea una funzione nuova a ogni chiamata, quindi la versione
+legata viene salvata nel campo `boundMouseDown` e riusata in `removeEventListener`.
+
+Tutti gli editor disegnano la propria anteprima a ogni frame con `display()`, ma solo quello
+attivo ne ha una.
+
+### Lane guides
+
+Le corsie sono le linee a metà tra il centro della strada e il bordo. `World` le ottiene come
+le strade, ma con buste larghe la metà:
+
+```js
+new Envelope(seg, this.roadWidth / 2, this.roadRoundness)
+```
+
+L'unione delle buste dà i segmenti di `laneGuides`, uno per senso di marcia. La segnaletica si
+aggancia lì: uno STOP finisce sulla corsia giusta e non a cavallo della linea tratteggiata. Le
+strisce pedonali fanno eccezione e si agganciano ai segmenti del grafo, perché attraversano
+tutta la strada.
+
+### MarkingEditor
+
+`MarkingEditor` fa tutto il lavoro comune:
+
+- al movimento del mouse cerca il segmento più vicino entro `10 * zoom` con
+  `getNearestSegment`;
+- proietta il mouse su quel segmento e, se cade al suo interno, crea l'anteprima con
+  `createMarking(punto, direzione)`;
+- il click sinistro aggiunge l'anteprima a `world.markings`, il destro toglie la segnaletica
+  sotto il mouse.
+
+Le sottoclassi decidono soltanto quale segnaletica creare e su quali segmenti, ridefinendo
+`createMarking`. È il pattern *template method*: lo schema è nella classe base, il passo che
+cambia è nelle figlie.
+
+### Segnaletica
+
+`Marking` costruisce un rettangolo largo `width` e lungo `height`, centrato in `center` e
+allineato a `directionVector`. Serve per il test del click destro (`poly.containsPoint`) e come
+disegno di default. Le sottoclassi ridefiniscono `draw`:
+
+| Segnaletica | Pulsante | Disegno |
+|-------------|----------|---------|
+| `Stop` | 🛑 | Linea bianca trasversale alla corsia e scritta STOP |
+| `Yield` | ⚠️ | Linea bianca trasversale e scritta YIELD |
+| `Crossing` | 🚶 | Strisce bianche: una linea tratteggiata spessa quanto la marking, perpendicolare alla strada |
+| `Parking` | 🅿️ | Due linee trasversali alla corsia e una P |
+| `Light` | 🚦 | Corpo arrotondato con tre luci |
+| `Start` | 🚙 | L'immagine `car.png`, ruotata nel senso di marcia |
+| `Target` | 🎯 | Tre cerchi concentrici rossi e bianchi |
+
+Le scritte usano sempre lo stesso schema: `translate` sul centro, `rotate` nel senso di
+marcia, `fillText` in coordinate locali e infine `restore`. `scale(1, 3)` allunga le lettere
+come la segnaletica vera, che si legge di scorcio.
+
+La segnaletica si disegna subito dopo l'asfalto, sotto la linea tratteggiata e i bordi.
+
+### Semafori
+
+A ogni frame `#updateLights()` raggruppa i semafori per incrocio, cioè per punto del grafo con
+più di due segmenti, e li accende a turno:
+
+- un tick vale 60 frame;
+- il semaforo di turno resta verde per 2 tick e giallo per 1;
+- tutti gli altri semafori dello stesso incrocio sono rossi.
+
+Lo stato non viene memorizzato da un frame all'altro: si ricalcola da `frameCount`.
+
+### Array modificati sul posto
+
+```js
+this.laneGuides.length = 0;
+this.laneGuides.push(...this.#generateLaneGuides());
+```
+
+Gli editor ricevono `world.laneGuides` e `world.markings` nel costruttore e li conservano.
+Se `World` assegnasse un array nuovo, gli editor resterebbero agganciati a quello vecchio. Per
+lo stesso motivo `dispose()` svuota la segnaletica con `world.markings.length = 0`.
+
+### Limiti
+
+- La segnaletica non si salva: 💾 salva ancora solo il grafo.
+- La segnaletica non segue il grafo: spostando o cancellando una strada, rimane dov'era.
+- Un semaforo in un grafo senza incroci blocca il disegno: `getNearestPoint` restituisce `null`
+  e `#updateLights` lancia un errore a ogni frame.
+- Il tick conta i frame, non i secondi: su uno schermo a 120 Hz i semafori vanno al doppio
+  della velocità.
+- `Light` ignora l'altezza ricevuta e usa sempre 18.
+- Gli editor usano la variabile globale `world` in `createMarking` invece di `this.world`, e
+  la funzione si chiama `dissableEditors`: entrambi sono tenuti come nell'originale.
+
+### Come provarlo
+
+Apri `index.html` e disegna qualche strada con 🌐, con almeno un incrocio a tre vie. Scegli
+uno strumento dalla barra: avvicinando il mouse a una corsia compare l'anteprima
+semitrasparente, il click sinistro la fissa e il destro la toglie. I semafori di uno stesso
+incrocio diventano verdi uno alla volta.
