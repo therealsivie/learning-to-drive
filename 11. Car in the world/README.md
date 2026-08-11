@@ -23,6 +23,7 @@ che chiude quella parte.
 | 5. Buildings And Trees | Edifici lungo le strade, alberi negli spazi liberi |
 | 6. Fake 3D | Edifici con tetto e alberi a strati, in prospettiva rispetto al centro della vista |
 | 7. Markings | Barra degli strumenti e segnaletica sulle corsie: stop, precedenza, strisce, parcheggi, semafori, partenza e arrivo |
+| 8. Saving The World | Salvataggio del mondo intero con segnaletica e vista, esportazione e importazione di file `.world` |
 
 Anche lo stile cambia: indentazione a 3 spazi, spazi intorno agli operatori e alle virgole, punto
 e virgola sempre presente.
@@ -763,3 +764,74 @@ Apri `index.html` e disegna qualche strada con 🌐, con almeno un incrocio a tr
 uno strumento dalla barra: avvicinando il mouse a una corsia compare l'anteprima
 semitrasparente, il click sinistro la fissa e il destro la toglie. I semafori di uno stesso
 incrocio diventano verdi uno alla volta.
+
+## Parte 8. Saving The World
+
+Fino alla Parte 7 si salvava solo il grafo: segnaletica, edifici e alberi andavano persi, e gli
+alberi cambiavano posto a ogni caricamento. Ora si salva tutto il mondo, insieme alla vista, in
+`localStorage` e in un file `.world` da scaricare e ricaricare.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `js/world.js` | `World.load`, ricostruisce il mondo da un oggetto JSON |
+| `js/primitives/polygon.js` | `Polygon.load` |
+| `js/primitives/envelope.js` | `Envelope.load`; il costruttore accetta di non ricevere lo scheletro |
+| `js/items/building.js` | `Building.load` |
+| `js/markings/marking.js` | Campo `type` e `Marking.load`, che crea la sottoclasse giusta |
+| `js/markings/*.js` | Ogni sottoclasse imposta il proprio `type` |
+| `js/viewport.js` | Il costruttore accetta `zoom` e `offset` iniziali |
+| `index.html` | Chiave `"world"` in `localStorage`, pulsante 📁, `save()` scarica il file |
+| `styles.css` | Stile dell'etichetta 📁, input di file nascosto |
+
+### Da JSON a oggetti
+
+`JSON.stringify(world)` salva i campi ma non le classi: da `JSON.parse` escono oggetti senza
+metodi. Ogni classe che finisce nel file ha quindi un `static load(info)` che ricostruisce le
+istanze:
+
+| Metodo | Ricostruisce |
+|--------|--------------|
+| `World.load` | Parametri, grafo, buste, bordi, edifici, alberi, lane guides, segnaletica, vista |
+| `Graph.load` | Punti e segmenti, già presente dalla Parte 3 |
+| `Envelope.load` | Scheletro e poligono, senza ricalcolarli |
+| `Polygon.load` | I punti come `Point` |
+| `Building.load` | Base e altezza |
+| `Marking.load` | La sottoclasse indicata da `type` |
+
+Da un oggetto JSON non si capisce più se era uno `Stop` o un `Yield`. Per questo ogni marking
+scrive il proprio `type` e `Marking.load` sceglie la classe con uno `switch`.
+
+`World.load` non chiama `generate()`: usa le buste, gli edifici e gli alberi salvati. Gli alberi
+nascono da `Math.random()`, e rigenerandoli cambierebbero posto a ogni caricamento.
+
+### La vista
+
+`save()` copia `viewport.zoom` e `viewport.offset` nel mondo prima di salvarlo, e al caricamento
+il `Viewport` riparte da lì. Un mondo salvato senza vista usa i valori di default: zoom 1 e
+origine al centro del canvas.
+
+### File .world
+
+💾 crea un `<a>` con un *data URL* che contiene il JSON e l'attributo `download`, poi lo clicca
+da codice. Il browser scarica `name.world`.
+
+📁 è un `<label>` collegato a un `<input type="file">` nascosto. Il file scelto viene letto con
+`FileReader`, salvato in `localStorage` e la pagina si ricarica. Ricaricare è più semplice che
+sostituire il mondo al volo: editor, grafo e strumenti tengono riferimenti al mondo vecchio, e
+il codice di avvio legge già da `localStorage`.
+
+### Limiti
+
+- Il grafo salvato con `"graph"` nelle parti precedenti non viene più letto: la nuova chiave è
+  `"world"`.
+- Il file si chiama sempre `name.world`.
+- Il data URL contiene tutto il mondo: per mappe molto grandi sarebbe meglio un `Blob` con
+  `URL.createObjectURL`.
+
+### Come provarlo
+
+Disegna qualche strada, aggiungi segnaletica e sposta la vista, poi premi 💾: il browser scarica
+`name.world`. Ricaricando la pagina il mondo, la segnaletica e la vista sono quelli salvati, con
+gli alberi negli stessi punti. Con 📁 puoi caricare un altro file `.world`.
