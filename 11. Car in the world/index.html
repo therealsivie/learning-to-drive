@@ -61,7 +61,7 @@
             : new World(new Graph());
          const graph = world.graph; 
 
-         const viewport = new Viewport(myCanvas);
+         const viewport = new Viewport(myCanvas, world.zoom, world.offset);
 
          const tools = {
             graph: { button: graphBtn, editor: new GraphEditor(viewport, graph) },
@@ -101,6 +101,9 @@
          }
 
          function save() {
+            world.zoom = viewport.zoom;
+            world.offset = viewport.offset;
+
             localStorage.setItem("world", JSON.stringify(world));
          }
 
