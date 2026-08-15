@@ -25,6 +25,7 @@ che chiude quella parte.
 | 7. Markings | Barra degli strumenti e segnaletica sulle corsie: stop, precedenza, strisce, parcheggi, semafori, partenza e arrivo |
 | 8. Saving The World | Salvataggio del mondo intero con segnaletica e vista, esportazione e importazione di file `.world` |
 | 9. Integration | Editor spostato in `world/`, le auto del capitolo 9 guidano nel mondo salvato dall'editor |
+| 10. OpenStreetMap | Strade importate da OpenStreetMap, sensi unici, edifici e alberi disegnati solo vicino alla vista |
 
 Anche lo stile cambia: indentazione a 3 spazi, spazi intorno agli operatori e alle virgole, punto
 e virgola sempre presente.
@@ -928,3 +929,108 @@ vista segue la migliore e a destra c'è la sua rete. 💾 salva il cervello, �
 
 Se la simulazione non vede il mondo salvato, le due pagine non condividono `localStorage`: servi
 la cartella con un server locale, ad esempio `python3 -m http.server`, e apri entrambe da lì.
+
+## Parte 10. OpenStreetMap
+
+Disegnare a mano una città intera richiede molto tempo. OpenStreetMap ha già le strade di tutto il
+mondo: basta scaricarle in JSON e convertirle nel grafo dell'editor. Da lì il mondo si genera come
+sempre, con buste, bordi, edifici e alberi.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `world/js/math/osm.js` | `Osm.parseRoads`, da dati OpenStreetMap a punti e segmenti |
+| `world/js/math/utils.js` | `invLerp` e `degToRad` |
+| `world/index.html` | Pulsante 🗺️ e pannello in cui incollare i dati |
+| `world/styles.css` | Stile del pannello, `overflow: hidden` sul body |
+| `world/js/primitives/segment.js` | Campo `oneWay`, tratteggio più fitto per i sensi unici |
+| `world/js/world.js` | `draw()` riceve `renderRadius` |
+
+### I dati
+
+I dati si scaricano con [Overpass Turbo](https://overpass-turbo.eu/): sposta la mappa sulla zona
+che ti interessa, incolla una query come questa e premi *Run*.
+
+```
+[out:json];
+(
+  way['highway']
+  ['highway' !~ '^(pedestrian|footway|cycleway|path|service|corridor|track|steps|raceway|bridleway|proposed|construction|elevator|bus_guideway)$']
+  ['access' !~ '^(private|no)$']
+  ({{bbox}});
+);
+out body;
+>;
+out skel;
+```
+
+La query prende le *way* con il tag `highway`, cioè le strade, e scarta quelle che le auto non
+percorrono. `{{bbox}}` è il rettangolo visibile sulla mappa. `out body` restituisce le way con la
+lista dei loro nodi, `>` aggiunge i nodi a cui fanno riferimento e `out skel` li restituisce con le
+sole coordinate. Il JSON del tab *Data* va incollato nel pannello 🗺️ e confermato con ✔️.
+
+### Da latitudine e longitudine a punti
+
+`Osm.parseRoads` prende tutti i nodi, ne calcola il rettangolo che li contiene e lo proietta sul
+piano:
+
+- un grado di latitudine vale circa 111 km ovunque. L'altezza è `deltaLat * 111000 * 10`, quindi
+  un metro vale 10 unità. Con questa scala la strada larga 100 è larga 10 m e l'auto 30×50 misura
+  3×5 m;
+- un grado di longitudine si accorcia andando verso i poli, quindi la larghezza è moltiplicata per
+  `cos(lat)`;
+- ogni nodo diventa un `Point` con `invLerp` sui due assi. Per la `y` gli estremi sono invertiti,
+  `invLerp(maxLat, minLat, lat)`, perché la latitudine cresce verso nord e la `y` del canvas verso
+  il basso.
+
+È una proiezione equirettangolare locale: precisa su un quartiere, sempre più distorta su
+un'area grande.
+
+Ogni way diventa una catena di segmenti tra nodi consecutivi. Per ritrovarli il punto conserva
+l'`id` del nodo. `parseOsmData` sostituisce `graph.points` e `graph.segments`: l'editor vede che
+l'hash del grafo è cambiato e rigenera il mondo, come quando si modifica il grafo con il mouse.
+
+### Sensi unici
+
+Una way con `oneway` o con `lanes` uguale a 1 crea segmenti `oneWay`. `Segment.draw` ignora il
+tratteggio ricevuto e usa `[4, 4]`, quindi un senso unico ha la mezzeria più fitta e nell'editor
+del grafo appare tratteggiato. Le auto non ne tengono conto.
+
+### Disegnare solo il vicino
+
+Una mappa reale ha migliaia di edifici, e ognuno costa il calcolo del finto 3D e un disegno sul
+canvas. `World.draw` scarta gli edifici e gli alberi la cui base è a più di `renderRadius` (1000)
+dal punto di vista, prima dell'ordinamento. Strade, segnaletica e bordi restano tutti: sono linee
+semplici e senza di loro si vedrebbero buchi nella rete.
+
+### Cosa non è stato portato
+
+- `miniMap.js` nella radice: nell'originale è un abbozzo della parte successiva, interrotto a metà
+  e non caricato da nessuna pagina.
+- `world/saves/big.world`: un mondo d'esempio da 6 MB, che un file `.world` generato da sé
+  sostituisce.
+
+### Limiti
+
+- `oneWay` viene scritto nel file ma `Graph.load` non lo legge: dopo un caricamento tutte le strade
+  tornano a doppio senso.
+- `oneway` è una stringa: anche `oneway=no` risulta un senso unico, e `oneway=-1` (senso unico nel
+  verso opposto) non è distinto. In un estratto di prova di Bologna, 44 dei 153 segmenti a senso
+  unico venivano da `oneway=no`.
+- Ogni segmento cerca i suoi due punti con `points.find`, quindi la conversione rallenta con il
+  quadrato dei nodi. Anche la generazione del mondo, con l'unione delle buste, diventa lenta su
+  mappe grandi.
+- Un mondo grande può superare il limite di `localStorage`, intorno ai 5 MB in molti browser. In
+  quel caso il salvataggio fallisce, mentre il file `.world` si scarica comunque.
+- `renderRadius` è in unità del mondo: nell'editor, allontanando la vista, gli edifici lontani dal
+  centro spariscono.
+- Ponti e sottopassi non sono distinti: le due strade non condividono un nodo, ma le loro buste si
+  uniscono e dove si sovrappongono sembra un incrocio.
+
+### Come provarlo
+
+Apri `world/index.html`, premi 🗺️ e incolla il JSON di Overpass Turbo per una zona piccola, qualche
+isolato. Con ✔️ compare la rete stradale con edifici e alberi; i sensi unici hanno la mezzeria più
+fitta. Aggiungi un marking Start, premi 💾 e apri `index.html` nella radice per far guidare le auto
+nelle strade vere.
