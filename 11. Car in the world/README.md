@@ -24,6 +24,7 @@ che chiude quella parte.
 | 6. Fake 3D | Edifici con tetto e alberi a strati, in prospettiva rispetto al centro della vista |
 | 7. Markings | Barra degli strumenti e segnaletica sulle corsie: stop, precedenza, strisce, parcheggi, semafori, partenza e arrivo |
 | 8. Saving The World | Salvataggio del mondo intero con segnaletica e vista, esportazione e importazione di file `.world` |
+| 9. Integration | Editor spostato in `world/`, le auto del capitolo 9 guidano nel mondo salvato dall'editor |
 
 Anche lo stile cambia: indentazione a 3 spazi, spazi intorno agli operatori e alle virgole, punto
 e virgola sempre presente.
@@ -835,3 +836,95 @@ il codice di avvio legge già da `localStorage`.
 Disegna qualche strada, aggiungi segnaletica e sposta la vista, poi premi 💾: il browser scarica
 `name.world`. Ricaricando la pagina il mondo, la segnaletica e la vista sono quelli salvati, con
 gli alberi negli stessi punti. Con 📁 puoi caricare un altro file `.world`.
+
+## Parte 9. Integration
+
+Le due basi di codice si incontrano. L'editor delle parti 1-8 si sposta in `world/`, nella radice
+della cartella arriva l'auto della cartella "9. Fine-tuning" e le auto, invece della strada dritta,
+guidano nel mondo disegnato con l'editor.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `world/` | Tutto l'editor delle parti 1-8, spostato senza modifiche |
+| `car.js`, `controls.js`, `network.js`, `sensor.js`, `utils.js`, `visualizer.js`, `car.png` | Arrivano dalla cartella 9 |
+| `car.js` | Angolo iniziale nel costruttore, campo `fittness` |
+| `index.html` | Carica gli script di `world/js/` prima di quelli dell'auto |
+| `main.js` | Mondo da `localStorage`, partenza dal marking Start, vista che segue l'auto migliore |
+| `world/js/world.js` | Disegna le auto e può nascondere i marking Start |
+| `style.css` | Sfondo verde al posto del grigio |
+| `road.js` | Eliminato: i bordi arrivano dal mondo |
+
+### Due pagine
+
+`world/index.html` è l'editor, `index.html` nella radice è la simulazione. Le due pagine leggono la
+stessa chiave `"world"` in `localStorage`: quello che l'editor salva con 💾 è il mondo in cui
+partono le auto.
+
+I percorsi negli script sono relativi alla pagina che li carica, non al file che li contiene.
+`Start` carica `"car.png"`: nell'editor è l'icona 30×50 di `world/`, nella simulazione è lo sprite
+dell'auto nella radice. Nella simulazione i marking Start non vengono disegnati, perché le auto ci
+partono sopra.
+
+### Dal mondo all'auto
+
+`main.js` carica il mondo con `World.load` (o ne crea uno vuoto) e passa ai sensori i bordi delle
+strade nel formato che conoscono già: `world.roadBorders.map((s) => [s.p1, s.p2])`, una coppia di
+punti per segmento, come i bordi di `Road`.
+
+Le 100 auto partono dal centro del primo marking Start, rivolte come l'icona che l'editor disegna.
+Senza marking partono da `(100, 100)` con `dir = Point(0, -1)`. L'angolo iniziale è
+`-angle(dir) + Math.PI / 2`, perché le due basi di codice usano convenzioni diverse:
+
+| Codice | Angolo 0 | Verso positivo |
+|--------|----------|----------------|
+| Mondo, `angle()` con `Math.atan2` | Destra | Orario sullo schermo, con la y verso il basso |
+| Auto, `x -= sin(angle)`, `y -= cos(angle)` | Alto | Antiorario sullo schermo |
+
+La formula non si limita a cambiare convenzione: con `a = π/2 - angle(dir)` l'auto si muove lungo
+`(-sin a, -cos a)`, che è l'opposto di `dir`. Anche `Start.draw` ruota l'icona di
+`angle(dir) - Math.PI / 2` e la rivolge allo stesso modo, quindi auto e icona puntano dalla stessa
+parte. Per lo stesso motivo, senza marking le auto partono verso il basso.
+
+### Fitness
+
+Sulla strada dritta l'auto migliore era la più avanti, quella con la `y` più piccola. In un mondo
+dove la partenza può puntare in qualsiasi direzione quel criterio premierebbe l'auto più a nord,
+quindi ogni auto accumula `fittness += speed` a ogni frame e vince quella che ha percorso più
+strada. Il nome `fittness` è quello dell'originale.
+
+### Vista e disegno
+
+A ogni frame `main.js` mette `viewport.offset` sulla posizione dell'auto migliore, chiama
+`viewport.reset()` e lascia disegnare tutto a `world.draw(carCtx, viewPoint, false)`. Il mondo
+riceve le auto in `world.cars` e `world.bestCar` e le disegna dopo la segnaletica e prima di
+edifici e alberi, così il finto 3D le copre quando ci passano dietro.
+
+Il `Viewport` tiene i suoi listener: la rotella cambia lo zoom, mentre lo spostamento con il tasto
+centrale viene sovrascritto al frame successivo.
+
+### Differenze dall'originale
+
+- Il cervello si salva con la chiave `"worldBestBrain"`. Se è vuota si parte da `"bestBrain"`, il
+  cervello allenato sulla strada dritta della cartella 9, che resta intatto.
+- `index.html` mantiene `<html lang="en">` e `<meta charset="utf-8">` della cartella 9 e carica
+  gli script del mondo nello stesso ordine di `world/index.html`.
+- `visualizer.js` è in UTF-8 come nella cartella 9; nell'originale è in UTF-16.
+
+### Limiti
+
+- Nessun traffico: `traffic` è vuoto e un'auto si danneggia solo toccando i bordi.
+- Le auto non vedono la segnaletica: stop, semafori e strisce sono solo disegni.
+- La fitness premia la strada percorsa, non l'arrivo: un'auto che gira in tondo senza toccare i
+  bordi continua ad accumularla.
+- La dimensione dei canvas è calcolata solo al caricamento.
+
+### Come provarlo
+
+Apri `world/index.html`, disegna qualche strada e metti un marking Start su una corsia, poi premi
+💾 (il file scaricato non serve). Apri `index.html` nella radice: le auto partono dallo Start, la
+vista segue la migliore e a destra c'è la sua rete. 💾 salva il cervello, 🗑️ lo cancella.
+
+Se la simulazione non vede il mondo salvato, le due pagine non condividono `localStorage`: servi
+la cartella con un server locale, ad esempio `python3 -m http.server`, e apri entrambe da lì.
