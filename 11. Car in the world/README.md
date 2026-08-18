@@ -26,6 +26,7 @@ che chiude quella parte.
 | 8. Saving The World | Salvataggio del mondo intero con segnaletica e vista, esportazione e importazione di file `.world` |
 | 9. Integration | Editor spostato in `world/`, le auto del capitolo 9 guidano nel mondo salvato dall'editor |
 | 10. OpenStreetMap | Strade importate da OpenStreetMap, sensi unici, edifici e alberi disegnati solo vicino alla vista |
+| 11. MiniMap | Minimappa della rete stradale sotto la rete neurale, centrata sull'auto migliore |
 
 Anche lo stile cambia: indentazione a 3 spazi, spazi intorno agli operatori e alle virgole, punto
 e virgola sempre presente.
@@ -1037,3 +1038,63 @@ Apri `world/index.html`, premi 🗺️ e incolla il JSON di Overpass Turbo per u
 isolato. Con ✔️ compare la rete stradale con edifici e alberi; i sensi unici hanno la mezzeria più
 fitta. Aggiungi un marking Start, premi 💾 e apri `index.html` nella radice per far guidare le auto
 nelle strade vere.
+
+## Parte 11. MiniMap
+
+Su una mappa vera, con la vista che segue l'auto da vicino, si perde l'orientamento. La minimappa
+mostra la rete stradale intorno all'auto migliore, rimpicciolita, nel riquadro sotto la rete
+neurale.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `miniMap.js` | Classe `MiniMap`, disegna il grafo su un canvas a parte |
+| `index.html` | `miniMapCanvas` sotto `networkCanvas`, script `miniMap.js` |
+| `main.js` | Crea la minimappa e la aggiorna a ogni frame con il punto di vista |
+| `style.css` | Sfondo nero per `miniMapCanvas` |
+
+### Come si disegna
+
+`MiniMap.update(viewPoint)` ripete in piccolo quello che il `Viewport` fa sulla vista principale:
+
+- `translate` porta il punto di vista al centro del canvas, `scale(0.05)` rimpicciolisce il mondo
+  di 20 volte. I 300 pixel del riquadro coprono 6000 unità, circa 600 m con la scala di
+  `Osm.parseRoads`;
+- disegna solo `graph.segments`, lo scheletro delle strade, senza buste, edifici e segnaletica;
+- i segmenti sono larghi `3 / scaler`, quindi dopo la scala restano di 3 pixel;
+- dopo il `restore` disegna un punto blu al centro, fisso: è la mappa che si sposta, non l'auto.
+
+`main.js` passa lo stesso `viewPoint` usato da `world.draw`, cioè la posizione dell'auto migliore.
+
+### La colonna di destra
+
+`networkCanvas` e `miniMapCanvas` stanno in un `div`, e la rete ora è alta
+`window.innerHeight - 300`. Il `div` è un elemento del flex del body: il canvas dell'auto, largo
+`innerWidth - 330`, lascia poco spazio, il `div` si restringe alla larghezza minima di 300 e i due
+canvas, che sono inline, vanno a capo uno sotto l'altro.
+
+### Differenze dall'originale
+
+- Il mondo si carica ancora da `localStorage`. L'originale commenta quel codice e carica
+  `world/saves/big.world` con un tag `<script>`: è un file JS scritto a mano,
+  `const world = World.load({...})`, che qui non c'è (vedi la Parte 10). Il 💾 dell'editor salva
+  JSON puro, che non si può caricare così.
+- `world/js/math/utils.js` resta in UTF-8. Nell'originale questa parte lo converte in UTF-16
+  senza cambiarne il contenuto.
+
+### Limiti
+
+- La scala è fissa: su un mondo disegnato a mano, piccolo, la minimappa è un groviglio di pochi
+  pixel; su una città intera mostra solo i dintorni.
+- Il punto blu non ha una direzione e le altre auto non compaiono.
+- Tutti i segmenti si disegnano a ogni frame, anche quelli fuori dal riquadro.
+- Sotto il primo canvas inline resta lo spazio sotto la linea di base del testo, circa 4 pixel: la
+  colonna supera di poco l'altezza della finestra e il fondo della minimappa viene tagliato da
+  `overflow: hidden`.
+
+### Come provarlo
+
+Salva un mondo dall'editor, meglio se importato da OpenStreetMap, e apri `index.html` nella
+radice. Sotto la rete compare la minimappa: il punto blu resta al centro e le strade scorrono
+mentre l'auto migliore avanza.
