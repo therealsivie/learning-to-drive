@@ -912,6 +912,9 @@ centrale viene sovrascritto al frame successivo.
 - `index.html` mantiene `<html lang="en">` e `<meta charset="utf-8">` della cartella 9 e carica
   gli script del mondo nello stesso ordine di `world/index.html`.
 - `visualizer.js` è in UTF-8 come nella cartella 9; nell'originale è in UTF-16.
+- `world/index.html` dichiara `<meta charset="utf-8">`. Senza, un server che non manda il charset
+  nell'header, come `python3 -m http.server`, fa leggere la pagina in Windows-1252 e le emoji dei
+  pulsanti diventano caratteri illeggibili.
 
 ### Limiti
 
