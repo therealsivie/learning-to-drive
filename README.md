@@ -22,6 +22,7 @@ il suo README con la spiegazione dettagliata di cosa cambia rispetto al capitolo
 | 8 | [Optimizing neural networks](8.%20Optimizing%20neural%20networks) | Tante auto in parallelo, mutazione, salvataggio della rete migliore |
 | 9 | [Fine-tuning](9.%20Fine-tuning) | 100 auto, sprite colorato per ogni auto, traffico multicolore |
 | 10 | [Curved road](10.%20Curved%20road) | Strada curva fatta di polilinee e rete senza strato nascosto |
+| 11 | [Car in the world](11.%20Car%20in%20the%20world) | Editor di un mondo virtuale (strade, edifici, segnaletica, import da OpenStreetMap) in cui guidano le auto |
 
 ## Il percorso in breve
 
@@ -39,6 +40,10 @@ il suo README con la spiegazione dettagliata di cosa cambia rispetto al capitolo
    È un algoritmo genetico ridotto all'osso, con elitismo.
 5. **Esperimento (cap. 10).** Strada sinusoidale fatta di polilinee, rete senza strato nascosto e
    mutazione più forte.
+6. **Mondo (cap. 11).** Un editor separato costruisce un grafo di strade, ne ricava i bordi con
+   l'unione dei poligoni, aggiunge edifici, alberi e segnaletica, e può importare le strade da
+   OpenStreetMap. La simulazione carica quel mondo e fa partire le auto dal marking Start, con una
+   minimappa che segue l'auto migliore.
 
 La funzione che ritorna più spesso è `lerp(A,B,t)`: serve per le corsie, per distribuire i raggi,
 per i punti di intersezione, per posizionare i nodi nel visualizer e per mutare i pesi.
@@ -55,6 +60,11 @@ python3 -m http.server
 
 e poi aprire `http://localhost:8000` e scegliere la cartella.
 
+Il capitolo 11 ha bisogno del server: l'editor (`world/index.html`) e la simulazione
+(`index.html`) si passano il mondo tramite `localStorage`, e due pagine aperte da `file://` non
+sempre lo condividono. Prima si apre l'editor, si costruisce o si importa un mondo e lo si salva
+con 💾; poi si apre la simulazione.
+
 ### Comandi
 
 - Capitoli 1-5: si guida con le frecce della tastiera.
@@ -64,6 +74,10 @@ e poi aprire `http://localhost:8000` e scegliere la cartella.
   salva quando un'auto va lontano, ricarica, ripeti. Nel capitolo 8 conviene alzare `N` in
   `main.js` (nel 9 è già 100).
 - Capitolo 10: `save()` e `discard()` si lanciano dalla console del browser.
+- Capitolo 11: nell'editor si disegnano le strade col mouse in modalità 🌐 e si posa la
+  segnaletica con gli altri pulsanti (🚙 è il punto di partenza delle auto); 🗺️ importa le strade
+  da OpenStreetMap, 💾 salva il mondo, 📁 ne carica uno da file. Nella simulazione 💾 e 🗑️
+  funzionano come nei capitoli 8-9.
 
 ### Attenzione al localStorage
 
@@ -72,7 +86,8 @@ aperti dallo stesso server (o tutti da `file://`), vedono le stesse chiavi. I ca
 salvano la rete in `bestBrain` e si leggono a vicenda la rete salvata. Va bene così: entrambi
 usano una rete `[5,6,4]` su una strada dritta a 3 corsie. Il capitolo 10 usa una rete `[5,4]` su
 una strada curva, quindi salva in una chiave sua, `curvedRoadBestBrain`, e non si mescola con gli
-altri.
+altri. Il capitolo 11 salva in `worldBestBrain`; se la chiave manca, parte dalla `bestBrain` dei
+capitoli 8-9, che ha la stessa forma `[5,6,4]`. Il mondo dell'editor sta nella chiave `world`.
 
 ## Note tecniche
 
