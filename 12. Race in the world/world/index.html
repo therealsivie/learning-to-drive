@@ -11,15 +11,6 @@
       <div id="controls">
          <button onclick="dispose()">🗑️</button>
          <button onclick="save()">💾</button>
-         <label for="fileInput" class="file-input-label">
-            📁
-            <input
-               type="file"
-               id="fileInput"
-               accept=".world"
-               onchange="load(event)"
-            />
-         </label>
          <button onclick="openOsmPanel()">🗺️</button>
          &nbsp;
          <button id="graphBtn" onclick="setMode('graph')">🌐</button>
@@ -69,17 +60,13 @@
       <script src="js/editors/yieldEditor.js"></script>
       <script src="js/math/utils.js"></script>
       <script src="js/math/osm.js"></script>
+      <script src="saves/path_finding.world"></script>
       <script>
          myCanvas.width = 600;
          myCanvas.height = 600;
 
          const ctx = myCanvas.getContext("2d");
 
-         const worldString = localStorage.getItem("world");
-         const worldInfo = worldString ? JSON.parse(worldString) : null;
-         let world = worldInfo
-            ? World.load(worldInfo)
-            : new World(new Graph());
          const graph = world.graph; 
 
          const viewport = new Viewport(myCanvas, world.zoom, world.offset);
@@ -129,35 +116,15 @@
             element.setAttribute(
                "href",
                "data:application/json;charset=utf-8," +
-                  encodeURIComponent(JSON.stringify(world))
+                  encodeURIComponent(
+                     "const world = World.load(" + JSON.stringify(world) + ");"
+                  )
             );
 
             const fileName = "name.world";
             element.setAttribute("download", fileName);
 
             element.click();
-
-            localStorage.setItem("world", JSON.stringify(world));
-         }
-
-         function load(event) {
-            const file = event.target.files[0];
-
-            if (!file) {
-               alert("No file selected.");
-               return;
-            }
-
-            const reader = new FileReader();
-            reader.readAsText(file);
-
-            reader.onload = (evt) => {
-               const fileContent = evt.target.result;
-               const jsonData = JSON.parse(fileContent);
-               world = World.load(jsonData);
-               localStorage.setItem("world", JSON.stringify(world));
-               location.reload();
-            }
          }
 
          function setMode(mode) {
