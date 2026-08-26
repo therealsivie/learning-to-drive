@@ -18,9 +18,8 @@ const miniMap = new MiniMap(miniMapCanvas, world.graph, 300);
 const N=100;
 const cars=generateCars(N);
 let bestCar=cars[0];
-const brainKey="worldBestBrain";
-const savedBrain=localStorage.getItem(brainKey)
-    || localStorage.getItem("bestBrain");
+const brainKey="raceBestBrain";
+const savedBrain=localStorage.getItem(brainKey);
 if(savedBrain){
     for(let i=0;i<cars.length;i++){
         cars[i].brain=JSON.parse(savedBrain);
@@ -56,7 +55,9 @@ function generateCars(N){
 
     const cars=[];
     for(let i=1;i<=N;i++){
-        cars.push(new Car(startPoint.x, startPoint.y,30,50,"AI",startAngle));
+        const car=new Car(startPoint.x, startPoint.y,30,50,"AI",startAngle);
+        car.load(carInfo);
+        cars.push(car);
     }
     return cars;
 }
