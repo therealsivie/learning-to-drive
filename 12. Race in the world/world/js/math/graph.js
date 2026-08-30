@@ -72,6 +72,63 @@ class Graph {
       return segs;
    }
 
+   getSegmentsLeavingFromPoint(point) {
+      const segs = [];
+      for (const seg of this.segments) {
+         if (seg.oneWay) {
+            if (seg.p1.equals(point)) {
+               segs.push(seg);
+            }
+         } else {
+            if (seg.includes(point)) {
+               segs.push(seg);
+            }
+         }
+      }
+      return segs;
+   }
+
+   getShortestPath(start, end) {
+      for (const point of this.points) {
+         point.dist = Number.MAX_SAFE_INTEGER;
+         point.visited = false;
+      }
+
+      let currentPoint = start;
+      currentPoint.dist = 0;
+
+      while (!end.visited) {
+         const segs = this.getSegmentsLeavingFromPoint(currentPoint);
+         for (const seg of segs) {
+            const otherPoint = seg.p1.equals(currentPoint) ? seg.p2 : seg.p1;
+            if (currentPoint.dist + seg.length() < otherPoint.dist) {
+               otherPoint.dist = currentPoint.dist + seg.length();
+               otherPoint.prev = currentPoint;
+            }
+         }
+         currentPoint.visited = true;
+
+         const unvisited = this.points.filter((p) => p.visited == false);
+         const dists = unvisited.map((p) => p.dist);
+         currentPoint = unvisited.find((p) => p.dist == Math.min(...dists));
+      }
+
+      const path = [];
+      currentPoint = end;
+      while (currentPoint) {
+         path.unshift(currentPoint);
+         currentPoint = currentPoint.prev;
+      }
+
+      for (const point of this.points) {
+         delete point.dist;
+         delete point.visited;
+         delete point.prev;
+      }
+
+      return path;
+   }
+
    dispose() {
       this.points.length = 0;
       this.segments.length = 0;

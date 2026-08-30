@@ -27,10 +27,12 @@ class GraphEditor {
       this.boundMouseMove = this.#handleMouseMove.bind(this);
       this.boundMouseUp = () => this.dragging = false;
       this.boundContextMenu = (evt) => evt.preventDefault();
+      this.boundKeyDown = this.#handleKeyDown.bind(this);
       this.canvas.addEventListener("mousedown", this.boundMouseDown);
       this.canvas.addEventListener("mousemove", this.boundMouseMove);
       this.canvas.addEventListener("mouseup", this.boundMouseUp);
       this.canvas.addEventListener("contextmenu", this.boundContextMenu);
+      window.addEventListener("keydown", this.boundKeyDown);
    }
 
    #removeEventListeners() {
@@ -38,6 +40,18 @@ class GraphEditor {
       this.canvas.removeEventListener("mousemove", this.boundMouseMove);
       this.canvas.removeEventListener("mouseup", this.boundMouseUp);
       this.canvas.removeEventListener("contextmenu", this.boundContextMenu);
+      window.removeEventListener("keydown", this.boundKeyDown);
+   }
+
+   #handleKeyDown(evt) {
+      if (this.hovered) {
+         if (evt.key == "s") {
+            this.start = this.hovered;
+         }
+         if (evt.key == "e") {
+            this.end = this.hovered;
+         }
+      }
    }
 
    #handleMouseMove(evt) {
@@ -82,12 +96,18 @@ class GraphEditor {
       if (this.selected == point) {
          this.selected = null;
       }
+      if (this.start == point || this.end == point) {
+         this.start = null;
+         this.end = null;
+      }
    }
 
    dispose() {
       this.graph.dispose();
       this.selected = null;
       this.hovered = null;
+      this.start = null;
+      this.end = null;
    }
 
    display() {
@@ -99,6 +119,18 @@ class GraphEditor {
          const intent = this.hovered ? this.hovered : this.mouse;
          new Segment(this.selected, intent).draw(this.ctx, { dash: [3, 3] });
          this.selected.draw(this.ctx, { outline: true });
+      }
+
+      if (this.start && this.end) {
+         const path = this.graph.getShortestPath(
+            this.start, this.end
+         );
+         for (let i = 0; i < path.length; i++) {
+            path[i].draw(this.ctx, { size: 50, color: "blue" });
+            if (i > 0) {
+               new Segment(path[i - 1], path[i]).draw(this.ctx, { width: 20 });
+            }
+         }
       }
    }
 }
