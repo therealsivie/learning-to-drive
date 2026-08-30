@@ -14,6 +14,7 @@ del commit che chiude quella parte.
 | Parte | Cosa aggiunge |
 |-------|---------------|
 | 1. Starting Codebase | Mondo e auto addestrata caricati da file, velocità tra gli input della rete |
+| 2. Dijkstra Part 1 | Percorso più breve tra due punti del grafo, scelti nell'editor con s ed e |
 
 Restano i due stili della cartella 11: il codice del mondo (`world/`) è indentato a 3 spazi, con
 spazi intorno agli operatori; quello dell'auto a 4 spazi, compatto.
@@ -171,3 +172,106 @@ ciechi torna indietro. La rete a destra ha 3 ingressi, i due raggi e la velocit�
 
 `world/index.html` apre lo stesso mondo. Dopo una modifica, 💾 scarica `name.world`: rinominalo in
 `path_finding.world`, mettilo in `world/saves/` e ricarica la simulazione.
+
+## Parte 2. Dijkstra Part 1
+
+Il grafo delle strade, finora usato solo per generare buste e bordi, diventa una mappa in cui
+cercare il percorso più breve tra due punti. Per ora la ricerca si vede solo nell'editor; la
+simulazione non cambia.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `world/js/math/graph.js` | `getSegmentsLeavingFromPoint` e `getShortestPath` (Dijkstra) |
+| `world/js/editors/graphEditor.js` | Tasti s ed e per scegliere partenza e arrivo, disegno del percorso |
+
+### I segmenti percorribili
+
+```js
+getSegmentsLeavingFromPoint(point) {
+   const segs = [];
+   for (const seg of this.segments) {
+      if (seg.oneWay) {
+         if (seg.p1.equals(point)) {
+            segs.push(seg);
+         }
+      } else {
+         if (seg.includes(point)) {
+            segs.push(seg);
+         }
+      }
+   }
+   return segs;
+}
+```
+
+È la versione "con i sensi unici" di `getSegmentsWithPoint`: un segmento a doppio senso si può
+prendere da entrambi gli estremi, uno a senso unico solo da `p1`, nella direzione in cui è stato
+disegnato. È qui che serve la correzione di `Graph.load` della Parte 1: senza `oneWay` tutte le
+strade sarebbero percorribili nei due sensi.
+
+### Dijkstra
+
+`getShortestPath(start, end)` è l'algoritmo di Dijkstra nella sua forma più diretta:
+
+1. ogni punto riceve `dist = Number.MAX_SAFE_INTEGER` e `visited = false`; la partenza ha
+   `dist = 0`;
+2. dal punto corrente si guardano i segmenti percorribili: se passando di qui l'altro estremo
+   diventa più vicino, si aggiornano la sua `dist` e il suo `prev`;
+3. il punto corrente diventa visitato, e il prossimo è il non visitato con la `dist` più piccola;
+4. ci si ferma quando l'arrivo è visitato, e si ricostruisce il percorso risalendo i `prev`
+   dall'arrivo con `unshift`.
+
+```js
+const unvisited = this.points.filter((p) => p.visited == false);
+const dists = unvisited.map((p) => p.dist);
+currentPoint = unvisited.find((p) => p.dist == Math.min(...dists));
+```
+
+Non c'è una coda di priorità: a ogni passo si scorrono tutti i punti non visitati, quindi il costo
+cresce col quadrato del numero di punti. Con i 13 punti di `path_finding.world` non si nota.
+
+`dist`, `visited` e `prev` sono scritti direttamente sugli oggetti `Point` e cancellati con
+`delete` prima di restituire il percorso. Cancellarli è necessario: `graph.hash()` e il 💾 sono
+entrambi un `JSON.stringify` del grafo, e dei campi rimasti sui punti farebbero credere all'editor
+che il grafo sia cambiato (con una `world.generate()` inutile) e finirebbero nel file salvato.
+
+### Partenza e arrivo nell'editor
+
+In modalità 🌐, con il mouse sopra un punto, **s** lo segna come partenza e **e** come arrivo.
+Appena ci sono entrambi, `display()` calcola il percorso a ogni frame e lo disegna sopra il grafo:
+punti blu grandi uniti da una linea spessa. Spostare un punto col mouse ricalcola subito il
+percorso.
+
+Il listener è su `window`, non sul canvas, perché il canvas non riceve gli eventi della tastiera.
+Viene aggiunto e tolto insieme agli altri listener dell'editor, quindi in un'altra modalità i tasti
+non fanno niente.
+
+### Differenze dall'originale
+
+- L'originale disegna i collegamenti del percorso con `point.prev`, che però `getShortestPath` ha
+  già cancellato: si vedevano solo i punti blu. Qui la linea unisce i punti consecutivi del
+  percorso.
+- L'originale aggiunge il listener `keydown` a ogni `enable()` senza mai toglierlo, e ogni cambio di
+  modalità ne accumulava uno. Qui è un `boundKeyDown` rimosso in `#removeEventListeners`.
+- Eliminare il punto di partenza o di arrivo, o svuotare il grafo con 🗑️, azzera partenza e
+  arrivo. Nell'originale `getShortestPath` cercava un punto non più nel grafo, lanciava un errore
+  dentro il ciclo di disegno e l'editor si bloccava.
+- L'originale passa a `big_with_target.world`, allarga il canvas a 1000 pixel e commenta
+  `world.generate()` per non rigenerare un mondo enorme; con `path_finding.world` non serve, e
+  restano canvas da 600 e rigenerazione.
+
+### Limiti
+
+- Se l'arrivo non è raggiungibile (per esempio per colpa di un senso unico), l'algoritmo visita
+  anche i punti irraggiungibili e restituisce il solo arrivo: viene disegnato un punto blu e nessuna
+  linea.
+- Partenza e arrivo devono essere punti del grafo, non posizioni qualsiasi sulla strada.
+- Il percorso viene ricalcolato a ogni frame anche se il grafo non cambia.
+
+### Come provarlo
+
+Apri `world/index.html` dal server locale, in modalità 🌐. Passa col mouse su un punto e premi s,
+poi su un altro e premi e: il percorso più breve compare in blu. Prova a trascinare un punto
+intermedio per allungare una strada e guarda il percorso cambiare.
