@@ -44,13 +44,14 @@ class GraphEditor {
    }
 
    #handleKeyDown(evt) {
-      if (this.hovered) {
-         if (evt.key == "s") {
-            this.start = this.hovered;
-         }
-         if (evt.key == "e") {
-            this.end = this.hovered;
-         }
+      if (evt.key == "s") {
+         this.start = this.mouse;
+      }
+      if (evt.key == "e") {
+         this.end = this.mouse;
+      }
+      if (this.start && this.end) {
+         world.generateCorridor(this.start, this.end);
       }
    }
 
@@ -96,18 +97,12 @@ class GraphEditor {
       if (this.selected == point) {
          this.selected = null;
       }
-      if (this.start == point || this.end == point) {
-         this.start = null;
-         this.end = null;
-      }
    }
 
    dispose() {
       this.graph.dispose();
       this.selected = null;
       this.hovered = null;
-      this.start = null;
-      this.end = null;
    }
 
    display() {
@@ -119,18 +114,6 @@ class GraphEditor {
          const intent = this.hovered ? this.hovered : this.mouse;
          new Segment(this.selected, intent).draw(this.ctx, { dash: [3, 3] });
          this.selected.draw(this.ctx, { outline: true });
-      }
-
-      if (this.start && this.end) {
-         const path = this.graph.getShortestPath(
-            this.start, this.end
-         );
-         for (let i = 0; i < path.length; i++) {
-            path[i].draw(this.ctx, { size: 50, color: "blue" });
-            if (i > 0) {
-               new Segment(path[i - 1], path[i]).draw(this.ctx, { width: 20 });
-            }
-         }
       }
    }
 }

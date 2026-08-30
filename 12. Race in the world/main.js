@@ -15,7 +15,7 @@ const networkCtx = networkCanvas.getContext("2d");
 const viewport = new Viewport(carCanvas, world.zoom, world.offset);
 const miniMap = new MiniMap(miniMapCanvas, world.graph, 300);
 
-const N=100;
+const N=500;
 const cars=generateCars(N);
 let bestCar=cars[0];
 const brainKey="raceBestBrain";
@@ -30,7 +30,15 @@ if(savedBrain){
 }
 
 const traffic=[];
-const roadBorders = world.roadBorders.map((s) => [s.p1, s.p2]);
+
+let roadBorders = [];
+const target = world.markings.find((m) => m instanceof Target);
+if (target) {
+   world.generateCorridor(bestCar, target.center);
+   roadBorders = world.corridor.map((s) => [s.p1, s.p2]);
+} else {
+   roadBorders = world.roadBorders.map((s) => [s.p1, s.p2]);
+}
 
 animate();
 
