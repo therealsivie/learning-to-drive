@@ -15,6 +15,7 @@ del commit che chiude quella parte.
 |-------|---------------|
 | 1. Starting Codebase | Mondo e auto addestrata caricati da file, velocità tra gli input della rete |
 | 2. Dijkstra Part 1 | Percorso più breve tra due punti del grafo, scelti nell'editor con s ed e |
+| 3. Dijkstra Part 2 | Corridoio dalla partenza al Target: le auto vedono solo i bordi del percorso |
 
 Restano i due stili della cartella 11: il codice del mondo (`world/`) è indentato a 3 spazi, con
 spazi intorno agli operatori; quello dell'auto a 4 spazi, compatto.
@@ -275,3 +276,116 @@ non fanno niente.
 Apri `world/index.html` dal server locale, in modalità 🌐. Passa col mouse su un punto e premi s,
 poi su un altro e premi e: il percorso più breve compare in blu. Prova a trascinare un punto
 intermedio per allungare una strada e guarda il percorso cambiare.
+
+## Parte 3. Dijkstra Part 2
+
+Il percorso diventa una strada: dal percorso più breve si costruisce un **corridoio**, cioè i bordi
+di una strada che segue solo quel percorso. Nella simulazione, se il mondo ha un Target, le auto
+guidano dentro il corridoio invece che nella rete intera, e la regola della mano destra le porta
+dritte all'arrivo.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `world/js/world.js` | `generateCorridor(start, end)`; il corridoio disegnato in rosso |
+| `world/js/editors/graphEditor.js` | s ed e prendono la posizione del mouse e generano il corridoio |
+| `main.js` | Bordi delle auto = corridoio fino al Target; 500 auto |
+
+### Partire a metà strada
+
+Dijkstra sa andare solo da un punto del grafo a un altro, ma un'auto o un Target stanno quasi
+sempre a metà di una strada. `generateCorridor` aggiunge al grafo due punti temporanei:
+
+```js
+const startSeg = getNearestSegment(start, this.graph.segments);
+const endSeg = getNearestSegment(end, this.graph.segments);
+
+const { point: projStart } = startSeg.projectPoint(start);
+const { point: projEnd } = endSeg.projectPoint(end);
+```
+
+1. trova il segmento più vicino alla partenza e quello più vicino all'arrivo;
+2. proietta le due posizioni sui rispettivi segmenti, ottenendo `projStart` e `projEnd`;
+3. aggiunge le proiezioni a `graph.points`, e quattro segmenti temporanei che le collegano agli
+   estremi del loro segmento (più uno diretto tra le due, se stanno sullo stesso segmento);
+4. lancia `getShortestPath(projStart, projEnd)`;
+5. toglie le proiezioni con `removePoint`, che elimina anche i segmenti temporanei.
+
+Il grafo torna com'era, con lo stesso `hash()`: l'editor non rigenera il mondo.
+
+Il segmento originale resta nel grafo durante la ricerca, ma non dà fastidio: collega i suoi due
+estremi, e il percorso passa comunque dalla proiezione perché è da lì che parte.
+
+### Dal percorso alla strada
+
+```js
+const tmpEnvelopes = segs.map(
+   (s) => new Envelope(s, this.roadWidth, this.roadRoundness)
+);
+
+const segments = Polygon.union(tmpEnvelopes.map((e) => e.poly));
+```
+
+È lo stesso procedimento che in `generate()` produce `roadBorders`: una busta per ogni segmento del
+percorso, poi l'unione dei poligoni per tenere solo i lati esterni. Il risultato, `world.corridor`,
+è una lista di segmenti chiusa: arrotondata alle due estremità e, dove il percorso tira dritto
+davanti a un incrocio, sbarrata sull'imbocco della traversa.
+
+### Nell'editor
+
+In modalità 🌐 **s** segna la posizione del mouse come partenza ed **e** come arrivo, ovunque, anche
+lontano dai punti del grafo. Appena ci sono entrambi, il tasto chiama `world.generateCorridor`, e
+`World.draw` disegna il corridoio con linee rosse. Il calcolo avviene una volta, alla pressione del
+tasto, e non a ogni frame come il percorso della Parte 2.
+
+`GraphEditor` usa direttamente la variabile globale `world`, come nell'originale: l'editor del grafo
+non conosce il mondo, ma lo trova nello scope globale della pagina.
+
+### Nella simulazione
+
+```js
+let roadBorders = [];
+const target = world.markings.find((m) => m instanceof Target);
+if (target) {
+   world.generateCorridor(bestCar, target.center);
+   roadBorders = world.corridor.map((s) => [s.p1, s.p2]);
+} else {
+   roadBorders = world.roadBorders.map((s) => [s.p1, s.p2]);
+}
+```
+
+La partenza è `bestCar`, cioè la prima auto: tutte partono dallo Start, quindi è la stessa cosa.
+Basta che l'oggetto abbia `x` e `y`, perché `projectPoint` e `distanceToPoint` usano solo quelli.
+
+Le auto vedono solo i bordi del corridoio: le traverse sono chiuse, quindi l'auto che segue il bordo
+destro non può più infilarsi in una strada sbagliata. Arrivata al Target trova il fondo arrotondato
+del corridoio, fa inversione e torna indietro. Senza Target tutto resta come prima.
+
+`N` passa da 100 a 500. Finché non si salva un cervello le auto restano copie identiche (vedi la
+Parte 1), ma con un cervello salvato ci sono cinque volte più mutazioni per generazione.
+
+### Differenze dall'originale
+
+- Restano le scelte della Parte 2 sul listener `keydown`, aggiunto e tolto con gli altri. Non
+  servono più invece gli azzeramenti di partenza e arrivo in `#removePoint` e `dispose`: partenza e
+  arrivo non sono più punti del grafo, e sono stati tolti.
+
+### Limiti
+
+- Il corridoio si calcola una volta sola, all'avvio, dallo Start: non segue l'auto se cambia strada,
+  e con più Target viene usato solo il primo.
+- I segmenti temporanei sono sempre a doppio senso: se la partenza o l'arrivo cadono su un senso
+  unico, il primo e l'ultimo tratto lo ignorano.
+- Se l'arrivo non è raggiungibile il percorso ha un solo punto, il corridoio è vuoto e le auto non
+  hanno bordi.
+- Nell'editor il corridoio non si aggiorna quando si modifica il grafo, e resta disegnato anche dopo
+  🗑️. Premere s o e con il grafo vuoto dà un errore in console.
+- `World` non ha un `toJSON`: il 💾 dell'editor salva anche `corridor` nel file `.world`.
+  `World.load` lo ignora.
+
+### Come provarlo
+
+Apri `index.html`: le linee rosse sono il corridoio, e le auto lo percorrono dallo Start fino al
+Target senza entrare nelle traverse. Nell'editor, in modalità 🌐, premi s col mouse su una strada ed
+e su un'altra: il corridoio rosso le collega lungo il percorso più breve.
