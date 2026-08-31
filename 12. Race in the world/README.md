@@ -16,6 +16,7 @@ del commit che chiude quella parte.
 | 1. Starting Codebase | Mondo e auto addestrata caricati da file, velocità tra gli input della rete |
 | 2. Dijkstra Part 1 | Percorso più breve tra due punti del grafo, scelti nell'editor con s ed e |
 | 3. Dijkstra Part 2 | Corridoio dalla partenza al Target: le auto vedono solo i bordi del percorso |
+| 4. Racing Game | Pagina della gara: tu contro 100 auto AI, con conto alla rovescia e classifica |
 
 Restano i due stili della cartella 11: il codice del mondo (`world/`) è indentato a 3 spazi, con
 spazi intorno agli operatori; quello dell'auto a 4 spazi, compatto.
@@ -389,3 +390,155 @@ Parte 1), ma con un cervello salvato ci sono cinque volte più mutazioni per gen
 Apri `index.html`: le linee rosse sono il corridoio, e le auto lo percorrono dallo Start fino al
 Target senza entrare nelle traverse. Nell'editor, in modalità 🌐, premi s col mouse su una strada ed
 e su un'altra: il corridoio rosso le collega lungo il percorso più breve.
+
+## Parte 4. Racing Game
+
+Il mondo diventa un gioco. Accanto al simulatore, che serve ad addestrare, nasce una seconda pagina
+in cui si guida con le frecce contro 100 auto AI, dallo Start al Target, con un conto alla rovescia
+e una classifica aggiornata a ogni frame.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `index.html`, `main.js` | Rinominati in `sim.html` e `sim.js`: il simulatore |
+| `sim.js` | Legge i bordi da `world.corridor.borders` |
+| `race.html` | Nuova pagina: canvas a tutto schermo, minimappa, classifica, conto alla rovescia |
+| `race.js` | La gara |
+| `world/js/world.js` | `generateCorridor(start, end, extendEnd)`; `corridor` diventa `{ borders, skeleton }` |
+| `car.js` | L'auto si ricorda `color` e `type`; i sensori non si disegnano più |
+| `style.css` | Stili di minimappa, classifica e conto alla rovescia |
+
+### Due pagine
+
+Da qui il progetto ha due ingressi, che condividono tutto tranne l'ultimo script:
+
+- `sim.html` è la pagina di sempre, con la rete disegnata e i pulsanti 💾 e 🗑️. Serve a migliorare
+  l'auto: si lascia girare, si salva la migliore, si ricarica.
+- `race.html` è il gioco: niente visualizer né pulsanti, il canvas occupa tutta la finestra e
+  minimappa e classifica ci stanno sopra, semitrasparenti, con `position:absolute`.
+
+### Il corridoio diventa un oggetto
+
+```js
+this.corridor = { borders: segments, skeleton: segs };
+```
+
+`borders` sono i bordi di prima, quelli che le auto vedono con i sensori. `skeleton` sono i
+segmenti del percorso, la linea centrale della strada: servono a misurare quanta strada ha fatto
+ogni auto. `World.draw` e `sim.js` ora leggono `corridor.borders`.
+
+Con `extendEnd` a `true` il corridoio prosegue oltre il Target di due larghezze di strada:
+
+```js
+if (extendEnd) {
+   const lastSeg = segs[segs.length - 1];
+   const lastSegDir = lastSeg.directionVector();
+   segs.push(
+      new Segment(
+         lastSeg.p2,
+         add(lastSeg.p2, scale(lastSegDir, this.roadWidth * 2))
+      )
+   );
+}
+```
+
+Il segmento in più serve solo a costruire le buste. Subito dopo `segs.pop()` lo toglie, quindi
+`skeleton` finisce esattamente sul Target. Il risultato è un traguardo da attraversare: senza il
+prolungamento il corridoio si chiuderebbe con il fondo arrotondato proprio sull'arrivo, e chi
+taglia il traguardo andrebbe a sbattere. La gara lo usa, il simulatore no.
+
+### Le auto in gara
+
+```js
+const cars=generateCars(1, "KEYS").concat(generateCars(N, "AI"));
+const myCar=cars[0];
+```
+
+`generateCars` ora prende anche il tipo. La tua auto è `"KEYS"` e blu; le AI hanno un colore a caso
+e un nome, da `AI1` a `AI100`. Tutte caricano `carInfo` dal file `.car`, quindi hanno la stessa
+rete e la stessa `maxSpeed` (8, quella dell'auto addestrata, non il 3 passato al costruttore). La
+tua auto ha una rete anche lei, ma con `controlType` diverso da `"AI"` non la usa e guida con
+`Controls`.
+
+Se c'è un cervello salvato in `raceBestBrain` lo ricevono tutte, e dalla terza auto in poi viene
+mutato: `myCar` e `AI1` guidano con il cervello salvato così com'è, le altre con una variante.
+
+La camera segue sempre la tua auto: `world.bestCar = myCar`, e il viewport si centra su di lei.
+
+### Il conto alla rovescia
+
+`startCounter` incatena quattro `setTimeout` da un secondo: 3, 2, 1, GO!, e poi il testo sparisce,
+`started` diventa `true` e `frameCount` torna a zero. Prima di quel momento `animate` disegna ma non
+chiama `update`: le auto sono ferme sulla linea di partenza.
+
+`counter` e `statistics` non sono mai dichiarati in `race.js`: il browser crea una variabile
+globale per ogni elemento con un `id`, e l'originale ci si appoggia.
+
+### Chi è in testa
+
+```js
+const carSeg = getNearestSegment(car, world.corridor.skeleton);
+for (let i = 0; i < world.corridor.skeleton.length; i++) {
+   const s = world.corridor.skeleton[i];
+   if (s.equals(carSeg)) {
+      const proj = s.projectPoint(car);
+      const firstPartOfSegment = new Segment(s.p1, proj.point);
+      car.progress += firstPartOfSegment.length();
+      break;
+   } else {
+      car.progress += s.length();
+   }
+}
+```
+
+`updateCarProgress` misura la strada percorsa, non la distanza dal Target in linea d'aria:
+
+1. trova il segmento dello scheletro più vicino all'auto;
+2. somma le lunghezze di tutti i segmenti che lo precedono;
+3. aggiunge il pezzo del segmento corrente fino alla proiezione dell'auto;
+4. divide per la lunghezza totale, ottenendo un numero tra 0 e 1.
+
+A 1 l'auto è arrivata: `finishTime` prende il numero del frame, e da lì il progresso non si ricalcola
+più. Poi `cars.sort` ordina per progresso, e ogni riga della classifica mostra posizione, nome, 💀
+se l'auto è distrutta e il tempo all'arrivo, in secondi. La tua riga ha lo sfondo bianco, le altre
+nero.
+
+L'ordinamento cambia l'ordine dell'array `cars` a ogni frame, ma `myCar` resta un riferimento alla
+tua auto, ovunque finisca.
+
+### L'auto
+
+`Car` salva `color` e `type`, che prima usava solo nel costruttore: la classifica ne ha bisogno
+per colorare le righe e distinguere la tua.
+
+Il disegno dei sensori è commentato, quindi i raggi non si vedono più né nella gara né nel
+simulatore. Il parametro `drawSensor` resta, ma non ha più effetto.
+
+### Differenze dall'originale
+
+- Anche `race.js` usa la chiave `raceBestBrain` invece di `bestBrain`, come `sim.js` dalla Parte 1:
+  il simulatore salva il cervello, la gara lo legge.
+- `race.html` ha gli stessi `<meta charset>`, `lang` e ordine degli script di `sim.html`, senza le
+  righe commentate dei mondi alternativi.
+
+### Limiti
+
+- Il tempo è `finishTime / 60`: presuppone 60 frame al secondo. Su uno schermo a 120 Hz la gara va
+  al doppio della velocità, e i tempi mostrati sono il doppio di quelli reali.
+- Senza un Target `world.corridor` non esiste e `updateCarProgress` va in errore al primo frame: la
+  gara ha bisogno di un mondo con un Target.
+- Senza un cervello salvato le AI sono copie identiche: fanno la stessa strada, arrivano insieme e
+  hanno tutte lo stesso tempo.
+- Le auto non si vedono e non si urtano tra loro: ognuna aggiorna solo con i bordi
+  (`update(roadBorders, [])`), quindi si attraversano.
+- `race.js` ha ancora `save()` e `discard()` ma nessun pulsante, e `save()` salverebbe il cervello
+  di `myCar`, che non guida: si possono chiamare solo dalla console.
+- Con il progresso basato sul segmento più vicino, un'auto che torna indietro perde posizioni, e
+  vicino a una curva stretta può essere attribuita per un istante al segmento sbagliato.
+
+### Come provarlo
+
+Apri `race.html` dal server locale. Dopo il 3, 2, 1, GO! guida con le frecce e prova a battere le
+AI fino al Target: la classifica a destra si aggiorna mentre corri. `sim.html` è il simulatore di
+prima, senza i raggi dei sensori.
