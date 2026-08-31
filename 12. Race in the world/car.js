@@ -4,6 +4,8 @@ class Car{
         this.y=y;
         this.width=width;
         this.height=height;
+        this.color = color;
+        this.type = controlType;
 
         this.speed=0;
         this.acceleration=0.2;
@@ -154,7 +156,7 @@ class Car{
 
     draw(ctx,drawSensor=false){
         if(this.sensor && drawSensor){
-            this.sensor.draw(ctx);
+            //this.sensor.draw(ctx);
         }
 
         ctx.save();

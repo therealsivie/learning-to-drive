@@ -32,3 +32,38 @@ button:hover{
 #carCanvas{
     background:#2a5;
 }
+
+.miniMap{
+   position:absolute;
+   right:20px;
+   bottom:20px;
+   border-radius:50%;
+   opacity:50%;
+}
+
+#statistics{
+   background:black;
+   position:absolute;
+   right:20px;
+   top:20px;
+   border-radius:10px;
+   opacity:50%;
+   overflow:auto;
+}
+
+.stat{
+   font-size:xx-large;
+   font-family:Arial;
+   padding:10px;
+}
+
+#counter{
+   position:absolute;
+   left:50%;
+   top:50%;
+   transform:translate(-50%,-50%);
+   font-size:40vmin;
+   font-family:Arial;
+   opacity:50%;
+   color:white;
+}
