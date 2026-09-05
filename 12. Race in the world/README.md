@@ -17,6 +17,7 @@ del commit che chiude quella parte.
 | 2. Dijkstra Part 1 | Percorso più breve tra due punti del grafo, scelti nell'editor con s ed e |
 | 3. Dijkstra Part 2 | Corridoio dalla partenza al Target: le auto vedono solo i bordi del percorso |
 | 4. Racing Game | Pagina della gara: tu contro 100 auto AI, con conto alla rovescia e classifica |
+| 5. Procedural Sound | Suoni sintetizzati con il Web Audio: bip del via, motore, esplosione e arrivo |
 
 Restano i due stili della cartella 11: il codice del mondo (`world/`) è indentato a 3 spazi, con
 spazi intorno agli operatori; quello dell'auto a 4 spazi, compatto.
@@ -542,3 +543,134 @@ simulatore. Il parametro `drawSensor` resta, ma non ha più effetto.
 Apri `race.html` dal server locale. Dopo il 3, 2, 1, GO! guida con le frecce e prova a battere le
 AI fino al Target: la classifica a destra si aggiorna mentre corri. `sim.html` è il simulatore di
 prima, senza i raggi dei sensori.
+
+## Parte 5. Procedural Sound
+
+La gara prende voce. Non ci sono file audio: ogni suono è costruito al momento con la Web Audio API,
+partendo da oscillatori e regolando il volume nel tempo.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `sound.js` | Nuovo: `beep`, `taDaa`, `explode` e la classe `Engine` |
+| `race.html` | Carica `sound.js` |
+| `race.js` | Bip a ogni numero del conto alla rovescia, motore dopo il via, `taDaa()` all'arrivo |
+| `car.js` | Un'auto distrutta si ferma; la tua esplode; il motore segue la velocità |
+
+### Un suono fatto a mano
+
+Ogni funzione di `sound.js` costruisce un piccolo grafo audio:
+
+```js
+const osc = audioContext.createOscillator();
+const envelope = audioContext.createGain();
+
+osc.frequency.setValueAtTime(frequency, 0);
+osc.type = waveType;
+osc.connect(envelope);
+osc.start();
+osc.stop(0.4);
+
+envelope.gain.value = 0;
+envelope.gain.linearRampToValueAtTime(1, 0.1);
+envelope.gain.linearRampToValueAtTime(0, 0.4);
+envelope.connect(audioContext.destination);
+```
+
+1. l'oscillatore produce un'onda alla frequenza data (sinusoide di default);
+2. passa da un `GainNode`, che ne regola il volume;
+3. il gain fa da inviluppo: sale da 0 a 1 in un decimo di secondo e torna a 0 a 0.4 secondi;
+4. l'uscita va a `audioContext.destination`, cioè alle casse.
+
+Senza l'inviluppo il suono partirebbe e si fermerebbe di colpo, con un "clic" a ogni estremo.
+
+I tempi passati a `setValueAtTime`, `linearRampToValueAtTime` e `stop` non sono durate: sono
+istanti sull'orologio del contesto audio, `audioContext.currentTime`, che parte da 0 quando il
+contesto nasce. Per questo ogni funzione crea un `AudioContext` nuovo: con un orologio appena
+partito, "0.4" vuol dire davvero "fra 0.4 secondi".
+
+### I suoni della gara
+
+- `beep(400)` su 3, 2 e 1, `beep(700)` su GO!: lo stesso bip, più acuto per il via.
+- `taDaa()` quando la tua auto arriva al Target: due bip a dente di sega (`"sawtooth"`), 400 e
+  600 Hz, a 200 ms di distanza. L'onda a dente di sega è ricca di armoniche e suona più
+  "elettronica" della sinusoide.
+- `explode()` quando la tua auto si schianta: dieci oscillatori insieme, ognuno a una frequenza a
+  caso tra 100 e 300 Hz, che sfumano in un secondo. Frequenze vicine ma diverse battono tra loro e
+  danno un rombo sporco, più simile a un rumore che a una nota.
+
+### Il motore
+
+```js
+const lfo = audioContext.createOscillator();
+lfo.frequency.setValueAtTime(30, 0);
+const mod = audioContext.createGain();
+mod.gain.value = 60;
+lfo.connect(mod);
+mod.connect(osc.frequency);
+```
+
+`Engine` è un oscillatore che non si ferma mai. Il suo tono però non è fermo: un secondo
+oscillatore, l'LFO (*low frequency oscillator*), a 30 Hz, passa da un gain di 60 e viene collegato
+non alle casse ma al parametro `frequency` del primo. Un `AudioParam` collegato a un nodo somma il
+segnale al proprio valore: la frequenza del motore oscilla di ±60 Hz intorno al valore base, 30
+volte al secondo. È quel tremolio a farlo sembrare un motore a scoppio invece di un fischio.
+
+`setVolume` e `setPitch` ricevono la velocità in percentuale:
+
+```js
+if (this.engine) {
+    const percent = Math.abs(this.speed / this.maxSpeed);
+    this.engine.setVolume(percent);
+    this.engine.setPitch(percent);
+}
+```
+
+Da fermi il motore è muto e gira a 100 Hz; alla velocità massima ha volume 1 e frequenza base
+300 Hz. `Math.abs` fa girare il motore anche in retromarcia, quando `speed` è negativa.
+
+Il motore nasce in `startCounter`, quando il "GO!" sparisce, e solo per `myCar`: le AI non hanno
+`engine`, e il controllo `if (this.engine)` le salta.
+
+### L'auto distrutta
+
+```js
+if(this.damaged){
+   this.speed=0;
+   if(this.type == "KEYS"){
+      explode();
+   }
+}
+```
+
+Un'auto distrutta smetteva già di muoversi, perché tutto il movimento è dentro
+`if(!this.damaged)`, ma conservava l'ultima velocità. Ora la velocità va a zero, e con lei il
+volume del motore: dopo lo schianto si sente solo l'esplosione.
+
+Il blocco è dentro lo stesso `if(!this.damaged)`, quindi `explode()` parte una sola volta, nel frame
+dello schianto. Il controllo sul tipo la limita alla tua auto: cento esplosioni delle AI coprirebbero
+tutto il resto. Per lo stesso motivo `sim.html` non carica `sound.js`: lì le auto sono tutte AI e
+nessuna chiama `explode()`.
+
+### Differenze dall'originale
+
+Nessuna: il codice di questa parte è quello dell'originale.
+
+### Limiti
+
+- Ogni suono crea un `AudioContext` e nessuno viene mai chiuso. In una gara sono una decina, quindi
+  non pesa, ma ogni contesto tiene occupate risorse audio finché la pagina resta aperta. Il modo
+  consueto è un solo contesto per tutta la pagina, con i tempi calcolati da `currentTime`.
+- I browser bloccano l'audio partito prima di un'interazione dell'utente: un `AudioContext` creato
+  così nasce `"suspended"` e nessuno chiama `resume()`. Se la pagina non ha ancora ricevuto un clic
+  o un tasto, i bip del conto alla rovescia e il motore, che nasce prima che tu tocchi le frecce,
+  possono restare muti per tutta la gara. Dipende dal browser e da quanto spesso visiti la pagina:
+  nella mia prova i contesti erano già attivi.
+- I suoni ci sono solo nella gara.
+
+### Come provarlo
+
+Apri `race.html` dal server locale, con l'audio acceso, e clicca sulla pagina prima che finisca il
+conto alla rovescia. Senti i bip di 3, 2, 1 e GO!, poi il motore che sale di tono mentre acceleri.
+Sbatti contro un bordo per sentire l'esplosione, oppure arriva al Target per il ta-daa.
