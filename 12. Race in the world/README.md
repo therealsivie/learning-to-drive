@@ -18,6 +18,7 @@ del commit che chiude quella parte.
 | 3. Dijkstra Part 2 | Corridoio dalla partenza al Target: le auto vedono solo i bordi del percorso |
 | 4. Racing Game | Pagina della gara: tu contro 100 auto AI, con conto alla rovescia e classifica |
 | 5. Procedural Sound | Suoni sintetizzati con il Web Audio: bip del via, motore, esplosione e arrivo |
+| 6. Camera Part 1 | Camera in prima persona: le basi degli edifici proiettate in prospettiva |
 
 Restano i due stili della cartella 11: il codice del mondo (`world/`) è indentato a 3 spazi, con
 spazi intorno agli operatori; quello dell'auto a 4 spazi, compatto.
@@ -674,3 +675,134 @@ Nessuna: il codice di questa parte è quello dell'originale.
 Apri `race.html` dal server locale, con l'audio acceso, e clicca sulla pagina prima che finisca il
 conto alla rovescia. Senti i bip di 3, 2, 1 e GO!, poi il motore che sale di tono mentre acceleri.
 Sbatti contro un bordo per sentire l'esplosione, oppure arriva al Target per il ta-daa.
+
+## Parte 6. Camera Part 1
+
+Primo passo verso la vista dal posto di guida. Una camera montata sull'auto guarda avanti, sceglie
+gli edifici che ha davanti e li proietta in prospettiva su un secondo canvas. Per ora disegna solo
+le loro basi, cioè le impronte a terra: il 3D vero arriva nella parte successiva.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `camera.js` | Nuovo: la classe `Camera`, con campo visivo, ritaglio e proiezione |
+| `race.html` | Nuovo canvas `cameraCanvas`; carica `camera.js` |
+| `race.js` | Pagina divisa in due metà; la camera segue `myCar` a ogni frame |
+| `world/js/math/utils.js` | `cross(p1, p2)`, il prodotto vettoriale in 2D |
+| `world/js/primitives/polygon.js` | `containsPoly`; `break` può marcare i punti di intersezione |
+| `car.js` | `#assessDamage` restituisce sempre `false` (temporaneo) |
+
+### La pagina divisa
+
+`race.js` mette il body in colonna (`flexDirection = "column"`) e dà a ciascun canvas metà
+dell'altezza della finestra: sopra il mondo visto dall'alto, sotto la vista della camera. Il canvas
+della camera viene ripulito a ogni frame e non disegna uno sfondo: il grigio è il `darkgray` del
+body che si vede attraverso.
+
+### Il campo visivo
+
+```js
+this.z = -20;
+this.tip = new Point(
+   this.x - this.range * Math.sin(this.angle),
+   this.y - this.range * Math.cos(this.angle)
+);
+```
+
+`move` mette la camera nella posizione dell'auto, con il suo stesso angolo, e calcola tre punti a
+distanza `range` (1000): `tip` dritto davanti, `left` e `right` ruotati di 45° da una parte e
+dall'altra. Sono le stesse formule `x - sin`, `y - cos` con cui si muove l'auto. Il centro e i due
+punti laterali formano un triangolo, `this.poly`: è il campo visivo, 90° di apertura, e `draw` lo
+disegna in blu nella vista dall'alto.
+
+Il costruttore e `move` destrutturano `{ x, y, angle }`, quindi accettano direttamente un'auto:
+`new Camera(myCar)` e `camera.move(myCar)`.
+
+### Cosa entra nell'inquadratura
+
+`#filter` sceglie le basi degli edifici da disegnare:
+
+1. scarta i poligoni senza nemmeno un vertice dentro il triangolo (`containsPoly`);
+2. se un poligono attraversa il bordo del triangolo, lavora su due copie: `Polygon.break` le spezza
+   nei punti di intersezione, e di quel poligono restano solo i vertici interni e i punti di taglio;
+3. i poligoni interamente dentro passano così come sono.
+
+```js
+if (markIntersections) {
+   point.intersection = true;
+}
+```
+
+Il nuovo parametro di `Polygon.break` serve a riconoscere dopo i punti di taglio: è lo stesso
+metodo che nel capitolo 11 spezzava i contorni delle strade per unirle, con in più un'etichetta sui
+punti che crea. `containsPoly` ha un nome generoso: restituisce `true` se il poligono ha *almeno un*
+vertice dentro, non se ci sta tutto.
+
+### La proiezione
+
+```js
+const seg = new Segment(this.center, this.tip);
+const { point: p1 } = seg.projectPoint(p);
+const c = cross(subtract(p1, this), subtract(p, this));
+const x = Math.sign(c) * distance(p, p1) / distance(this, p1);
+const y = - this.z / distance(this, p1);
+```
+
+Per ogni vertice:
+
+1. `p1` è la proiezione del punto sull'asse di vista: `distance(this, p1)` è la profondità, quanto
+   il punto è avanti rispetto alla camera;
+2. la distanza del punto dall'asse, divisa per la profondità, dà la x sullo schermo. Il segno di
+   `cross` dice se il punto sta a destra o a sinistra dell'asse;
+3. la y è l'altezza della camera divisa per la profondità: il suolo è 20 unità sotto l'occhio, e
+   più un punto è lontano più sale verso l'orizzonte, la linea a metà canvas.
+
+Dividere per la profondità è la divisione prospettica: le cose lontane si rimpiccioliscono e
+convergono verso il centro. Il risultato, tra −1 e 1, viene scalato su metà del canvas e spostato
+al centro. Con un'apertura di 90° il bordo del campo visivo ha distanza dall'asse uguale alla
+profondità, quindi x = ±1 cade proprio sui bordi del canvas.
+
+### Il disegno
+
+`render` proietta i poligoni filtrati, pulisce il canvas della camera e ci disegna sopra le basi in
+prospettiva. Poi disegna gli stessi poligoni filtrati, non proiettati, su `carCtx`, la vista
+dall'alto: è un aiuto per il debug, che evidenzia gli edifici visti dalla camera. `carCtx` non
+arriva come parametro: `render` lo prende dallo scope globale di `race.js`.
+
+### Due scorciatoie temporanee
+
+L'originale, in questa parte, aggira due cose per provare la camera più comodamente:
+
+- `#assessDamage` comincia con `return false;`: nessuna auto si rompe più, e si può guidare
+  attraverso edifici e prati. Vale anche per `sim.html`, che usa lo stesso `car.js`;
+- `let started = true;`: le auto si muovono subito, durante il conto alla rovescia.
+
+Il codice dopo il `return` resta lì, irraggiungibile. La Parte 7 toglie entrambe le scorciatoie.
+
+### Differenze dall'originale
+
+Nessuna oltre a quelle delle parti precedenti: le scorciatoie di debug sono tenute come
+nell'originale.
+
+### Limiti
+
+- Si vedono solo le basi degli edifici, piatte a terra: niente altezza, niente strade, alberi o
+  auto.
+- I poligoni sono disegnati nell'ordine dell'array, non dal più lontano al più vicino: un edificio
+  vicino può finire sotto uno lontano.
+- Un edificio che attraversa il campo visivo senza avere vertici dentro, come uno lungo visto di
+  fianco, viene scartato da `containsPoly` e sparisce.
+- Il campo visivo è un triangolo, non un settore di cerchio: dritto davanti arriva a circa 707
+  (1000 · cos 45°), non a 1000.
+- Un punto proprio vicino alla camera ha profondità quasi nulla e finisce lontanissimo sullo
+  schermo.
+- Con `started = true` le AI partono prima del GO!, ma `frameCount` torna a zero al GO!: i tempi
+  della classifica non contano i secondi del conto alla rovescia.
+
+### Come provarlo
+
+Apri `race.html` dal server locale e guida con le frecce. Sopra vedi il triangolo blu della camera
+e gli edifici che inquadra; sotto le loro basi in prospettiva, che si allargano e scendono man mano
+che ti avvicini. Gli urti sono disattivati, quindi puoi attraversare gli edifici e guardare la
+proiezione da ogni lato.
