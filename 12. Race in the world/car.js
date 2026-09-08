@@ -42,6 +42,8 @@ class Car{
             maskCtx.globalCompositeOperation="destination-atop";
             maskCtx.drawImage(this.img,0,0,this.width,this.height);
         }
+
+        this.update([], []);
     }
 
     load(info){
@@ -90,7 +92,6 @@ class Car{
     }
 
     #assessDamage(roadBorders,traffic){
-        return false;
         for(let i=0;i<roadBorders.length;i++){
             if(polysIntersect(this.polygon,roadBorders[i])){
                 return true;
