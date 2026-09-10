@@ -19,6 +19,7 @@ del commit che chiude quella parte.
 | 4. Racing Game | Pagina della gara: tu contro 100 auto AI, con conto alla rovescia e classifica |
 | 5. Procedural Sound | Suoni sintetizzati con il Web Audio: bip del via, motore, esplosione e arrivo |
 | 6. Camera Part 1 | Camera in prima persona: le basi degli edifici proiettate in prospettiva |
+| 7. Camera Part 2 | Vista 3D a tutto schermo: edifici, bordi e auto estrusi, camera che insegue da dietro |
 
 Restano i due stili della cartella 11: il codice del mondo (`world/`) è indentato a 3 spazi, con
 spazi intorno agli operatori; quello dell'auto a 4 spazi, compatto.
@@ -806,3 +807,141 @@ Apri `race.html` dal server locale e guida con le frecce. Sopra vedi il triangol
 e gli edifici che inquadra; sotto le loro basi in prospettiva, che si allargano e scendono man mano
 che ti avvicini. Gli urti sono disattivati, quindi puoi attraversare gli edifici e guardare la
 proiezione da ogni lato.
+
+## Parte 7. Camera Part 2
+
+La camera diventa la vista del gioco. Le basi piatte della Parte 6 vengono estruse in solidi: gli
+edifici si alzano, i bordi del corridoio diventano muretti e l'auto diventa un box. La camera non
+sta più sull'auto ma la insegue da dietro, con un po' di ritardo, e occupa tutta la finestra.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `camera.js` | Camera dietro l'auto con inseguimento morbido; estrusione di edifici, bordi e auto |
+| `world/js/primitives/point.js` | Terza coordinata `z`, 0 se non indicata |
+| `world/js/primitives/polygon.js` | `containsPoint` usa un punto esterno molto più lontano |
+| `race.js` | Vista dall'alto nascosta, camera a tutto schermo; via le scorciatoie della Parte 6 |
+| `car.js` | Il costruttore chiama subito `update`; `#assessDamage` torna a funzionare |
+
+### Una coordinata in più
+
+```js
+constructor(x, y, z = 0) {
+```
+
+`Point` accetta una `z` facoltativa. Tutti i punti che esistevano già, dal grafo agli edifici,
+restano a `z = 0`, cioè a terra, e il codice 2D non se ne accorge. Come per la y del canvas, anche
+qui l'asse è rovesciato: l'alto è la z negativa. La camera sta a `z = -40` e il tetto di un edificio
+alto 200 sta a `z = -200`.
+
+### La camera dietro l'auto
+
+```js
+this.x = lerp(this.x, x + this.distanceBehind * Math.sin(angle), t);
+this.y = lerp(this.y, y + this.distanceBehind * Math.cos(angle), t);
+this.angle = lerp(this.angle, angle, t);
+```
+
+Il punto di arrivo è 150 unità (`distanceBehind`) dietro l'auto: sono le formule del movimento
+dell'auto con il segno cambiato. La camera però non ci salta: a ogni frame percorre il 10% della
+distanza che manca (`t = 0.1`), e lo stesso fa con l'angolo. Quando l'auto accelera o curva, la
+camera resta un po' indietro e la si vede di tre quarti; quando si ferma, la camera la raggiunge
+rallentando man mano. È lo stesso `lerp` di sempre, usato frame dopo frame come filtro.
+
+`moveSimple` fa gli stessi calcoli senza `lerp` e serve al costruttore. `lerp` parte dalla
+posizione attuale della camera: al primo frame, senza una posizione iniziale, `this.x` sarebbe
+`undefined` e tutti i conti darebbero `NaN`.
+
+### Dall'impronta al solido
+
+```js
+const ceiling = new Polygon(
+   poly.points.map((p) => new Point(p.x, p.y, -height))
+);
+```
+
+`#extrude` prende un poligono a terra e ne costruisce una copia alla quota `-height`, il soffitto.
+Poi, per ogni lato, aggiunge una faccia di quattro punti: i due estremi del lato a terra e gli
+stessi due sul soffitto. Le facce e il soffitto sono `Polygon` normali con punti 3D, e il resto del
+codice li tratta come gli altri poligoni.
+
+`#getPolys` estrude tre cose, dopo averle filtrate con il campo visivo:
+
+| Cosa | Da dove | Altezza |
+|------|---------|---------|
+| Edifici | `world.buildings`, le basi | 200 |
+| Auto | `world.bestCar.polygon`, che in gara è sempre `myCar` | 10 |
+| Bordi | `world.corridor.borders`, ogni segmento come poligono di 2 punti | 10 |
+
+Il poligono dell'auto è fatto di oggetti `{x, y}`, non di `Point`: senza `z` la proiezione darebbe
+`NaN`, quindi `#getPolys` li ricostruisce con `new Point(p.x, p.y)`.
+
+### Il filtro, rifatto
+
+Nella Parte 6 un edificio passava il filtro solo se aveva almeno un vertice nel campo visivo.
+Adesso il primo controllo è `intersectsPoly`: se il poligono attraversa il bordo del triangolo
+viene spezzato e ritagliato come prima; altrimenti passa solo se `containsPoly` lo trova dentro.
+Un edificio lungo visto di fianco, con tutti i vertici fuori ma i lati che tagliano il triangolo,
+adesso compare.
+
+### L'altezza nella proiezione
+
+```js
+const y = (p.z - this.z) / distance(this, p1);
+```
+
+Nella Parte 6 la y usava solo l'altezza della camera, perché tutti i punti stavano a terra. Ora
+conta la differenza di quota tra il punto e l'occhio, sempre divisa per la profondità. Un punto a
+terra sta 40 sotto la camera e cade sotto l'orizzonte; il tetto di un edificio sta 160 sopra e
+sale verso l'alto dello schermo. Più il punto è lontano, più entrambi si schiacciano sulla linea
+dell'orizzonte.
+
+### Il punto esterno
+
+```js
+const outerPoint = new Point(-100000, -100000);
+```
+
+`containsPoint` traccia un segmento dal punto da controllare a un punto sicuramente fuori dal
+poligono e conta quante volte attraversa i lati: dispari vuol dire dentro. Con `(-1000, -1000)`
+quel punto "sicuramente fuori" non lo era più: questo mondo ha coordinate oltre −1000 (per esempio
+y = −1148), e un poligono in quella zona poteva contenerlo e falsare il conteggio. Ora la camera
+usa `containsPoint` a ogni frame su punti di tutto il mondo, e l'errore si vedrebbe.
+
+### La gara torna normale
+
+In `race.js`:
+
+- `carCanvas.height = 0`: la vista dall'alto c'è ancora, ma è alta zero, e il canvas della camera
+  prende tutta la finestra. La minimappa e la classifica restano sopra;
+- `world.draw` e `camera.draw` su `carCtx` sono commentati: disegnerebbero su un canvas invisibile;
+- `let started = false`: le auto aspettano di nuovo il GO!.
+
+In `car.js` torna il controllo degli urti. Il costruttore, poi, chiama subito `this.update([], [])`.
+Durante il conto alla rovescia `race.js` non aggiorna le auto, quindi `this.polygon` non
+esisterebbe ancora, e la camera lo usa già dal primo frame per disegnare l'auto. Con i comandi
+tutti spenti e velocità zero, quel primo `update` calcola poligono e sensori senza spostare l'auto.
+
+### Differenze dall'originale
+
+Nessuna oltre a quelle delle parti precedenti.
+
+### Limiti
+
+- I poligoni sono disegnati nell'ordine edifici, auto, bordi, non dal più lontano al più vicino:
+  i muretti del corridoio stanno sempre sopra tutto, anche quando sono dietro un edificio. Il
+  riempimento semitrasparente rende la scena leggibile, ma non corretta.
+- Un bordo è un poligono di 2 punti, quindi ha due lati, avanti e ritorno: ogni muretto viene
+  disegnato due volte e il suo "soffitto" è una linea.
+- Si vede solo l'auto del giocatore: le auto AI non vengono estruse né disegnate.
+- `t = 0.1` vale per frame: su uno schermo a 120 Hz la camera raggiunge l'auto in metà tempo.
+- Le facce molto vicine all'occhio hanno profondità quasi nulla e finiscono fuori dallo schermo,
+  per esempio quando la camera, che sta 150 dietro l'auto, passa attraverso un edificio.
+- Alberi e segnaletica non compaiono nella vista.
+
+### Come provarlo
+
+Apri `race.html` dal server locale. Durante il conto alla rovescia vedi già il circuito in 3D, con
+l'auto davanti alla camera. Dopo il GO! guida con le frecce: in curva la camera si sposta di lato e
+poi si riallinea dietro l'auto. Gli urti sono di nuovo attivi, quindi un edificio ti ferma.
