@@ -20,6 +20,7 @@ del commit che chiude quella parte.
 | 5. Procedural Sound | Suoni sintetizzati con il Web Audio: bip del via, motore, esplosione e arrivo |
 | 6. Camera Part 1 | Camera in prima persona: le basi degli edifici proiettate in prospettiva |
 | 7. Camera Part 2 | Vista 3D a tutto schermo: edifici, bordi e auto estrusi, camera che insegue da dietro |
+| 8. Phone Input | Pagina `phone.html`: si sterza inclinando il telefono, un tocco mette la retromarcia |
 
 Restano i due stili della cartella 11: il codice del mondo (`world/`) è indentato a 3 spazi, con
 spazi intorno agli operatori; quello dell'auto a 4 spazi, compatto.
@@ -945,3 +946,113 @@ Nessuna oltre a quelle delle parti precedenti.
 Apri `race.html` dal server locale. Durante il conto alla rovescia vedi già il circuito in 3D, con
 l'auto davanti alla camera. Dopo il GO! guida con le frecce: in curva la camera si sposta di lato e
 poi si riallinea dietro l'auto. Gli urti sono di nuovo attivi, quindi un edificio ti ferma.
+
+## Parte 8. Phone Input
+
+Il telefono diventa il volante. Una terza pagina, `phone.html`, è la gara della Parte 7 con un
+altro modo di guidare: l'auto accelera da sola, si sterza inclinando il telefono e si tiene il
+dito sullo schermo per andare in retromarcia. La vista si raddrizza a ogni inclinazione, come se
+l'orizzonte restasse fermo mentre il telefono gira.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `phoneControls.js` | Nuovo: la classe `PhoneControls`, che legge accelerometro e tocchi |
+| `phone.html` | Nuova pagina: la gara con i controlli del telefono e la sola vista della camera |
+| `car.js` | Se i controlli hanno un `tilt`, lo sterzo è proporzionale all'inclinazione |
+
+### Una pagina in più
+
+`phone.html` è `race.html` con tre differenze:
+
+- il canvas della camera è centrato con `position: absolute` e `top`/`left` al 50%: la
+  `translate(-50%, -50%)` che completa la centratura arriva dalla rotazione, insieme all'angolo;
+- minimappa e classifica sono nascoste con `display: none`: sul telefono non c'è spazio, ma
+  `race.js` continua ad aggiornarle;
+- uno script in fondo, dopo `race.js`, sostituisce i controlli dell'auto:
+
+```js
+myCar.controls = new PhoneControls(cameraCanvas);
+```
+
+`race.js` crea `myCar` con i controlli da tastiera, poi questa riga li rimpiazza. `car.js` non sa
+chi lo guida: legge solo i campi `forward`, `reverse`, `left`, `right` e ora `tilt`, quindi va bene
+qualunque oggetto che li abbia. L'auto resta di tipo `"KEYS"`, e continua ad avere motore ed
+esplosione.
+
+### L'inclinazione
+
+```js
+this.tilt = Math.atan2(
+   e.accelerationIncludingGravity.y,
+   e.accelerationIncludingGravity.x
+);
+```
+
+L'evento `devicemotion` riporta l'accelerazione del telefono lungo i suoi tre assi, gravità
+compresa. Con il telefono fermo è solo la gravità, e la sua direzione nel piano dello schermo dice
+quanto è ruotato: `atan2(y, x)` la trasforma in un angolo. Con il telefono in orizzontale la
+gravità sta tutta sulla x e `tilt` vale 0; ruotandolo come un volante cresce da una parte o
+dall'altra.
+
+Il blocco commentato sopra è un primo tentativo con `deviceorientation` e l'angolo `beta`: resta
+nel codice come nell'originale.
+
+### Lo schermo che si raddrizza
+
+```js
+const newCanvasAngle = -this.tilt;
+this.canvasAngle = this.canvasAngle * 0.6 + newCanvasAngle * 0.4;
+```
+
+Il canvas della camera ruota di `-tilt`: il telefono gira da una parte, il disegno dall'altra, e
+l'orizzonte resta parallelo al pavimento. L'accelerometro però trema, e ruotare il canvas su ogni
+lettura farebbe vibrare l'immagine. Per questo l'angolo nuovo pesa solo il 40%: è una media
+mobile esponenziale, lo stesso `lerp` della camera con `t = 0.4`, applicato a un altro segnale.
+
+### Avanti e indietro
+
+`forward` parte a `true`: l'auto accelera sempre, appena il conto alla rovescia lo permette.
+`touchstart` in qualunque punto della pagina passa alla retromarcia, `touchend` torna avanti.
+Come con la freccia giù, la retromarcia prima frena e poi fa andare l'auto all'indietro.
+
+### Lo sterzo in `car.js`
+
+```js
+if(this.controls.tilt){
+   this.angle -= this.controls.tilt * 0.03;
+}else{
+```
+
+Con le frecce lo sterzo è tutto o niente: 0.03 rad per frame. Con il telefono è proporzionale:
+inclinato di 0.3 rad, il telefono fa sterzare l'auto di 0.009 rad per frame. Quando `tilt` è
+`undefined`, come per la tastiera e le auto AI, o esattamente 0, si passa al ramo di sempre.
+
+### Differenze dall'originale
+
+`phone.html` è costruita da `race.html` di questa cartella, quindi ne eredita le differenze:
+`lang` e `charset`, l'ordine degli script del capitolo 11, niente righe commentate dei mondi
+alternativi.
+
+### Limiti
+
+- Non l'ho provato su un telefono vero: inclinazione e tocchi li ho simulati nel browser del
+  computer con eventi `DeviceMotionEvent` e `touchstart`/`touchend`.
+- I browser dei telefoni possono non mandare `devicemotion` a una pagina servita in HTTP da un
+  indirizzo di rete locale, e iOS chiede un permesso esplicito che il codice non richiede.
+- `tilt` è 0 solo in orizzontale, con un lato preciso verso il basso. In verticale vale circa
+  ±π/2 e l'auto gira su sé stessa; capovolto è vicino a ±π e salta da un segno all'altro.
+- Lo sterzo non ha `flip`: in retromarcia non si inverte come con le frecce.
+- Su un computer non c'è accelerometro: Chrome manda un solo `devicemotion` con `x` e `y` a
+  `null`, `atan2(null, null)` vale 0, il canvas viene centrato e l'auto va sempre dritta.
+- Il canvas ruotato ha le dimensioni della finestra, calcolate al caricamento: ruotando, gli
+  angoli escono dallo schermo e si vede il grigio dello sfondo.
+- Basta sollevare un dito per tornare avanti, anche se un altro è ancora sullo schermo.
+
+### Come provarlo
+
+Servi la cartella in modo che il telefono la raggiunga, apri `phone.html` e tieni il telefono in
+orizzontale. Dopo il GO! l'auto parte da sola: ruota il telefono come un volante per sterzare e
+tieni il dito sullo schermo per frenare e fare retromarcia. Se l'auto va solo dritta, il browser
+non sta mandando i dati dell'accelerometro alla pagina.
