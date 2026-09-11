@@ -21,6 +21,7 @@ del commit che chiude quella parte.
 | 6. Camera Part 1 | Camera in prima persona: le basi degli edifici proiettate in prospettiva |
 | 7. Camera Part 2 | Vista 3D a tutto schermo: edifici, bordi e auto estrusi, camera che insegue da dietro |
 | 8. Phone Input | Pagina `phone.html`: si sterza inclinando il telefono, un tocco mette la retromarcia |
+| 9. Marker Detector | Pagina `markers.html`: trova due oggetti blu nella webcam, con centro e grandezza |
 
 Restano i due stili della cartella 11: il codice del mondo (`world/`) è indentato a 3 spazi, con
 spazi intorno agli operatori; quello dell'auto a 4 spazi, compatto.
@@ -1056,3 +1057,113 @@ Servi la cartella in modo che il telefono la raggiunga, apri `phone.html` e tien
 orizzontale. Dopo il GO! l'auto parte da sola: ruota il telefono come un volante per sterzare e
 tieni il dito sullo schermo per frenare e fare retromarcia. Se l'auto va solo dritta, il browser
 non sta mandando i dati dell'accelerometro alla pagina.
+
+## Parte 9. Marker Detector
+
+Prima di guidare con la webcam serve un modo per vedere il volante. Questa parte non tocca la
+gara: aggiunge una classe che cerca nell'immagine due oggetti blu, i marker, e una pagina di prova
+che mostra la webcam con i pixel trovati colorati. Il volante sarà un oggetto con un marker blu
+a ogni estremità, tenuto davanti alla webcam: la Parte 10 userà la linea che li unisce per
+sterzare e la loro grandezza per capire se il volante si avvicina o si allontana.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `markerDetector.js` | Nuovo: la classe `MarkerDetector`, che trova i due marker in un'immagine |
+| `markers.html` | Nuova pagina di prova: webcam, rilevamento e pixel dei marker colorati |
+
+### Una pagina di prova
+
+`markers.html` non carica nient'altro della cartella: solo `markerDetector.js` e uno script suo.
+Chiede la webcam con `getUserMedia`, la collega a un elemento `<video>` che non viene mai aggiunto
+alla pagina e, appena arriva il primo fotogramma, dà al canvas le dimensioni del video. Poi, a
+ogni frame:
+
+1. disegna il fotogramma sul canvas;
+2. ne legge i pixel con `getImageData`;
+3. passa i pixel al detector;
+4. colora di rosso, un pixel alla volta, i punti del marker di sinistra e di giallo quelli di destra.
+
+La funzione `distance` che il detector usa è definita in questa pagina: gli script condividono lo
+scope globale, quindi la classe la trova al momento della chiamata. Se la webcam non è
+disponibile o il permesso viene negato, un `alert` mostra l'errore.
+
+### Quanto è blu un pixel
+
+```js
+const blueness = b - Math.max(r, g);
+if (blueness > this.threshold.value) {
+```
+
+`getImageData` restituisce un array piatto di quattro byte per pixel, nell'ordine rosso, verde,
+blu e alfa. Per ogni pixel il detector misura di quanto il blu supera il più forte degli altri due
+canali. Un bianco o un grigio hanno i tre canali simili e restano vicini a 0, anche se sono
+chiarissimi; un blu acceso supera la soglia. Dall'indice nell'array si ricavano le coordinate:
+`i / 4` è il numero del pixel, il resto della divisione per la larghezza è la x, il quoziente è
+la y.
+
+La soglia vale 50 ed è il `value` di un `<input type="range">` da 0 a 255. Lo slider viene creato
+ma non aggiunto alla pagina, quindi per ora non si può spostare: è lì per la Parte 10. Il valore di
+un input è una stringa, `"50"`, e il confronto con `>` la converte in numero.
+
+### Due gruppi
+
+I punti blu sono un unico elenco: bisogna dividerli tra i due marker. Il detector usa k-means con
+k = 2, scritto a mano:
+
+1. due centroidi di partenza: il primo punto trovato e l'ultimo. La scansione va per righe
+   dall'alto, quindi sono il punto più in alto e quello più in basso, quasi sempre in due marker
+   diversi;
+2. ogni punto va nel gruppo del centroide più vicino;
+3. ogni centroide si sposta nella media dei punti del suo gruppo;
+4. si ripetono i passi 2 e 3, dieci volte in tutto.
+
+Le iterazioni sono sempre dieci: il ciclo non si ferma prima, anche quando i gruppi non cambiano
+più. Alla fine il gruppo con il centroide più a sinistra diventa `leftMarker`, l'altro
+`rightMarker`.
+
+### Centro e grandezza
+
+Per ogni marker il detector restituisce il centroide, l'elenco dei punti e un raggio:
+
+```js
+const size1 = Math.sqrt(group1.length);
+const radius1 = size1 / 2;
+```
+
+`size` è il lato di un quadrato con tanti pixel quanti ne ha il marker, e il raggio ne è la metà.
+Per un cerchio esce un po' più piccolo del vero: circa 0.89 volte il raggio. Nel test un cerchio
+di raggio 20 ha dato 17.9, uno di raggio 30 ha dato 26.8. Non conta, perché questo valore serve
+solo per confronti: un marker che si rimpicciolisce si sta allontanando.
+
+### Differenze dall'originale
+
+Nell'originale questa parte è una cartella a sé, con la pagina chiamata `index.html`. Qui vive
+nella cartella della gara come `markers.html`: la Parte 10 aggiunge `markerDetector.js` accanto
+agli altri script, e un `index.html` in mezzo a `race.html`, `phone.html` e `sim.html` farebbe
+pensare alla pagina principale. Come nelle altre pagine ci sono `lang` e `charset`.
+
+### Limiti
+
+- Non l'ho provato con una webcam vera. Ho caricato la pagina con uno stream finto: un canvas con
+  due cerchi blu e un rettangolo rosso. I centroidi sono venuti a mezzo pixel dai centri
+  disegnati e il rettangolo è stato ignorato.
+- Se nell'immagine non c'è niente di blu, il detector non restituisce `null`: restituisce due
+  marker senza punti, con i centroidi a `NaN`. La pagina non va in errore, semplicemente non
+  colora niente.
+- Con un solo marker in vista, k-means divide comunque i suoi punti in due metà. Qualsiasi altro
+  oggetto blu nell'inquadratura finisce in uno dei due gruppi e sposta il centroide.
+- Il video non è specchiato: il marker che si tiene con la mano sinistra compare a destra
+  nell'immagine e diventa `rightMarker`. La Parte 10 disegna il fotogramma ribaltato.
+- L'immagine è analizzata alla risoluzione piena della webcam, e a ognuna delle dieci iterazioni
+  si calcolano quattro distanze per ogni punto blu. La Parte 10 rimpicciolisce l'immagine di quattro volte
+  per lato prima di analizzarla.
+- La soglia è fissa a 50: con una luce diversa può essere troppo alta o troppo bassa.
+
+### Come provarlo
+
+La webcam funziona solo in un contesto sicuro: `localhost` va bene, un indirizzo di rete in HTTP
+no. Servi la cartella, apri `markers.html` su `localhost` e consenti l'accesso alla
+webcam. Metti davanti alla camera due oggetti blu ben separati: i loro pixel diventano rossi
+quello a sinistra nell'immagine, gialli quello a destra.
