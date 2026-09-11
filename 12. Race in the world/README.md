@@ -22,6 +22,7 @@ del commit che chiude quella parte.
 | 7. Camera Part 2 | Vista 3D a tutto schermo: edifici, bordi e auto estrusi, camera che insegue da dietro |
 | 8. Phone Input | Pagina `phone.html`: si sterza inclinando il telefono, un tocco mette la retromarcia |
 | 9. Marker Detector | Pagina `markers.html`: trova due oggetti blu nella webcam, con centro e grandezza |
+| 10. Camera Input | Pagina `camera.html`: si guida con un volante a due marker blu davanti alla webcam |
 
 Restano i due stili della cartella 11: il codice del mondo (`world/`) è indentato a 3 spazi, con
 spazi intorno agli operatori; quello dell'auto a 4 spazi, compatto.
@@ -1167,3 +1168,142 @@ La webcam funziona solo in un contesto sicuro: `localhost` va bene, un indirizzo
 no. Servi la cartella, apri `markers.html` su `localhost` e consenti l'accesso alla
 webcam. Metti davanti alla camera due oggetti blu ben separati: i loro pixel diventano rossi
 quello a sinistra nell'immagine, gialli quello a destra.
+
+## Parte 10. Camera Input
+
+Il detector della Parte 9 diventa un volante. Una quarta pagina, `camera.html`, è la gara con i
+controlli presi dalla webcam: si tiene davanti alla camera un oggetto con un marker blu a ogni
+estremità e lo si ruota come un volante. Allontanarlo dalla camera mette la retromarcia. In un
+riquadro semitrasparente in alto a sinistra si vede cosa sta guardando il gioco.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `cameraControls.js` | Nuovo: la classe `CameraControls`, che trasforma i marker in sterzo e marcia |
+| `camera.html` | Nuova pagina: la gara con i controlli della webcam e il riquadro `ironManCanvas` |
+| `markerDetector.js` | La soglia si può cambiare con `updateThreshold` e resta salvata nel `localStorage` |
+| `style.css` | Posizione e aspetto del riquadro della webcam |
+
+### La pagina
+
+`camera.html` è `race.html` con un canvas in più, `ironManCanvas`, e uno script in fondo che
+sostituisce i controlli dell'auto:
+
+```js
+const controls = new CameraControls(ironManCanvas);
+myCar.controls = controls;
+```
+
+È lo stesso schema di `phone.html`: `car.js` legge `forward`, `reverse` e `tilt`, e non sa da dove
+arrivano. Il codice dell'auto non cambia. A differenza di `phone.html`, minimappa e classifica
+restano visibili.
+
+### Il fotogramma allo specchio
+
+Appena la webcam manda il primo fotogramma, `CameraControls` dà al riquadro un quarto della
+larghezza e un quarto dell'altezza del video: i pixel da analizzare diventano un sedicesimo. Il
+CSS poi lo allarga a 300 pixel sullo schermo. A ogni frame il fotogramma viene disegnato
+ribaltato:
+
+```js
+this.ctx.translate(this.canvas.width, 0);
+this.ctx.scale(-1, 1);
+```
+
+La webcam riprende la scena dal suo punto di vista, quindi la mano sinistra comparirebbe a
+destra. Ribaltato, il riquadro funziona come uno specchio: la mano sinistra sta a sinistra,
+`leftMarker` è davvero il marker di sinistra e il volante gira dalla parte giusta.
+
+### Il volante
+
+```js
+this.tilt = Math.atan2(
+   rightMarker.centroid.y - leftMarker.centroid.y,
+   rightMarker.centroid.x - leftMarker.centroid.x
+);
+```
+
+`tilt` è l'angolo della linea che va dal marker di sinistra a quello di destra: 0 con il volante
+dritto, positivo quando il marker di destra scende (la y del canvas cresce verso il basso). In
+`car.js` passa per il ramo aggiunto nella Parte 8, `this.angle -= tilt * 0.03`: girando il volante
+a destra `tilt` diventa positivo e l'auto gira a destra, con uno sterzo proporzionale
+all'inclinazione come per il telefono.
+
+### Avanti e indietro
+
+Il raggio dei marker dice quanto è lontano il volante. Durante il conto alla rovescia, quando
+`started` di `race.js` è ancora falso, `initializing` è vero e la grandezza media dei due marker
+viene salvata in `expectedSize` a ogni frame. Al GO! il valore si ferma: è la distanza di
+riferimento.
+
+```js
+if (size < this.expectedSize * 0.85) {
+   this.forward = false;
+   this.reverse = true;
+}
+```
+
+Dopo la partenza, se i marker scendono sotto l'85% di quella grandezza, il volante è stato tirato
+indietro e l'auto va in retromarcia; riavvicinandolo torna avanti. Come col telefono non c'è un
+pedale del gas: l'auto accelera sempre, appena il conto alla rovescia lo permette.
+
+### Cosa si vede nel riquadro
+
+Sopra il fotogramma ribaltato `CameraControls` disegna un cerchio che ha per diametro la linea tra
+i due marker: blu quando l'auto va avanti, rosso in retromarcia. Poi rimette sopra solo i pixel
+dei marker: azzera l'alfa di tutti i pixel letti, lo riporta a 255 per quelli trovati dal detector,
+copia il risultato su un canvas di appoggio con `putImageData` e lo ridisegna sopra il cerchio
+con `drawImage`. Il canvas di appoggio serve perché `putImageData` sostituisce i pixel invece di
+sovrapporli: scritta direttamente nel riquadro, l'immagine quasi tutta trasparente cancellerebbe
+il fotogramma e il cerchio.
+
+### La soglia con la rotella
+
+```js
+updateThreshold(delta) {
+   this.threshold.value = Number(this.threshold.value) + delta;
+   localStorage.setItem("markerThreshold", this.threshold.value);
+}
+```
+
+La rotella del mouse sopra il riquadro cambia la soglia del detector di 1 a scatto: verso l'alto
+la alza e lascia passare meno pixel, verso il basso la abbassa. Il valore viene salvato nella
+chiave `markerThreshold` e riletto al caricamento, quindi non va regolato di nuovo a ogni partita.
+Lo slider della Parte 9 serve qui: non si vede, ma un `<input type="range">` riporta da solo tra 0
+e 255 ogni valore fuori dai limiti, quindi la soglia non può uscire dall'intervallo.
+
+### Differenze dall'originale
+
+`camera.html` è costruita da `race.html` di questa cartella, quindi ne eredita le differenze,
+come `phone.html`: `lang` e `charset`, l'ordine degli script del capitolo 11, niente righe
+commentate dei mondi alternativi.
+
+### Limiti
+
+- Non l'ho provato con una webcam vera. Al posto di `getUserMedia` ho dato alla pagina lo stream
+  di un canvas con due cerchi blu, che potevo inclinare e rimpicciolire: `tilt` ha seguito
+  l'inclinazione, i cerchi rimpiccioliti hanno messo la retromarcia e la rotella ha spostato la
+  soglia.
+- La grandezza di riferimento è quella dell'ultimo frame prima del GO!. Se in quel momento il
+  volante si sta muovendo, o non è inquadrato, il riferimento è sbagliato per tutta la partita.
+- Se i marker escono dall'inquadratura, centroidi e raggio diventano `NaN`. `tilt` vale `NaN`, che
+  in `car.js` conta come falso, e il confronto con `expectedSize` è falso: l'auto va dritta e in
+  avanti.
+- Restano i limiti del detector: un solo marker viene diviso in due, e ogni altro oggetto blu
+  nell'inquadratura sposta i centroidi.
+- Con il volante in verticale `tilt` vale circa ±π/2 e l'auto gira su sé stessa, come con il
+  telefono.
+- La chiave `markerThreshold` è condivisa con `markers.html`, che la legge ma non ha la rotella
+  per cambiarla.
+- Se la webcam non è disponibile, o il permesso viene negato, un `alert` mostra l'errore. I
+  controlli da tastiera sono già stati sostituiti e `forward` parte a `true`: dopo il GO! l'auto
+  va dritta senza che si possa sterzare.
+
+### Come provarlo
+
+Servi la cartella, apri `camera.html` su `localhost` e consenti l'accesso alla webcam. Tieni
+davanti alla camera due oggetti blu alla stessa altezza, uno per mano, e tienili fermi durante il
+conto alla rovescia. Dopo il GO! ruotali come un volante per sterzare e allontanali dalla camera
+per la retromarcia. Se nel riquadro i marker sono pieni di buchi, o compaiono pixel blu altrove,
+regola la soglia con la rotella sopra il riquadro.
