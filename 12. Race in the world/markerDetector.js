@@ -4,7 +4,12 @@ class MarkerDetector {
       this.threshold.type = "range";
       this.threshold.min = 0;
       this.threshold.max = 255;
-      this.threshold.value = 50;
+      this.threshold.value = localStorage.getItem("markerThreshold") || 50;
+   }
+
+   updateThreshold(delta) {
+      this.threshold.value = Number(this.threshold.value) + delta;
+      localStorage.setItem("markerThreshold", this.threshold.value);
    }
 
    #averagePoints(points) {
