@@ -23,6 +23,7 @@ del commit che chiude quella parte.
 | 8. Phone Input | Pagina `phone.html`: si sterza inclinando il telefono, un tocco mette la retromarcia |
 | 9. Marker Detector | Pagina `markers.html`: trova due oggetti blu nella webcam, con centro e grandezza |
 | 10. Camera Input | Pagina `camera.html`: si guida con un volante a due marker blu davanti alla webcam |
+| 11. Fine Tuning | Auto 3D con ruote che sterzano, ombre e dissolvenza; i muri respingono invece di distruggere |
 
 Restano i due stili della cartella 11: il codice del mondo (`world/`) è indentato a 3 spazi, con
 spazi intorno agli operatori; quello dell'auto a 4 spazi, compatto.
@@ -1307,3 +1308,197 @@ davanti alla camera due oggetti blu alla stessa altezza, uno per mano, e tienili
 conto alla rovescia. Dopo il GO! ruotali come un volante per sterzare e allontanali dalla camera
 per la retromarcia. Se nel riquadro i marker sono pieni di buchi, o compaiono pixel blu altrove,
 regola la soglia con la rotella sopra il riquadro.
+
+## Parte 11. Fine Tuning
+
+L'ultima parte non aggiunge meccaniche nuove, rifinisce quelle che ci sono. Il box dell'auto
+diventa una carrozzeria con quattro ruote che girano e sterzano; tutte le auto lasciano un'ombra a
+terra; gli edifici diventano trasparenti e le cose lontane sfumano. Toccare un muro non distrugge
+più l'auto: la respinge verso il centro della strada. La minimappa mostra solo il percorso, con un
+pallino per ogni auto.
+
+### File
+
+| File | Cosa cambia |
+|------|-------------|
+| `camera.js` | `#extrudeCar` con ruote; ombre delle auto; edifici trasparenti; dissolvenza con la distanza; camera più vicina |
+| `race.js` | `handleCollisionWithRoadBorder` rimette in strada le auto; minimappa del corridoio che ruota con l'auto |
+| `miniMap.js` | Riceve le auto e le disegna come pallini grigi; zoom raddoppiato |
+| `sim.js` | Passa le auto alla minimappa |
+| `style.css` | Cielo sfumato dietro la vista 3D; classifica senza barra di scorrimento |
+
+### La carrozzeria
+
+`#extrudeCar` prende i quattro vertici del poligono dell'auto, nell'ordine di `#createPolygon`:
+avanti a destra, avanti a sinistra, dietro a sinistra, dietro a destra. Su ogni fianco aggiunge il
+punto a metà e i due punti a un quarto, e ne esce una base di 10 punti. Poi stringe il muso del 20%
+per lato e il retro del 10%, con `#moveInward`, che avvicina due punti tra loro:
+
+```js
+#moveInward(p1, p2, percent = 0.3) {
+   const new_p1 = lerp2D(p1, p2, percent);
+   const new_p2 = lerp2D(p2, p1, percent);
+```
+
+Dalla base nascono altri due anelli di 10 punti, uno a metà altezza e uno sul tetto, e tra un anello
+e l'altro una fascia di facce, come nell'estrusione della Parte 7. Il tetto però non è piatto:
+
+| Punti del tetto | Quota | Cosa diventa |
+|-----------------|-------|--------------|
+| Muso | −15 + 7 = −8 | Il cofano, appena sopra la linea di metà |
+| Quarto anteriore | −15 + 6 = −9 | La fine del cofano |
+| Metà e quarto posteriore | −15 | Il tetto dell'abitacolo |
+| Coda | −15 + 4 = −11 | Il bagagliaio |
+
+Con il 30% di `#moveInward` da ogni lato il tetto è anche più stretto della base, e muso e coda si
+avvicinano del 10%: la fascia superiore si inclina verso l'interno, come i finestrini. Quattro
+facce chiudono il tetto, dal cofano al lunotto.
+
+Tutta la base sta a `z = -5`, cioè alzata di `wheelRadius`. I punti a un quarto del fianco sono gli
+stessi oggetti che finiscono nella base, quindi si alzano anche loro, e sono i centri delle ruote:
+una ruota di raggio 5 centrata a quota 5 tocca terra. I centri vengono calcolati prima di stringere
+muso e coda, quindi le ruote restano sulla larghezza piena dell'auto: sono centrate sul bordo
+della carrozzeria e ne sporgono per metà dello spessore.
+
+### Le ruote
+
+```js
+for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) {
+   const angle = a + distance / 20;
+   points.push(
+      new Point(
+         lerp(support[0].x, support[1].x, Math.cos(angle)),
+         lerp(support[0].y, support[1].y, Math.cos(angle)),
+         center.z + Math.sin(angle) * radius
+      )
+   );
+}
+```
+
+Ogni fianco di una ruota è un poligono di 16 punti su un cerchio verticale. `support` è il segmento
+che va dal centro della ruota a un punto distante `radius` nella direzione in cui punta la ruota:
+`lerp` con `Math.cos(angle)` si sposta avanti e indietro lungo quel segmento, `Math.sin(angle)` su e
+giù. Con un `lerp` oltre l'intervallo da 0 a 1 (qui da −1 a 1) si ottiene un cerchio orientato
+come la ruota senza scrivere una matrice di rotazione. I due fianchi stanno a 2 unità dal centro, da
+una parte e dall'altra, e 16 facce li uniscono nel battistrada.
+
+`distance` è la `fittness` dell'auto, cioè la strada percorsa: aggiunta all'angolo fa girare i 16
+punti, e la ruota rotola. In retromarcia `fittness` cala e la ruota gira all'indietro.
+
+Le ruote posteriori puntano come l'auto; le anteriori sterzano:
+
+```js
+if (carInfo.controls.tilt) {
+   frontWheelAngle += carInfo.controls.tilt * 0.5;
+} else {
+   if (carInfo.controls.left) {
+      frontWheelAngle -= 0.3;
+   }
+```
+
+Con telefono e webcam l'angolo delle ruote segue l'inclinazione; con le frecce è fisso a ±0.3.
+`carInfo` è `world.bestCar`, che in gara è `myCar`.
+
+### Ombre, trasparenze e dissolvenza
+
+`#getPolys` aggiunge le impronte di **tutte** le auto (`world.cars`), piatte a terra, grigio chiaro
+e senza contorno: sono le ombre. È anche il primo modo in cui le auto AI compaiono nella vista 3D.
+Gli edifici diventano grigi con trasparenza 0.2, quasi vetro, e non nascondono più la strada.
+L'ordine è ombre, edifici, auto, bordi: le ombre vanno disegnate per prime, sotto tutto il resto.
+
+```js
+const dist = polys[i].distanceToPoint(this);
+ctx.globalAlpha = (1 - dist / this.range) ** 2;
+```
+
+`render` dà a ogni poligono un'opacità che cala con la distanza dalla camera: 1 sotto il naso, 0.25
+a metà del campo visivo, 0 al limite dei 1000. Il quadrato fa sparire le cose lontane più in
+fretta di una retta: è una nebbia, che nasconde anche il momento in cui un edificio entra nel campo
+visivo e prima sarebbe comparso di colpo. La distanza è calcolata sul poligono 3D originale, non su
+quello proiettato. `fill` e `stroke` vengono passati a `draw` solo quando il poligono li ha: quelli
+dell'auto e dei bordi sono `undefined`, e `draw` usa il blu predefinito.
+
+La camera si è avvicinata, da 150 a 100 dietro l'auto, e insegue più in fretta: `t = 0.15`, il 15%
+della distanza a ogni frame.
+
+### Niente più schianti
+
+```js
+const correctors = car.polygon.map((p) => {
+   const proj = seg.projectPoint(p);
+```
+
+Dopo l'`update` di tutte le auto, `race.js` passa quelle danneggiate a
+`handleCollisionWithRoadBorder`. Lì si cerca il segmento dello scheletro del corridoio più vicino
+all'auto, cioè la linea centrale della strada, e ogni vertice dell'auto viene proiettato su quel
+segmento (sugli estremi, se cade fuori). Il vettore da un vertice alla sua proiezione dice quanto e
+in che direzione quel vertice è lontano dal centro; il più lungo appartiene all'angolo che ha
+toccato il muro. L'auto viene spostata di 1 unità in quella direzione e ruotata di 0.1:
+
+- avanti a destra (0) o dietro a sinistra (2): l'auto gira a sinistra;
+- avanti a sinistra (1) o dietro a destra (3): l'auto gira a destra.
+
+In tutti e due i casi l'angolo che ha toccato ruota via dal muro. Infine `damaged` torna `false` e al frame
+dopo l'auto riparte. Vale per tutte le auto, anche le AI: nessuna resta più ferma contro un bordo.
+
+### La minimappa
+
+In `race.js` la minimappa riceve un grafo nuovo, fatto dei soli segmenti di
+`world.corridor.skeleton`: si vede il percorso da fare, non tutte le strade del mondo. Per questo
+viene creata dopo il corridoio. `MiniMap` riceve anche le auto e disegna un pallino grigio per
+ognuna; lo zoom passa da 0.05 a 0.1.
+
+```js
+miniMapCanvas.style.transform = "rotate(" + myCar.angle + "rad)";
+```
+
+A ogni frame il canvas della minimappa ruota, via CSS, dello stesso angolo dell'auto. Nel disegno
+la direzione dell'auto è ruotata di `angle` in senso antiorario rispetto all'alto; `rotate` del CSS
+gira in senso orario e la riporta in alto. La minimappa funziona come un navigatore: davanti è
+sempre su. `sim.html` usa lo stesso `MiniMap`, con le sue 500 auto e tutto il grafo, senza
+rotazione.
+
+### Classifica e cielo
+
+Nella classifica i nomi delle auto AI diventano bianchi, quello del giocatore resta del suo colore
+su sfondo bianco. `overflow:hidden` toglie la barra di scorrimento: si vedono solo le prime righe.
+Dietro la vista 3D, `#cameraCanvas` ha uno sfondo sfumato da azzurro a bianco: il canvas è
+trasparente dove non si disegna, e il cielo compare sopra l'orizzonte.
+
+### Differenze dall'originale
+
+Nessuna oltre a quelle delle parti precedenti.
+
+### Limiti
+
+- Quando l'auto tocca un muro, `car.js` fa ancora quello che faceva prima: velocità a zero e, per
+  la tua auto, `explode()`. La correzione la sblocca, ma solo dopo. Spingendo contro un muro l'auto
+  si ferma e riparte a scatti: nel test, in 3 secondi di strusciata, l'esplosione è suonata 13
+  volte.
+- `damaged` torna `false` nello stesso frame, quindi il 💀 della classifica non compare più.
+- La correzione usa lo scheletro, non il muro vero: funziona perché il corridoio è centrato sullo
+  scheletro. Dove due tratti del percorso passano vicini, il segmento più vicino può essere quello
+  sbagliato.
+- `carAngle`, l'angolo di tutte le ruote, viene calcolato dal fianco sinistro dopo aver stretto
+  muso e coda in modo diverso (6 unità contro 3). Il fianco non è più parallelo all'auto, e le
+  ruote sono storte di circa 3,4°.
+- `distance / 20`: una ruota di raggio 5 dovrebbe girare di `distance / 5` per non slittare, quindi
+  gira a un quarto della velocità giusta.
+- I poligoni non sono ordinati per distanza, come nella Parte 7: trasparenze e dissolvenza rendono
+  la scena più leggibile, ma un muretto dietro l'auto può ancora finirle sopra.
+- `#extrudeCar` prende il primo poligono uscito dal filtro e ne usa i primi quattro punti. Va bene
+  finché l'auto è tutta nel campo visivo; se il filtro la tagliasse, i punti non sarebbero più i
+  quattro angoli.
+- Con la classifica senza scorrimento, se sei oltre le prime righe non vedi la tua posizione.
+- Senza Target non c'è il corridoio: oltre a `updateCarProgress` (Parte 4), ora va in errore anche
+  la creazione della minimappa.
+- `globalAlpha` resta all'ultimo valore usato dopo `render`; non dà problemi solo perché quel canvas
+  lo usa soltanto la camera.
+
+### Come provarlo
+
+Apri `race.html` dal server locale. Durante il conto alla rovescia guarda l'auto: ruote, cofano e
+tetto. Dopo il GO! sterza e guarda le ruote anteriori, poi buttati contro un muro: senti
+l'esplosione, ma l'auto viene spinta indietro e riparte. Le auto AI le vedi come ombre grigie e
+come pallini nella minimappa, che gira con te. Con `camera.html` o `phone.html` le ruote seguono
+l'inclinazione del volante o del telefono.
