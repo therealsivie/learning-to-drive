@@ -13,11 +13,13 @@ const carCtx = carCanvas.getContext("2d");
 const networkCtx = networkCanvas.getContext("2d");
 
 const viewport = new Viewport(carCanvas, world.zoom, world.offset);
-const miniMap = new MiniMap(miniMapCanvas, world.graph, 300);
 
 const N=500;
 const cars=generateCars(N);
 let bestCar=cars[0];
+
+const miniMap = new MiniMap(miniMapCanvas, world.graph, 300, cars);
+
 const brainKey="raceBestBrain";
 const savedBrain=localStorage.getItem(brainKey);
 if(savedBrain){

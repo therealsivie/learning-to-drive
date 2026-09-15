@@ -21,7 +21,6 @@ const carCtx = carCanvas.getContext("2d");
 const cameraCtx = cameraCanvas.getContext("2d");
 
 const viewport = new Viewport(carCanvas, world.zoom, world.offset);
-const miniMap = new MiniMap(miniMapCanvas, world.graph, rightPanelWidth);
 
 const N=100;
 const cars=generateCars(1, "KEYS").concat(generateCars(N, "AI"));
@@ -56,6 +55,9 @@ if (target) {
 } else {
    roadBorders = world.roadBorders.map((s) => [s.p1, s.p2]);
 }
+
+const miniMapGraph = new Graph([], world.corridor.skeleton);
+const miniMap = new MiniMap(miniMapCanvas, miniMapGraph, rightPanelWidth, cars);
 
 let frameCount = 0;
 let started = false;
@@ -154,10 +156,44 @@ function startCounter() {
    }, 1000);
 }
 
+function handleCollisionWithRoadBorder(car) {
+   const seg = getNearestSegment(car, world.corridor.skeleton);
+
+   const correctors = car.polygon.map((p) => {
+      const proj = seg.projectPoint(p);
+      const projPoint = proj.offset < 0
+         ? seg.p1
+         : proj.offset > 1 
+            ? seg.p2
+            : proj.point;
+      return subtract(projPoint, p);
+   });
+
+   const maxMagnitude = Math.max(...correctors.map((p) => magnitude(p)));
+   const corrector = correctors.find((p) => magnitude(p) == maxMagnitude);
+   const normCorrector = normalize(corrector);
+
+   if(corrector == correctors[0] || corrector == correctors[2]) {
+      car.angle += 0.1;
+   } else {
+      car.angle -= 0.1;
+   }
+
+   car.x += normCorrector.x;
+   car.y += normCorrector.y;
+   car.damaged = false;
+}
+
 function animate(){
     if (started) {
       for(let i=0;i<cars.length;i++){
          cars[i].update(roadBorders,[]);
+      }
+    }
+
+    for (const car of cars) {
+      if (car.damaged) {
+         handleCollisionWithRoadBorder(car);
       }
     }
 
@@ -171,6 +207,7 @@ function animate(){
     const viewPoint = scale(viewport.getOffset(), -1);
     //world.draw(carCtx, viewPoint, false);
     miniMap.update(viewPoint);
+    miniMapCanvas.style.transform = "rotate(" + myCar.angle + "rad)";
 
     for (let i = 0; i < cars.length; i++) {
       updateCarProgress(cars[i]);
@@ -180,7 +217,7 @@ function animate(){
 
     for (let i = 0; i < cars.length; i++) {
       const stat = document.getElementById("stat_" + i);
-      stat.style.color = cars[i].color;
+      stat.style.color = cars[i].type == "AI" ? "white" : cars[i].color;
       stat.innerText = (i+1) + ": " + cars[i].name + (cars[i].damaged ? " 💀" : "");
       stat.style.backgroundColor = cars[i].type == "AI" ? "black" : "white";
       if (cars[i].finishTime) {
