@@ -8,7 +8,9 @@ sensori, collisioni, rete neurale e algoritmo di addestramento sono tutti fatti 
 
 Ogni cartella è uno snapshot completo e funzionante del progetto alla fine di un capitolo. Non
 dipendono l'una dall'altra: si può aprire qualsiasi cartella e lanciarla da sola. Ogni cartella ha
-il suo README con la spiegazione dettagliata di cosa cambia rispetto al capitolo precedente.
+il suo README con la spiegazione dettagliata di cosa cambia rispetto al capitolo precedente. Le
+cartelle 11 e 12 raccolgono più parti ciascuna, nello stesso codice: ogni parte è una serie di
+commit, e il README della cartella le spiega una per una.
 
 | # | Cartella | Cosa aggiunge |
 |---|----------|---------------|
@@ -23,6 +25,7 @@ il suo README con la spiegazione dettagliata di cosa cambia rispetto al capitolo
 | 9 | [Fine-tuning](9.%20Fine-tuning) | 100 auto, sprite colorato per ogni auto, traffico multicolore |
 | 10 | [Curved road](10.%20Curved%20road) | Strada curva fatta di polilinee e rete senza strato nascosto |
 | 11 | [Car in the world](11.%20Car%20in%20the%20world) | Editor di un mondo virtuale (strade, edifici, segnaletica, import da OpenStreetMap) in cui guidano le auto |
+| 12 | [Race in the world](12.%20Race%20in%20the%20world) | Gara contro le auto AI su un percorso trovato con Dijkstra, suoni sintetizzati, vista 3D, guida dal telefono o con la webcam |
 
 ## Il percorso in breve
 
@@ -44,6 +47,11 @@ il suo README con la spiegazione dettagliata di cosa cambia rispetto al capitolo
    l'unione dei poligoni, aggiunge edifici, alberi e segnaletica, e può importare le strade da
    OpenStreetMap. La simulazione carica quel mondo e fa partire le auto dal marking Start, con una
    minimappa che segue l'auto migliore.
+7. **Gara (cap. 12).** Mondo e auto addestrata arrivano da file. Dijkstra trova il percorso più
+   breve dallo Start al Target, e i bordi di quel percorso diventano l'unica strada che le auto
+   vedono. Sopra ci gira un gioco: tu contro 100 auto AI, con suoni generati dal Web Audio, una
+   camera 3D che proietta il mondo in prospettiva a mano e due controlli alternativi alle
+   frecce, l'inclinazione del telefono e un volante fatto di due oggetti blu visti dalla webcam.
 
 La funzione che ritorna più spesso è `lerp(A,B,t)`: serve per le corsie, per distribuire i raggi,
 per i punti di intersezione, per posizionare i nodi nel visualizer e per mutare i pesi.
@@ -65,6 +73,12 @@ Il capitolo 11 ha bisogno del server: l'editor (`world/index.html`) e la simulaz
 sempre lo condividono. Prima si apre l'editor, si costruisce o si importa un mondo e lo si salva
 con 💾; poi si apre la simulazione.
 
+Anche il capitolo 12 va aperto dal server, e non ha un `index.html`: le pagine sono `sim.html` (il
+simulatore), `race.html` (la gara con le frecce), `phone.html` (la gara guidata dal telefono),
+`markers.html` (il rilevatore di marker) e `camera.html` (la gara guidata con la webcam). La
+webcam funziona solo su `localhost`; per il telefono la cartella va servita sulla rete locale.
+L'editor è in `world/index.html`.
+
 ### Comandi
 
 - Capitoli 1-5: si guida con le frecce della tastiera.
@@ -78,6 +92,12 @@ con 💾; poi si apre la simulazione.
   segnaletica con gli altri pulsanti (🚙 è il punto di partenza delle auto); 🗺️ importa le strade
   da OpenStreetMap, 💾 salva il mondo, 📁 ne carica uno da file. Nella simulazione 💾 e 🗑️
   funzionano come nei capitoli 8-9.
+- Capitolo 12: in `race.html` si guida con le frecce dopo il conto alla rovescia, fino al Target.
+  In `phone.html` si sterza inclinando il telefono tenuto in orizzontale, e un dito sullo schermo
+  frena e fa retromarcia. In `camera.html` si tengono due oggetti blu davanti alla webcam, uno per
+  mano, e li si ruota come un volante; allontanarli dalla camera fa retromarcia. In `sim.html`
+  💾 e 🗑️ salvano e cancellano la rete. Nell'editor, in modalità 🌐, s ed e scelgono partenza e
+  arrivo del percorso, e 💾 scarica il mondo come file.
 
 ### Attenzione al localStorage
 
@@ -88,6 +108,11 @@ usano una rete `[5,6,4]` su una strada dritta a 3 corsie. Il capitolo 10 usa una
 una strada curva, quindi salva in una chiave sua, `curvedRoadBestBrain`, e non si mescola con gli
 altri. Il capitolo 11 salva in `worldBestBrain`; se la chiave manca, parte dalla `bestBrain` dei
 capitoli 8-9, che ha la stessa forma `[5,6,4]`. Il mondo dell'editor sta nella chiave `world`.
+
+Il capitolo 12 salva la rete in `raceBestBrain`, scritta da `sim.html` e letta anche dalle pagine
+della gara. Non ripiega su `bestBrain`: la sua rete ha 3 ingressi (due raggi e la velocità) e
+quelle dei capitoli precedenti non andrebbero. Il mondo non passa più dal `localStorage`, è un file
+in `world/saves/`; la soglia del rilevatore di marker sta in `markerThreshold`.
 
 ## Note tecniche
 
