@@ -1,24 +1,24 @@
 # 9. Fine-tuning
 
-La versione finale della prima fase del corso. La logica è quella del capitolo 8 con `N=100`
-auto, ma la parte grafica fa un salto: al posto dei rettangoli c'è l'immagine di una macchina,
-colorata in modo diverso per ogni auto del traffico.
+The final version of the first phase of the project. The logic is the one of chapter 8 with `N=100`
+cars, but the graphics take a leap: instead of rectangles there is the image of a car, colored
+differently for each traffic car.
 
-## Cosa cambia rispetto al capitolo 8
+## What changes compared to chapter 8
 
-| File | Novità |
+| File | What's new |
 |------|--------|
-| `car.png` | Nuovo, sprite della macchina (75x117) |
-| `car.js` | Il colore passa al costruttore, maschera colorata, disegno con immagine e `multiply` |
-| `utils.js` | Aggiunta `getRandomColor` |
-| `main.js` | `N=100`, il traffico riceve colori casuali, `draw` senza colore |
+| `car.png` | New, car sprite (75x117) |
+| `car.js` | The color is passed to the constructor, colored mask, drawing with image and `multiply` |
+| `utils.js` | Added `getRandomColor` |
+| `main.js` | `N=100`, traffic gets random colors, `draw` without color |
 
-## L'immagine colorata: il trucco della maschera
+## The colored image: the mask trick
 
-Volevo capire bene come si ottiene un'auto di qualsiasi colore partendo da un solo PNG. Succede in
-due tempi.
+I wanted to understand properly how you get a car of any color starting from a single PNG. It
+happens in two steps.
 
-### 1. Nel costruttore: creare la maschera
+### 1. In the constructor: creating the mask
 
 ```js
 this.mask=document.createElement("canvas");
@@ -36,14 +36,14 @@ this.img.onload=()=>{
 }
 ```
 
-- Ogni auto ha un suo canvas fuori schermo grande quanto lei (30x50), mai aggiunto alla pagina.
-- Si riempie tutto il rettangolo con il colore dell'auto.
-- Con `destination-atop` il colore già presente (la "destinazione") resta **solo dove l'immagine
-  nuova è opaca**. Quindi il risultato è una sagoma della macchina piena di colore, con lo sfondo
-  trasparente.
-- Tutto avviene in `onload`, perché prima che l'immagine sia caricata non si può usare come forma.
+- Each car has its own off-screen canvas as big as the car (30x50), never added to the page.
+- The whole rectangle is filled with the car's color.
+- With `destination-atop` the color already there (the "destination") stays **only where the new
+  image is opaque**. So the result is a silhouette of the car filled with color, with a transparent
+  background.
+- Everything happens in `onload`, because before the image is loaded it can't be used as a shape.
 
-### 2. In draw: sovrapporre maschera e immagine
+### 2. In draw: overlaying mask and image
 
 ```js
 ctx.save();
@@ -57,23 +57,23 @@ ctx.drawImage(this.img, -this.width/2, -this.height/2, this.width, this.height);
 ctx.restore();
 ```
 
-- Prima si disegna la sagoma colorata.
-- Poi, con `multiply`, si disegna sopra il PNG originale. `multiply` moltiplica i colori: dove il
-  PNG è bianco resta il colore della maschera, dove è scuro (finestrini, ombre, contorni) il
-  risultato si scurisce. Così la macchina è colorata ma mantiene i dettagli del disegno.
-- Se l'auto è danneggiata si salta la maschera e si disegna solo il PNG nella sua tinta originale:
-  è il nuovo modo di mostrare che si è rotta, al posto del grigio.
-- `restore()` riporta anche `globalCompositeOperation` al valore normale, quindi la modalità
-  `multiply` non "contamina" il resto del disegno.
+- First the colored silhouette is drawn.
+- Then, with `multiply`, the original PNG is drawn on top. `multiply` multiplies the colors: where
+  the PNG is white the mask color stays, where it is dark (windows, shadows, outlines) the result
+  gets darker. This way the car is colored but keeps the details of the drawing.
+- If the car is damaged the mask is skipped and only the PNG is drawn in its original tint: it is
+  the new way of showing that it broke, instead of gray.
+- `restore()` also brings `globalCompositeOperation` back to the normal value, so the `multiply`
+  mode doesn't "contaminate" the rest of the drawing.
 
-Torna anche `translate` + `rotate`, abbandonati nel capitolo 4. Per disegnare un'immagine ruotata è
-la soluzione più semplice. Il poligono resta comunque calcolato ad ogni frame per collisioni e
-sensori, solo che non viene più disegnato.
+`translate` + `rotate` are back too, dropped in chapter 4. To draw a rotated image it is the
+simplest solution. The polygon is still computed every frame for collisions and sensors, it just
+isn't drawn anymore.
 
-Ho notato che l'immagine è 75x117 ma viene disegnata 30x50: `drawImage` la scala, deformandola di
-pochissimo perché le proporzioni sono quasi le stesse (0.64 contro 0.6).
+I noticed that the image is 75x117 but is drawn at 30x50: `drawImage` scales it, distorting it very
+slightly because the proportions are almost the same (0.64 versus 0.6).
 
-## Colori casuali
+## Random colors
 
 ```js
 function getRandomColor(){
@@ -82,27 +82,27 @@ function getRandomColor(){
 }
 ```
 
-La tonalità parte da 290 e arriva fino a 550. Siccome in HSL la tonalità è un angolo, 550 equivale
-a 190: quindi i colori coprono da 290 a 360 e da 0 a 190. Il buco lasciato fuori è tra 190 e 290,
-cioè **i blu**. Il motivo è che le auto AI sono blu (colore di default nel costruttore), e così il
-traffico non si confonde mai con loro. Mi è sembrato un dettaglio molto curato.
+The hue starts at 290 and goes up to 550. Since in HSL the hue is an angle, 550 is the same as 190:
+so the colors cover from 290 to 360 and from 0 to 190. The gap left out is between 190 and 290,
+that is **the blues**. The reason is that the AI cars are blue (default color in the constructor),
+and this way the traffic is never mistaken for them. It struck me as a very careful detail.
 
-## Il resto
+## The rest
 
-- `draw(ctx,drawSensor=false)`: il colore non si passa più a ogni frame ma è una proprietà
-  dell'auto, fissata nel costruttore.
-- `N=100`: cento auto in parallelo, ognuna con 5 raggi che controllano 2 bordi e 7 auto (28 lati)
-  a ogni frame. Sono circa 15.000 calcoli di intersezione per frame, e JavaScript li regge senza
-  problemi.
-- Le auto danneggiate continuano ad aggiornare il sensore e a far girare la rete anche se sono
-  ferme: è lavoro sprecato, ma non influisce sul risultato.
-- Il cervello resta `[5,6,4]` e la mutazione resta a 0.1.
+- `draw(ctx,drawSensor=false)`: the color is no longer passed every frame but is a property of the
+  car, set in the constructor.
+- `N=100`: a hundred cars in parallel, each with 5 rays that check 2 borders and 7 cars (28 sides)
+  every frame. That is about 15,000 intersection calculations per frame, and JavaScript handles
+  them without problems.
+- Damaged cars keep updating the sensor and running the network even if they are stopped: it is
+  wasted work, but it doesn't affect the result.
+- The brain stays `[5,6,4]` and the mutation stays at 0.1.
 
-## Come provarlo
+## How to try it
 
-Apri `index.html` e usa 💾 e 🗑️ come nel capitolo 8. Con 100 auto bastano poche generazioni per
-avere un'auto che supera tutto il traffico.
+Open `index.html` and use 💾 and 🗑️ as in chapter 8. With 100 cars a few generations are enough to
+get a car that gets past all the traffic.
 
-Una nota: se apro la pagina direttamente da `file://` il PNG viene caricato e disegnato senza
-problemi, perché si usa solo `drawImage` e non si leggono mai i pixel del canvas (`getImageData`
-darebbe un errore di sicurezza).
+A note: if I open the page directly from `file://` the PNG is loaded and drawn without problems,
+because only `drawImage` is used and the canvas pixels are never read (`getImageData` would throw a
+security error).

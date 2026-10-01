@@ -1,28 +1,28 @@
 # 10. Curved road
 
-Un esperimento che parte dal codice del capitolo 8 e cambia due cose: la strada diventa **curva** e
-la rete neurale perde lo **strato nascosto**. Non è il seguito del capitolo 9: lo sprite colorato e
-il traffico multicolore non ci sono, l'auto torna a essere un poligono.
+An experiment that starts from the code of chapter 8 and changes two things: the road becomes
+**curved** and the neural network loses the **hidden layer**. It is not the follow-up to chapter 9:
+the colored sprite and the multicolored traffic are not there, the car goes back to being a polygon.
 
-L'obiettivo è vedere se una rete minima riesce a seguire una strada che non va dritta, e cosa serve
-cambiare nel resto del codice perché bordi non rettilinei funzionino.
+The goal is to see whether a minimal network can follow a road that doesn't go straight, and what
+needs to change in the rest of the code for non-straight borders to work.
 
-## Cosa cambia rispetto al capitolo 8
+## What changes compared to chapter 8
 
-| Aspetto | Capitolo 8 | Capitolo 10 |
+| Aspect | Chapter 8 | Chapter 10 |
 |---------|------------|-------------|
-| Strada | Dritta, 3 corsie, larga 180 px | Tratto sinusoidale, larga 90 px, corsie non disegnate |
-| Bordi | 2 segmenti | 2 polilinee di circa 100 punti |
-| Rete | `[5,6,4]` | `[5,4]` |
-| Sensore | Legato all'auto, apertura 90° | Indipendente dall'auto, apertura 45° |
-| Traffico | 7 auto | 1 auto |
-| Mutazione | 0.1 | 0.4 |
-| Salvataggio | Pulsanti 💾 e 🗑️, chiave `bestBrain` | `save()` e `discard()` dalla console, chiave `curvedRoadBestBrain` |
-| Visualizer | Linee tratteggiate animate, nodi da 18 | Linee piene, nodi da 14 |
+| Road | Straight, 3 lanes, 180 px wide | Sinusoidal stretch, 90 px wide, lanes not drawn |
+| Borders | 2 segments | 2 polylines of about 100 points |
+| Network | `[5,6,4]` | `[5,4]` |
+| Sensor | Tied to the car, 90° spread | Independent of the car, 45° spread |
+| Traffic | 7 cars | 1 car |
+| Mutation | 0.1 | 0.4 |
+| Saving | 💾 and 🗑️ buttons, `bestBrain` key | `save()` and `discard()` from the console, `curvedRoadBestBrain` key |
+| Visualizer | Animated dashed lines, radius 18 nodes | Solid lines, radius 14 nodes |
 
-Anche la formattazione cambia: indentazione a 3 spazi invece di 4.
+The formatting changes too: 3-space indentation instead of 4.
 
-## La strada curva
+## The curved road
 
 ```js
 this.left=x-width/4;
@@ -52,30 +52,30 @@ ys.forEach(y=>{
 }
 ```
 
-- Ogni bordo non è più un segmento ma una **polilinea**: un punto in alto, un punto ogni 10 px
-  tra y=-1000 e y=0 spostato in orizzontale da una sinusoide, un punto in basso.
-- 10 px bastano: tra due punti la corda si scosta dalla curva di circa 0,06 px (`A·k²·h²/8` con
-  ampiezza 50, `k=0.01` e passo 10), quindi la strada è identica a una campionata ogni pixel ma
-  con dieci volte meno segmenti.
-- `Math.sin(y*0.01)*50` ha ampiezza 50 px e periodo di circa 628 px (2π/0.01): nei 1000 px del
-  tratto curvo ci sono circa una curva e mezza.
-- La larghezza si dimezza (`width/4` per lato invece di `width/2`): 90 px, una corsia e mezzo.
-  Le corsie spariscono del tutto, insieme a `laneCount` e `getLaneCenter`, e i bordi sono
-  disegnati tratteggiati.
-- Tutti i punti, compresi quelli in cima e in fondo, passano da `#curveOffset`. La `y` viene
-  bloccata dentro il tratto curvo, quindi fuori da lì la strada torna dritta e mantiene lo
-  spostamento dell'ultimo punto: in basso è zero (`sin(0)`), in alto è circa 27 px
-  (`sin(-10)*50`). Così la strada è continua e il segmento finale fino a y=-10000 resta
-  verticale, invece di tornare inclinato verso la x di partenza.
-- "Infinito" vale 10000 invece di un milione: basta, visto che il tratto interessante è lungo
-  1000 px.
+- Each border is no longer a segment but a **polyline**: one point at the top, one point every
+  10 px between y=-1000 and y=0 shifted horizontally by a sine wave, one point at the bottom.
+- 10 px is enough: between two points the chord deviates from the curve by about 0.06 px
+  (`A·k²·h²/8` with amplitude 50, `k=0.01` and step 10), so the road is identical to one sampled
+  every pixel but with ten times fewer segments.
+- `Math.sin(y*0.01)*50` has an amplitude of 50 px and a period of about 628 px (2π/0.01): in the
+  1000 px of the curved stretch there are about one and a half curves.
+- The width is halved (`width/4` per side instead of `width/2`): 90 px, one and a half lanes. The
+  lanes disappear completely, along with `laneCount` and `getLaneCenter`, and the borders are drawn
+  dashed.
+- All the points, including the ones at the top and at the bottom, go through `#curveOffset`. The
+  `y` is clamped inside the curved stretch, so outside of it the road goes back to straight and
+  keeps the shift of the last point: at the bottom it is zero (`sin(0)`), at the top it is about
+  27 px (`sin(-10)*50`). This way the road is continuous and the final segment up to y=-10000 stays
+  vertical, instead of slanting back towards the starting x.
+- "Infinity" is 10000 instead of a million: it is enough, since the interesting stretch is 1000 px
+  long.
 
-## Collisioni con le polilinee
+## Collisions with polylines
 
-Nel capitolo 4 `polysIntersect` chiudeva i poligoni con il modulo, collegando l'ultimo vertice al
-primo. Su un bordo di 1000 punti questo aggiungerebbe un segmento che va dal fondo della strada
-alla cima, una linea dritta che taglia tutta la carreggiata. Ora la funzione lavora su polilinee
-aperte:
+In chapter 4 `polysIntersect` closed the polygons with the modulo, connecting the last vertex to
+the first. On a border of 1000 points this would add a segment going from the bottom of the road to
+the top, a straight line that cuts across the whole roadway. Now the function works on open
+polylines:
 
 ```js
 function polysIntersect(poly1, poly2){
@@ -88,7 +88,7 @@ function polysIntersect(poly1, poly2){
          ...
 ```
 
-e quando serve un poligono chiuso lo si chiude a mano, aggiungendo in coda il primo vertice:
+and when a closed polygon is needed it is closed by hand, appending the first vertex at the end:
 
 ```js
 polysIntersect(
@@ -96,15 +96,15 @@ polysIntersect(
    roadBorders[i])
 ```
 
-Il sensore fa lo stesso ragionamento: scorre i bordi segmento per segmento (`border[i-1]`,
-`border[i]`) e usa il modulo solo per i poligoni delle auto, che sono chiusi.
+The sensor follows the same reasoning: it goes through the borders segment by segment
+(`border[i-1]`, `border[i]`) and uses the modulo only for the car polygons, which are closed.
 
-Il prezzo è il numero di intersezioni. Ogni raggio controlla circa 200 segmenti di bordo, e lo
-stesso vale per i quattro lati di ogni auto ancora integra. Con 100 auto si arriva a circa 180.000
-chiamate a `getIntersection` per frame, contro le circa 15.000 del capitolo 9. Campionando la curva
-ogni pixel sarebbero quasi due milioni, e la simulazione diventerebbe visibilmente meno fluida.
+The price is the number of intersections. Each ray checks about 200 border segments, and the same
+goes for the four sides of each car still intact. With 100 cars it gets to about 180,000 calls to
+`getIntersection` per frame, against the roughly 15,000 of chapter 9. Sampling the curve every pixel
+it would be almost two million, and the simulation would become visibly less smooth.
 
-Per lo stesso motivo un'auto rotta smette del tutto di lavorare:
+For the same reason a broken car stops working altogether:
 
 ```js
 update(roadBorders,traffic){
@@ -114,13 +114,13 @@ update(roadBorders,traffic){
    ...
 ```
 
-Nei capitoli 8 e 9 solo movimento e collisioni erano protetti da `if(!this.damaged)`: sensore e
-rete continuavano a girare anche per le auto ferme contro il muro, calcolando comandi che nessuno
-avrebbe più usato. Lì costava poco, qui ogni auto rotta sprecherebbe circa 1000 intersezioni a
-frame. Il disegno non cambia: se l'auto migliore è rotta, i raggi mostrano le ultime letture, che
-restano valide perché l'auto non si muove più.
+In chapters 8 and 9 only movement and collisions were guarded by `if(!this.damaged)`: sensor and
+network kept running even for the cars stopped against the wall, computing controls that nobody
+would use anymore. There it cost little, here each broken car would waste about 1000 intersections
+per frame. The drawing doesn't change: if the best car is broken, the rays show the last readings,
+which stay valid because the car no longer moves.
 
-## Sensore indipendente dall'auto
+## Sensor independent of the car
 
 ```js
 constructor(){
@@ -136,14 +136,15 @@ update(x,y,angle,roadBorders,traffic){
 }
 ```
 
-`Sensor` non riceve più l'auto nel costruttore: posizione e angolo arrivano a ogni `update`. Così
-non dipende più dalla struttura di `Car` e si potrebbe montare su qualsiasi oggetto.
+`Sensor` no longer receives the car in the constructor: position and angle arrive with each
+`update`. This way it no longer depends on the structure of `Car` and could be mounted on any
+object.
 
-L'apertura dei raggi scende a 45° (`PI/4`): su una strada stretta servono raggi concentrati in
-avanti più che di lato. Il raggio viene disegnato solo in giallo fino al punto di contatto: il
-tratto nero oltre quel punto non c'è più.
+The ray spread drops to 45° (`PI/4`): on a narrow road you need rays focused forward more than to
+the sides. The ray is drawn only in yellow up to the contact point: the black stretch beyond that
+point is gone.
 
-## Rete senza strato nascosto
+## Network without a hidden layer
 
 ```js
 this.brain=new NeuralNetwork(
@@ -151,15 +152,14 @@ this.brain=new NeuralNetwork(
 );
 ```
 
-I 5 input sono collegati direttamente ai 4 output, con un solo livello. Ogni output è un
-percettrone: somma pesata delle letture dei raggi confrontata con il bias. Sembra pochissimo, ma
-per restare in strada basta, perché "se il raggio a sinistra è vicino, gira a destra" è una regola
-lineare.
+The 5 inputs are connected directly to the 4 outputs, with a single level. Each output is a
+perceptron: weighted sum of the ray readings compared with the bias. It seems very little, but to
+stay on the road it is enough, because "if the left ray is close, turn right" is a linear rule.
 
-Con un solo livello nel visualizer entra in gioco il caso `network.levels.length==1 ? 0.5` del
-capitolo 7, che centra il livello verticalmente.
+With a single level, the `network.levels.length==1 ? 0.5` case of chapter 7 comes into play in the
+visualizer, centering the level vertically.
 
-`Level.feedForward` copia gli input con uno spread invece di assegnarli uno a uno:
+`Level.feedForward` copies the inputs with a spread instead of assigning them one by one:
 
 ```js
 level.inputs=[...givenInputs];
@@ -167,20 +167,21 @@ level.inputs=[...givenInputs];
 
 ## main.js
 
-Rispetto al capitolo 8 il file è più asciutto:
+Compared to chapter 8 the file is leaner:
 
-- **Nessun `getElementById`**: `carCanvas` e `networkCanvas` sono usati direttamente. Funziona
-  perché il browser crea una variabile globale per ogni elemento con un `id`. È comodo ma fragile:
-  basta dichiarare una variabile con lo stesso nome per perdere il riferimento.
-- **Nessun `save`/`restore`** intorno a `translate`: assegnare `carCanvas.height` all'inizio di
-  ogni frame resetta già le trasformazioni.
-- **Nessun pulsante**: `save()` e `discard()` esistono ancora, ma si chiamano dalla console.
-- `networkCanvas.width=298` e nell'HTML i due `<canvas>` sono sulla stessa riga senza spazi: il
-  whitespace tra due elementi inline creerebbe uno spazio, così invece i canvas sono attaccati.
-- Le auto partono tutte da x=100, il centro della strada nel rettilineo iniziale: senza corsie
-  non serve più `getLaneCenter`.
+- **No `getElementById`**: `carCanvas` and `networkCanvas` are used directly. It works because the
+  browser creates a global variable for each element with an `id`. It is handy but fragile:
+  declaring a variable with the same name is enough to lose the reference.
+- **No `save`/`restore`** around `translate`: assigning `carCanvas.height` at the start of each
+  frame already resets the transformations.
+- **No buttons**: `save()` and `discard()` still exist, but they are called from the console.
+- `networkCanvas.width=298` and in the HTML the two `<canvas>` are on the same line without spaces:
+  the whitespace between two inline elements would create a gap, this way instead the canvases are
+  right next to each other.
+- The cars all start from x=100, the center of the road on the initial straight: without lanes
+  `getLaneCenter` is no longer needed.
 
-### Traffico
+### Traffic
 
 ```js
 const trafficOffset=-20;
@@ -194,51 +195,50 @@ car.angle=road.getAngle(car.y);
 car.update([],[]);
 ```
 
-Una sola auto, che segue la strada. A ogni frame viene rimessa sulla curva prima di muoversi:
+A single car, which follows the road. Every frame it is put back on the curve before moving:
 
-- `road.getCenter(y)` restituisce la x del centro della strada a quell'altezza, cioè `x` più lo
-  stesso `#curveOffset` usato per i bordi.
-- `road.getAngle(y)` restituisce la pendenza della curva in quel punto: `atan` della differenza
-  tra il centro a `y` e quello a `y-1`. È l'angolo che, con la convenzione di `#move`
-  (`x-=sin(angle)*speed`), fa avanzare l'auto lungo la tangente, inclinata al massimo di circa
-  27°. Fuori dal tratto curvo la differenza è zero e l'auto torna dritta.
+- `road.getCenter(y)` returns the x of the center of the road at that height, that is `x` plus the
+  same `#curveOffset` used for the borders.
+- `road.getAngle(y)` returns the slope of the curve at that point: `atan` of the difference between
+  the center at `y` and the one at `y-1`. It is the angle that, with the `#move` convention
+  (`x-=sin(angle)*speed`), makes the car move along the tangent, tilted by at most about 27°.
+  Outside the curved stretch the difference is zero and the car goes straight again.
 
-`trafficOffset` sposta l'auto di 20 px a sinistra del centro. Su una strada larga 90 px un'auto
-larga 30 px messa al centro lascerebbe 30 px per lato, quindi nessun varco. Spostata a sinistra
-lascia sulla destra almeno 40 px anche nel punto più inclinato della curva, abbastanza per
-sorpassare.
+`trafficOffset` shifts the car 20 px to the left of the center. On a 90 px wide road a 30 px wide
+car placed in the center would leave 30 px per side, so no gap. Shifted to the left it leaves at
+least 40 px on the right even at the most slanted point of the curve, enough to overtake.
 
-L'aggiornamento avviene ancora con bordi vuoti, quindi l'auto non si rompe mai. Ma ora non serve
-più come trucco: prima andava sempre dritta a x=100 e attraversava il bordo quando la strada
-ondeggiava, ora resta sempre in carreggiata.
+The update still happens with empty borders, so the car never breaks. But now it is no longer
+needed as a trick: before it always went straight at x=100 and crossed the border when the road
+wavered, now it always stays on the roadway.
 
-### Mutazione più forte
+### Stronger mutation
 
 ```js
 NeuralNetwork.mutate(cars[i].brain,0.4);
 ```
 
-0.4 invece di 0.1: le varianti sono molto più diverse tra loro. Si esplora di più, al prezzo di
-perdere più facilmente quello che di buono aveva la rete salvata. Con una rete piccola come `[5,4]`
-spingere di più ha senso.
+0.4 instead of 0.1: the variants are much more different from each other. It explores more, at the
+cost of losing more easily what was good in the saved network. With a network as small as `[5,4]`
+pushing harder makes sense.
 
-### L'ordine in #move
+### The order in #move
 
-Lo sterzo viene applicato prima del limite di velocità e dell'attrito invece che dopo. La
-differenza pratica è trascurabile: cambia qualcosa solo nel frame esatto in cui l'auto si ferma.
+The steering is applied before the speed limit and the friction instead of after. The practical
+difference is negligible: it only changes something in the exact frame in which the car stops.
 
-## Come provarlo
+## How to try it
 
-1. Apri `index.html` e la console del browser (F12).
-2. La prima generazione è casuale: quasi tutte le auto si schiantano subito o restano ferme.
-   Ricarica finché una non va un po' più avanti delle altre.
-3. Quando un'auto va lontano scrivi `save()` e ricarica. `discard()` per ricominciare da capo.
-4. I parametri da provare sono `N` in `main.js` e la quantità di mutazione (0.4).
+1. Open `index.html` and the browser console (F12).
+2. The first generation is random: almost all the cars crash right away or stay still. Reload
+   until one goes a bit further than the others.
+3. When a car goes far type `save()` and reload. `discard()` to start over from scratch.
+4. The parameters to try are `N` in `main.js` and the mutation amount (0.4).
 
-La rete viene salvata con la chiave `curvedRoadBestBrain`, non con il `bestBrain` dei capitoli 8
-e 9. Il `localStorage` è condiviso da tutte le pagine della stessa origine: con la stessa chiave
-questo capitolo caricherebbe una rete `[5,6,4]` allenata su una strada dritta, che gira senza
-errori ma va subito contro il muro.
+The network is saved with the `curvedRoadBestBrain` key, not with the `bestBrain` of chapters 8
+and 9. `localStorage` is shared by all the pages of the same origin: with the same key this chapter
+would load a `[5,6,4]` network trained on a straight road, which runs without errors but goes
+straight into the wall.
 
-Ogni volta che cambi la struttura della rete o il numero di raggi serve un `discard()`, altrimenti
-dal `localStorage` torna una rete con dimensioni sbagliate.
+Every time you change the structure of the network or the number of rays you need a `discard()`,
+otherwise a network with the wrong dimensions comes back from `localStorage`.

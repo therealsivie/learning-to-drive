@@ -1,56 +1,58 @@
 # 11. Car in the world
 
-Seconda fase del progetto. Finora l'auto girava su una strada dritta disegnata a mano; qui si
-costruisce un **mondo** intero, con incroci, edifici, alberi e segnaletica, disegnato da un editor
-nel browser. Alla fine l'auto del capitolo 9 viene portata dentro questo mondo e impara a guidarci.
+Second phase of the project. So far the car drove on a straight road drawn by hand; here we build a
+whole **world**, with intersections, buildings, trees and road markings, drawn with an editor in
+the browser. At the end the car from chapter 9 is brought into this world and learns to drive in
+it.
 
-Per molti capitoli il codice non ha niente a che vedere con l'auto: si parte da zero con grafi,
-geometria e un editor. Le due basi di codice si uniscono solo verso la fine.
+For many chapters the code has nothing to do with the car: we start from scratch with graphs,
+geometry and an editor. The two codebases come together only towards the end.
 
-## Una cartella, tante parti
+## One folder, many parts
 
-A differenza dei capitoli 1-10, questa cartella non è lo snapshot di un solo passo: contiene tutte
-le parti della seconda fase, una dopo l'altra. Il codice evolve sempre nello stesso posto e ogni
-parte è una serie di commit; per vedere lo stato a metà percorso basta fare checkout del commit
-che chiude quella parte.
+Unlike chapters 1-10, this folder is not the snapshot of a single step: it contains all the parts
+of the second phase, one after the other. The code always evolves in the same place and each part
+is a series of commits; to see the state halfway through, just check out the commit that closes
+that part.
 
-| Parte | Cosa aggiunge |
+| Part | What it adds |
 |-------|---------------|
-| 1. Spatial Graphs | Punti, segmenti e un grafo che li tiene insieme |
-| 2. Graph Editor | Editor con il mouse: aggiungere, collegare, trascinare e cancellare punti |
-| 3. Dynamic Viewport | Zoom, spostamento della vista, salvataggio del grafo |
-| 4. Roads | Strade larghe attorno ai segmenti, con i bordi uniti negli incroci |
-| 5. Buildings And Trees | Edifici lungo le strade, alberi negli spazi liberi |
-| 6. Fake 3D | Edifici con tetto e alberi a strati, in prospettiva rispetto al centro della vista |
-| 7. Markings | Barra degli strumenti e segnaletica sulle corsie: stop, precedenza, strisce, parcheggi, semafori, partenza e arrivo |
-| 8. Saving The World | Salvataggio del mondo intero con segnaletica e vista, esportazione e importazione di file `.world` |
-| 9. Integration | Editor spostato in `world/`, le auto del capitolo 9 guidano nel mondo salvato dall'editor |
-| 10. OpenStreetMap | Strade importate da OpenStreetMap, sensi unici, edifici e alberi disegnati solo vicino alla vista |
-| 11. MiniMap | Minimappa della rete stradale sotto la rete neurale, centrata sull'auto migliore |
+| 1. Spatial Graphs | Points, segments and a graph that holds them together |
+| 2. Graph Editor | Mouse editor: add, connect, drag and delete points |
+| 3. Dynamic Viewport | Zoom, panning the view, saving the graph |
+| 4. Roads | Wide roads around the segments, with the borders joined at intersections |
+| 5. Buildings And Trees | Buildings along the roads, trees in the free spaces |
+| 6. Fake 3D | Buildings with roofs and layered trees, in perspective relative to the center of the view |
+| 7. Markings | Toolbar and road markings on the lanes: stop, yield, crossings, parking spots, traffic lights, start and target |
+| 8. Saving The World | Saving the whole world with markings and view, exporting and importing `.world` files |
+| 9. Integration | Editor moved to `world/`, the cars from chapter 9 drive in the world saved by the editor |
+| 10. OpenStreetMap | Roads imported from OpenStreetMap, one-way roads, buildings and trees drawn only near the view |
+| 11. MiniMap | Minimap of the road network below the neural network, centered on the best car |
 
-Anche lo stile cambia: indentazione a 3 spazi, spazi intorno agli operatori e alle virgole, punto
-e virgola sempre presente.
+The style changes too: 3-space indentation, spaces around operators and commas, semicolons always
+present.
 
-## Parte 1. Spatial Graphs
+## Part 1. Spatial Graphs
 
-Il mondo sarà una rete di strade, e una rete di strade è un **grafo**: incroci e curve sono i
-punti, i tratti di strada sono i segmenti che li collegano. Prima di disegnare asfalto serve quindi
-una struttura dati che sappia aggiungere e togliere punti e segmenti senza creare doppioni.
+The world will be a network of roads, and a road network is a **graph**: intersections and bends
+are the points, the stretches of road are the segments that connect them. Before drawing any
+asphalt we need a data structure that can add and remove points and segments without creating
+duplicates.
 
-### File
+### Files
 
-| File | Cosa fa |
+| File | What it does |
 |------|---------|
-| `index.html` | Canvas 600x600 e uno script inline con un grafo di prova |
-| `styles.css` | Sfondo nero, titolo bianco, canvas verde prato (`#2a5`) |
-| `js/primitives/point.js` | Classe `Point`: coordinate, confronto, disegno come cerchio |
-| `js/primitives/segment.js` | Classe `Segment`: due punti, confronto, disegno come linea |
-| `js/math/graph.js` | Classe `Graph`: elenco di punti e segmenti con le operazioni di modifica |
+| `index.html` | 600x600 canvas and an inline script with a test graph |
+| `styles.css` | Black background, white title, grass-green canvas (`#2a5`) |
+| `js/primitives/point.js` | `Point` class: coordinates, comparison, drawing as a circle |
+| `js/primitives/segment.js` | `Segment` class: two points, comparison, drawing as a line |
+| `js/math/graph.js` | `Graph` class: list of points and segments with the editing operations |
 
-Le cartelle `primitives` e `math` anticipano la struttura che crescerà nei capitoli successivi:
-le forme geometriche da una parte, la logica dall'altra.
+The `primitives` and `math` folders anticipate the structure that will grow in the following
+chapters: geometric shapes on one side, logic on the other.
 
-### Point e Segment
+### Point and Segment
 
 ```js
 equals(point) {
@@ -58,10 +60,10 @@ equals(point) {
 }
 ```
 
-Due punti sono uguali se hanno le stesse coordinate, non se sono lo stesso oggetto. È quello che
-serve in un editor: cliccare due volte nello stesso punto deve dare un punto solo.
+Two points are equal if they have the same coordinates, not if they are the same object. That's
+what an editor needs: clicking twice on the same spot must give a single point.
 
-Un segmento è uguale a un altro se contiene entrambi i suoi estremi:
+A segment is equal to another if it contains both of its endpoints:
 
 ```js
 equals(seg) {
@@ -69,41 +71,42 @@ equals(seg) {
 }
 ```
 
-L'ordine non conta, quindi A→B e B→A sono lo stesso segmento: il grafo è **non orientato**, una
-strada si percorre in entrambi i sensi.
+Order doesn't matter, so A→B and B→A are the same segment: the graph is **undirected**, a road can
+be driven in both directions.
 
-Entrambe le classi hanno un `draw(ctx, ...)` con dimensione e colore di default (`size = 18` per i
-punti, `width = 2` per i segmenti), così il grafo si disegna senza passare parametri ma l'editor
-potrà evidenziare un punto cambiandogli colore.
+Both classes have a `draw(ctx, ...)` with a default size and color (`size = 18` for points,
+`width = 2` for segments), so the graph draws without passing parameters but the editor will be
+able to highlight a point by changing its color.
 
 ### Graph
 
-Il grafo è solo due array, `points` e `segments`, con le operazioni per modificarli:
+The graph is just two arrays, `points` and `segments`, with the operations to modify them:
 
-| Metodo | Cosa fa |
+| Method | What it does |
 |--------|---------|
-| `addPoint` / `addSegment` | Aggiunge senza controlli |
-| `tryAddPoint` / `tryAddSegment` | Aggiunge solo se non esiste già, restituisce `true` o `false` |
-| `containsPoint` / `containsSegment` | Cerca con `equals`, non per riferimento |
-| `removePoint` | Toglie il punto e tutti i segmenti che lo toccano |
-| `removeSegment` | Toglie solo il segmento |
-| `getSegmentsWithPoint` | Segmenti che hanno quel punto come estremo |
-| `dispose` | Svuota tutto |
+| `addPoint` / `addSegment` | Adds without checks |
+| `tryAddPoint` / `tryAddSegment` | Adds only if it doesn't already exist, returns `true` or `false` |
+| `containsPoint` / `containsSegment` | Searches with `equals`, not by reference |
+| `removePoint` | Removes the point and all the segments touching it |
+| `removeSegment` | Removes only the segment |
+| `getSegmentsWithPoint` | Segments that have that point as an endpoint |
+| `dispose` | Empties everything |
 
-`tryAddSegment` scarta anche i segmenti degeneri, quelli con i due estremi coincidenti:
+`tryAddSegment` also discards degenerate segments, the ones whose two endpoints coincide:
 
 ```js
 if (!this.containsSegment(seg) && !seg.p1.equals(seg.p2)) {
 ```
 
-`removePoint` toglie prima i segmenti collegati e poi il punto. Al contrario resterebbero segmenti
-appesi a un vertice che non esiste più, e il disegno mostrerebbe linee che finiscono nel vuoto.
+`removePoint` first removes the connected segments and then the point. The other way round, there
+would be segments left hanging on a vertex that no longer exists, and the drawing would show lines
+ending in the void.
 
-`dispose` svuota gli array con `length = 0` invece di assegnarne di nuovi: chi teneva un
-riferimento a `graph.points` vede l'array vuoto, invece di continuare a guardare quello vecchio.
+`dispose` empties the arrays with `length = 0` instead of assigning new ones: whoever held a
+reference to `graph.points` sees the empty array, instead of keeping looking at the old one.
 
-`draw` disegna prima tutti i segmenti e poi tutti i punti, così i cerchi coprono le estremità delle
-linee.
+`draw` draws all the segments first and then all the points, so the circles cover the ends of the
+lines.
 
 ### index.html
 
@@ -114,48 +117,48 @@ myCanvas.height = 600;
 const ctx = myCanvas.getContext("2d");
 ```
 
-Come nel capitolo 10, nessun `getElementById`: `myCanvas` esiste come variabile globale perché il
-browser ne crea una per ogni elemento con un `id`.
+As in chapter 10, no `getElementById`: `myCanvas` exists as a global variable because the browser
+creates one for every element with an `id`.
 
-Lo script inline crea quattro punti e quattro segmenti, li mette in un `Graph` e lo disegna. Il div
-`#controls` sotto il canvas è ancora vuoto: ospiterà i pulsanti dell'editor.
+The inline script creates four points and four segments, puts them in a `Graph` and draws it. The
+`#controls` div below the canvas is still empty: it will host the editor's buttons.
 
-### Come provarlo
+### How to try it
 
-Apri `index.html`: su un canvas verde compaiono quattro punti neri collegati da quattro linee. Non
-c'è ancora nessuna interazione; per giocare con il grafo si possono chiamare dalla console
-`graph.tryAddPoint(new Point(300, 500))` o `graph.removePoint(graph.points[0])`, poi
-`ctx.clearRect(0, 0, 600, 600)` e `graph.draw(ctx)` per ridisegnare.
+Open `index.html`: four black points connected by four lines appear on a green canvas. There's no
+interaction yet; to play with the graph you can call `graph.tryAddPoint(new Point(300, 500))` or
+`graph.removePoint(graph.points[0])` from the console, then `ctx.clearRect(0, 0, 600, 600)` and
+`graph.draw(ctx)` to redraw.
 
-## Parte 2. Graph Editor
+## Part 2. Graph Editor
 
-Costruire il grafo a mano da codice non scala: per disegnare una città serve un editor. Questa
-parte aggiunge una classe che ascolta il mouse sul canvas e modifica il grafo, più il ciclo di
-animazione che lo ridisegna a ogni frame.
+Building the graph by hand in code doesn't scale: to draw a city you need an editor. This part
+adds a class that listens to the mouse on the canvas and modifies the graph, plus the animation
+loop that redraws it every frame.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `js/primitives/point.js` | `draw` accetta `outline` e `fill` per evidenziare un punto |
-| `js/primitives/segment.js` | `draw` accetta `dash` per le linee tratteggiate |
-| `js/math/utils.js` | Nuovo: `distance` e `getNearestPoint` |
-| `js/graphEditor.js` | Nuovo: classe `GraphEditor` |
-| `index.html` | Crea l'editor e avvia il ciclo `animate()` |
+| `js/primitives/point.js` | `draw` accepts `outline` and `fill` to highlight a point |
+| `js/primitives/segment.js` | `draw` accepts `dash` for dashed lines |
+| `js/math/utils.js` | New: `distance` and `getNearestPoint` |
+| `js/graphEditor.js` | New: `GraphEditor` class |
+| `index.html` | Creates the editor and starts the `animate()` loop |
 
-### Opzioni di disegno
+### Drawing options
 
 ```js
 draw(ctx, { size = 18, color = "black", outline = false, fill = false } = {})
 ```
 
-I parametri passano in un oggetto con destructuring e valori di default, invece che in posizione.
-Chi chiama scrive solo quello che gli serve, `point.draw(ctx, { fill: true })`, e il `= {}` finale
-permette di non passare niente. L'editor usa `fill` per il punto sotto il mouse, `outline` per
-quello selezionato e `dash: [3, 3]` per il segmento che si sta tracciando.
+The parameters are passed in an object with destructuring and default values, instead of by
+position. The caller writes only what it needs, `point.draw(ctx, { fill: true })`, and the final
+`= {}` allows passing nothing at all. The editor uses `fill` for the point under the mouse,
+`outline` for the selected one and `dash: [3, 3]` for the segment being traced.
 
-`Segment.draw` chiama `setLineDash([])` alla fine: il contesto del canvas è uno stato condiviso, e
-senza il reset tutti i segmenti disegnati dopo resterebbero tratteggiati.
+`Segment.draw` calls `setLineDash([])` at the end: the canvas context is shared state, and without
+the reset all the segments drawn afterwards would stay dashed.
 
 ### getNearestPoint
 
@@ -163,43 +166,43 @@ senza il reset tutti i segmenti disegnati dopo resterebbero tratteggiati.
 function getNearestPoint(loc, points, threshold = Number.MAX_SAFE_INTEGER) {
 ```
 
-Cerca il punto più vicino a `loc`, ma solo entro `threshold`. L'editor passa 10 pixel: il mouse
-"aggancia" un punto quando ci passa vicino, senza doverlo centrare esattamente.
+It looks for the point closest to `loc`, but only within `threshold`. The editor passes 10 pixels:
+the mouse "snaps" to a point when it passes near it, without having to hit it exactly.
 
 ### GraphEditor
 
-L'editor tiene quattro informazioni di stato:
+The editor keeps four pieces of state:
 
-| Campo | Significato |
+| Field | Meaning |
 |-------|-------------|
-| `mouse` | Posizione attuale del mouse, come `Point` |
-| `hovered` | Punto entro 10 px dal mouse, oppure `null` |
-| `selected` | Ultimo punto selezionato, da cui parte il prossimo segmento |
-| `dragging` | `true` mentre si trascina il punto selezionato |
+| `mouse` | Current mouse position, as a `Point` |
+| `hovered` | Point within 10 px of the mouse, or `null` |
+| `selected` | Last selected point, where the next segment starts from |
+| `dragging` | `true` while dragging the selected point |
 
-Gli handler degli eventi aggiornano solo lo stato; `display()` lo disegna. I comandi:
+The event handlers only update the state; `display()` draws it. The commands:
 
-| Azione | Effetto |
+| Action | Effect |
 |--------|---------|
-| Click sinistro nel vuoto | Crea un punto, lo collega al selezionato e lo seleziona |
-| Click sinistro su un punto | Lo collega al selezionato, lo seleziona e inizia il trascinamento |
-| Trascinamento | Sposta il punto selezionato |
-| Click destro con un punto selezionato | Deseleziona |
-| Click destro su un punto, senza selezione | Cancella il punto e i suoi segmenti |
+| Left click on empty space | Creates a point, connects it to the selected one and selects it |
+| Left click on a point | Connects it to the selected one, selects it and starts dragging |
+| Drag | Moves the selected point |
+| Right click with a point selected | Deselects |
+| Right click on a point, with no selection | Deletes the point and its segments |
 
-Il collegamento avviene in `#select`: se c'è già un punto selezionato, prova ad aggiungere un
-segmento verso il nuovo. `tryAddSegment` scarta doppioni e segmenti da un punto a se stesso, quindi
-l'editor non deve controllarli.
+The connection happens in `#select`: if there's already a selected point, it tries to add a
+segment to the new one. `tryAddSegment` discards duplicates and segments from a point to itself, so
+the editor doesn't have to check for them.
 
-Spostare un punto sposta anche i segmenti che lo toccano, perché un `Segment` tiene riferimenti agli
-oggetti `Point` e non copie delle coordinate.
+Moving a point also moves the segments touching it, because a `Segment` holds references to the
+`Point` objects and not copies of the coordinates.
 
-Il listener `contextmenu` con `preventDefault()` impedisce al browser di aprire il suo menu al click
-destro.
+The `contextmenu` listener with `preventDefault()` stops the browser from opening its menu on right
+click.
 
-Una piccola differenza dall'originale: in `display()` il segmento tratteggiato viene disegnato con
-`this.ctx` invece del `ctx` globale di `index.html`. Il risultato è identico, ma la classe usa solo
-il canvas che riceve nel costruttore.
+A small difference from the original: in `display()` the dashed segment is drawn with `this.ctx`
+instead of the global `ctx` from `index.html`. The result is identical, but the class uses only the
+canvas it receives in the constructor.
 
 ### index.html
 
@@ -211,43 +214,44 @@ function animate() {
 }
 ```
 
-Lo stesso schema dell'auto nei capitoli precedenti: pulire, disegnare, richiedere il frame
-successivo. Il ciclo sta fuori dall'editor perché più avanti disegnerà anche altre cose.
+The same pattern as the car in the previous chapters: clear, draw, request the next frame. The loop
+lives outside the editor because later on it will draw other things too.
 
-### Come provarlo
+### How to try it
 
-Apri `index.html` e disegna: ogni click nel vuoto aggiunge un punto collegato al precedente, la
-linea tratteggiata mostra il segmento che verrebbe creato. Click destro per interrompere la catena,
-poi click su un punto esistente per ripartire da lì. Trascina i punti per spostarli e usa il click
-destro su un punto per cancellarlo.
+Open `index.html` and draw: every click on empty space adds a point connected to the previous one,
+the dashed line shows the segment that would be created. Right click to break the chain, then click
+on an existing point to start again from there. Drag the points to move them and right click on a
+point to delete it.
 
-## Parte 3. Dynamic Viewport
+## Part 3. Dynamic Viewport
 
-Una città non sta in 600x600 pixel. Questa parte separa le coordinate del **mondo** da quelle dello
-**schermo**: il grafo resta dov'è, ed è la vista che si allontana o si sposta. In più il grafo
-sopravvive al ricaricamento della pagina.
+A city doesn't fit in 600x600 pixels. This part separates **world** coordinates from **screen**
+coordinates: the graph stays where it is, and it's the view that zooms out or moves. On top of
+that, the graph survives a page reload.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `js/viewport.js` | Nuovo: classe `Viewport`, zoom e spostamento della vista |
-| `js/math/utils.js` | Operazioni sui vettori: `add`, `subtract`, `scale` |
-| `js/graphEditor.js` | Riceve il viewport invece del canvas; nuovo `dispose()` |
-| `js/math/graph.js` | Nuovo `Graph.load` per ricostruire un grafo salvato |
-| `index.html` | Pulsanti 🗑️ e 💾, caricamento da `localStorage` |
+| `js/viewport.js` | New: `Viewport` class, zooming and panning the view |
+| `js/math/utils.js` | Vector operations: `add`, `subtract`, `scale` |
+| `js/graphEditor.js` | Receives the viewport instead of the canvas; new `dispose()` |
+| `js/math/graph.js` | New `Graph.load` to rebuild a saved graph |
+| `index.html` | 🗑️ and 💾 buttons, loading from `localStorage` |
 
 ### Viewport
 
-Il viewport tiene tre valori:
+The viewport keeps three values:
 
-| Campo | Significato |
+| Field | Meaning |
 |-------|-------------|
-| `zoom` | Quanto mondo entra in un pixel: 1 all'inizio, fino a 5 allontanandosi |
-| `center` | Centro del canvas, attorno a cui avviene lo zoom |
-| `offset` | Spostamento della vista nel mondo |
+| `zoom` | How much world fits in one pixel: 1 at the start, up to 5 when zooming out |
+| `center` | Center of the canvas, around which the zoom happens |
+| `offset` | Displacement of the view in the world |
 
-Prima di ogni frame `reset()` riporta il contesto allo stato pulito e applica le trasformazioni:
+Before every frame `reset()` brings the context back to a clean state and applies the
+transformations:
 
 ```js
 this.ctx.restore();
@@ -259,34 +263,34 @@ const offset = this.getOffset();
 this.ctx.translate(offset.x, offset.y);
 ```
 
-Le trasformazioni del canvas si accumulano, quindi senza `restore()` ogni frame zoomerebbe sopra
-quello precedente. La coppia `restore()`/`save()` torna allo stato originale e lo salva di nuovo,
-pronto per il frame successivo.
+Canvas transformations accumulate, so without `restore()` every frame would zoom on top of the
+previous one. The `restore()`/`save()` pair goes back to the original state and saves it again,
+ready for the next frame.
 
-L'`offset` iniziale è `-center`: annulla la prima traslazione, così all'avvio l'origine del mondo
-coincide con l'angolo in alto a sinistra del canvas.
+The initial `offset` is `-center`: it cancels the first translation, so at startup the world origin
+coincides with the top-left corner of the canvas.
 
-`getMouse` fa il percorso inverso, dai pixel dello schermo alle coordinate del mondo. L'editor la
-usa al posto di `offsetX`/`offsetY`, altrimenti dopo uno zoom i punti comparirebbero lontano dal
-cursore. Per la stessa ragione la soglia di aggancio diventa `10 * zoom`: resta 10 pixel sullo
-schermo anche quando la vista si allontana.
+`getMouse` goes the opposite way, from screen pixels to world coordinates. The editor uses it in
+place of `offsetX`/`offsetY`, otherwise after a zoom the points would appear far from the cursor.
+For the same reason the snapping threshold becomes `10 * zoom`: it stays 10 pixels on screen even
+when the view zooms out.
 
-### Spostamento della vista
+### Panning the view
 
-Con il tasto centrale premuto il viewport registra un trascinamento in `drag`:
+With the middle button pressed the viewport records a drag in `drag`:
 
-- `mousedown` salva il punto di partenza;
-- `mousemove` aggiorna `drag.offset`, la differenza tra punto attuale e partenza;
-- `mouseup` somma `drag.offset` all'`offset` e azzera il trascinamento.
+- `mousedown` saves the starting point;
+- `mousemove` updates `drag.offset`, the difference between the current point and the start;
+- `mouseup` adds `drag.offset` to `offset` and resets the drag.
 
-`getOffset()` restituisce `offset + drag.offset`, così la vista segue il mouse già durante il
-trascinamento. L'editor chiama `getMouse(evt, true)` per sottrarre lo spostamento in corso e
-ottenere la vera posizione nel mondo.
+`getOffset()` returns `offset + drag.offset`, so the view follows the mouse already during the
+drag. The editor calls `getMouse(evt, true)` to subtract the ongoing displacement and get the real
+position in the world.
 
-Viewport ed editor ascoltano gli stessi eventi sullo stesso canvas ma si dividono i tasti: il
-centrale muove la vista, sinistro e destro modificano il grafo.
+Viewport and editor listen to the same events on the same canvas but split the buttons between
+them: the middle one moves the view, left and right modify the graph.
 
-### Salvare e caricare
+### Saving and loading
 
 ```js
 function save() {
@@ -294,53 +298,53 @@ function save() {
 }
 ```
 
-Il salvataggio è una riga, il caricamento no: `JSON.parse` restituisce oggetti semplici senza i
-metodi delle classi, e ogni segmento contiene una copia dei suoi estremi invece di un riferimento.
-`Graph.load` ricrea prima i `Point`, poi collega ogni segmento ai punti appena creati cercandoli con
-`equals`. Così punti e segmenti tornano a condividere gli stessi oggetti, e trascinare un punto
-sposta ancora i suoi segmenti.
+Saving is one line, loading isn't: `JSON.parse` returns plain objects without the class methods,
+and each segment contains a copy of its endpoints instead of a reference. `Graph.load` first
+recreates the `Point`s, then connects each segment to the points just created by looking them up
+with `equals`. This way points and segments go back to sharing the same objects, and dragging a
+point still moves its segments.
 
-Il pulsante 🗑️ chiama `graphEditor.dispose()`, che svuota il grafo e azzera anche `selected` e
-`hovered`: senza il reset il click successivo collegherebbe un punto che non esiste più. Il grafo
-salvato resta in `localStorage` finché non si preme di nuovo 💾.
+The 🗑️ button calls `graphEditor.dispose()`, which empties the graph and also resets `selected`
+and `hovered`: without the reset the next click would connect a point that no longer exists. The
+saved graph stays in `localStorage` until 💾 is pressed again.
 
-### Differenze dall'originale
+### Differences from the original
 
-- L'evento della rotella è `wheel` invece di `mousewheel`, che non è standard e in Firefox non
-  arriva mai.
-- L'ordine dei `<script>` in `index.html` è rimasto quello delle parti precedenti. Non cambia
-  niente, perché lo script inline parte dopo che tutti i file sono stati caricati.
+- The wheel event is `wheel` instead of `mousewheel`, which isn't standard and never arrives in
+  Firefox.
+- The order of the `<script>` tags in `index.html` stayed the one from the previous parts. It
+  changes nothing, because the inline script starts after all the files have been loaded.
 
-### Come provarlo
+### How to try it
 
-Apri `index.html` e disegna un grafo. Con la rotella la vista si allontana, con il tasto centrale
-si sposta; in entrambi i casi i nuovi punti devono comparire sotto il cursore. Premi 💾, ricarica
-la pagina e il grafo è ancora lì. 🗑️ lo cancella dal canvas.
+Open `index.html` and draw a graph. With the wheel the view zooms out, with the middle button it
+moves; in both cases new points must appear under the cursor. Press 💾, reload the page and the
+graph is still there. 🗑️ clears it from the canvas.
 
-Senza un mouse con il tasto centrale, ad esempio con il solo trackpad, la vista si può allontanare
-ma non spostare.
+Without a mouse with a middle button, for example with just a trackpad, the view can zoom out but
+not move.
 
-## Parte 4. Roads
+## Part 4. Roads
 
-Finora un segmento era una linea di 2 pixel. Qui diventa una strada: una fascia d'asfalto larga
-100 unità con le estremità arrotondate, una mezzeria tratteggiata e i bordi bianchi. Il grafo
-resta lo scheletro, la strada si costruisce attorno.
+So far a segment was a 2-pixel line. Here it becomes a road: a band of asphalt 100 units wide with
+rounded ends, a dashed center line and white borders. The graph stays the skeleton, the road is
+built around it.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `js/primitives/polygon.js` | Nuovo: classe `Polygon`, disegno, unione, test di contenimento |
-| `js/primitives/envelope.js` | Nuovo: classe `Envelope`, il poligono attorno a un segmento |
-| `js/world.js` | Nuovo: classe `World`, genera e disegna le strade dal grafo |
+| `js/primitives/polygon.js` | New: `Polygon` class, drawing, union, containment test |
+| `js/primitives/envelope.js` | New: `Envelope` class, the polygon around a segment |
+| `js/world.js` | New: `World` class, generates and draws the roads from the graph |
 | `js/math/utils.js` | `average`, `translate`, `angle`, `getIntersection`, `lerp`, `getRandomColor` |
-| `index.html` | Crea il `World` e lo disegna sotto l'editor |
+| `index.html` | Creates the `World` and draws it below the editor |
 
 ### Polygon
 
-Un poligono è una lista di punti; il costruttore crea anche i lati, collegando ogni punto al
-successivo e l'ultimo al primo (`points[i % points.length]`). `draw` riempie e contorna la forma
-con `fill`, `stroke` e `lineWidth`, con lo stesso stile di opzioni di `Point` e `Segment`.
+A polygon is a list of points; the constructor also creates the sides, connecting each point to
+the next and the last to the first (`points[i % points.length]`). `draw` fills and outlines the
+shape with `fill`, `stroke` and `lineWidth`, with the same options style as `Point` and `Segment`.
 
 ### Envelope
 
@@ -350,13 +354,13 @@ const alpha_cw = alpha + Math.PI / 2;
 const alpha_ccw = alpha - Math.PI / 2;
 ```
 
-`alpha` è la direzione del segmento. Attorno a `p1` l'involucro traccia mezzo cerchio di raggio
-`width / 2` da `alpha_ccw` a `alpha_cw`, attorno a `p2` lo stesso mezzo cerchio ruotato di 180°.
-Unendo i punti dei due semicerchi si ottiene una capsula. `roundness` è il numero di passi per
-semicerchio: con 1 le estremità sono piatte, con 10 sembrano tonde.
+`alpha` is the direction of the segment. Around `p1` the envelope traces half a circle of radius
+`width / 2` from `alpha_ccw` to `alpha_cw`, around `p2` the same half circle rotated by 180°.
+Joining the points of the two semicircles gives a capsule. `roundness` is the number of steps per
+semicircle: with 1 the ends are flat, with 10 they look round.
 
-`translate(loc, angle, offset)` sposta un punto di `offset` nella direzione `angle`, con coseno e
-seno: lo stesso calcolo dei raggi dei sensori nei capitoli dell'auto.
+`translate(loc, angle, offset)` moves a point by `offset` in the direction `angle`, with cosine and
+sine: the same calculation as the sensor rays in the car chapters.
 
 ### World
 
@@ -373,31 +377,31 @@ generate() {
 }
 ```
 
-Un involucro per segmento, poi l'unione dei loro contorni. `draw` disegna in quest'ordine
-l'asfalto (`#BBB`), la mezzeria tratteggiata sopra i segmenti del grafo e infine i bordi bianchi.
+One envelope per segment, then the union of their outlines. `draw` draws, in this order, the
+asphalt (`#BBB`), the dashed center line over the graph's segments and finally the white borders.
 
-### Unire i contorni
+### Joining the outlines
 
-Due capsule che si incrociano si sovrappongono, e disegnando i loro contorni comparirebbero linee
-bianche in mezzo all'incrocio. `Polygon.union` tiene solo la parte esterna:
+Two capsules that cross overlap, and drawing their outlines would show white lines in the middle of
+the intersection. `Polygon.union` keeps only the outer part:
 
-1. `multiBreak` prende ogni coppia di poligoni e, con `break`, spezza i lati dove si incrociano: il
-   punto d'incrocio diventa l'estremo comune di due nuovi segmenti, uno per poligono;
-2. per ogni segmento di ogni poligono `union` controlla se sta dentro un altro poligono, e in quel
-   caso lo scarta;
-3. restano i segmenti del perimetro esterno, che diventano `roadBorders`.
+1. `multiBreak` takes each pair of polygons and, with `break`, splits the sides where they cross:
+   the crossing point becomes the shared endpoint of two new segments, one per polygon;
+2. for each segment of each polygon `union` checks whether it lies inside another polygon, and in
+   that case discards it;
+3. what's left are the segments of the outer perimeter, which become `roadBorders`.
 
-Dopo lo spezzamento ogni segmento è tutto dentro o tutto fuori, quindi `containsSegment` testa solo
-il suo punto medio. `containsPoint` usa il **ray casting**: traccia un segmento dal punto fino a
-`(-1000, -1000)` e conta quanti lati del poligono attraversa. Un numero dispari vuol dire che il
-punto è dentro.
+After the split each segment is entirely inside or entirely outside, so `containsSegment` tests
+only its midpoint. `containsPoint` uses **ray casting**: it traces a segment from the point to
+`(-1000, -1000)` and counts how many sides of the polygon it crosses. An odd number means the point
+is inside.
 
-`getIntersection` è la formula parametrica già usata per i sensori; restituisce anche `offset`, la
-posizione dell'incrocio lungo il primo segmento. `break` ignora gli incroci con offset 0 o 1, che
-cadono su un vertice esistente: spezzare lì creerebbe segmenti lunghi zero.
+`getIntersection` is the parametric formula already used for the sensors; it also returns
+`offset`, the position of the crossing along the first segment. `break` ignores crossings with
+offset 0 or 1, which fall on an existing vertex: splitting there would create zero-length segments.
 
-`drawSegments` non viene usato dal mondo: colora ogni lato di un poligono con `getRandomColor` ed è
-utile per vedere a occhio dove `break` ha spezzato.
+`drawSegments` isn't used by the world: it colors each side of a polygon with `getRandomColor` and
+it's handy to see at a glance where `break` split.
 
 ### index.html
 
@@ -409,41 +413,41 @@ ctx.globalAlpha = 0.3;
 graphEditor.display();
 ```
 
-Il mondo si disegna sotto, l'editor sopra in trasparenza. `globalAlpha` non viene mai rimesso a 1
-perché ci pensa il `restore()` in `viewport.reset()` al frame successivo.
+The world is drawn below, the editor on top with transparency. `globalAlpha` is never set back to
+1 because the `restore()` in `viewport.reset()` takes care of it on the next frame.
 
-### Limiti
+### Limits
 
-- `world.generate()` gira a ogni frame, e l'unione confronta ogni poligono con tutti gli altri:
-  con qualche decina di strade la pagina rallenta. La Parte 5 rigenera il mondo solo quando il
-  grafo cambia.
-- Il punto di partenza del ray casting è fisso a `(-1000, -1000)`: se un poligono lo contenesse,
-  il test sbaglierebbe. Con grafi disegnati a mano non succede.
+- `world.generate()` runs every frame, and the union compares each polygon with all the others:
+  with a few dozen roads the page slows down. Part 5 regenerates the world only when the graph
+  changes.
+- The starting point of the ray casting is fixed at `(-1000, -1000)`: if a polygon contained it,
+  the test would be wrong. With hand-drawn graphs it doesn't happen.
 
-### Come provarlo
+### How to try it
 
-Apri `index.html` e disegna un incrocio a croce o a T. Le strade sono grigie con la mezzeria
-tratteggiata, e i bordi bianchi girano attorno all'incrocio senza attraversarlo. Trascinando un
-punto le strade si ricalcolano in tempo reale.
+Open `index.html` and draw a cross or T intersection. The roads are gray with the dashed center
+line, and the white borders go around the intersection without crossing it. Dragging a point
+recomputes the roads in real time.
 
-## Parte 5. Buildings And Trees
+## Part 5. Buildings And Trees
 
-Le strade da sole non fanno una città. Questa parte riempie il mondo: file di edifici
-parallele alle strade e alberi sparsi negli spazi rimasti liberi. Tutto viene generato dal grafo,
-senza disegnare niente a mano.
+Roads alone don't make a city. This part fills the world: rows of buildings parallel to the roads
+and trees scattered in the spaces left free. Everything is generated from the graph, without
+drawing anything by hand.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `js/math/graph.js` | `hash()`, per sapere quando il grafo è cambiato |
-| `js/math/utils.js` | `dot`, `normalize`, `magnitude`; soglia in `getIntersection` |
+| `js/math/graph.js` | `hash()`, to know when the graph has changed |
+| `js/math/utils.js` | `dot`, `normalize`, `magnitude`; threshold in `getIntersection` |
 | `js/primitives/segment.js` | `length`, `directionVector`, `projectPoint`, `distanceToPoint` |
 | `js/primitives/polygon.js` | `distanceToPoint`, `distanceToPoly`, `intersectsPoly` |
-| `js/world.js` | Parametri e generazione di edifici e alberi |
-| `index.html` | Rigenera il mondo solo se il grafo cambia |
+| `js/world.js` | Parameters and generation of buildings and trees |
+| `index.html` | Regenerates the world only if the graph changes |
 
-### Rigenerare solo quando serve
+### Regenerating only when needed
 
 ```js
 let oldGraphHash = graph.hash();
@@ -454,109 +458,108 @@ if (graph.hash() != oldGraphHash) {
 }
 ```
 
-`hash()` è `JSON.stringify(this)`: non un vero hash, ma due grafi uguali danno la stessa stringa.
-Serializzare il grafo a ogni frame costa molto meno che rifare unioni di poligoni, e zoom e
-spostamento della vista non lo toccano affatto. Serve anche per gli alberi: sono generati a caso, e
-senza questo controllo cambierebbero posto a ogni frame.
+`hash()` is `JSON.stringify(this)`: not a real hash, but two equal graphs give the same string.
+Serializing the graph every frame costs much less than redoing polygon unions, and zooming and
+panning the view don't touch it at all. It's also needed for the trees: they are generated at
+random, and without this check they would change place every frame.
 
-### Segmenti quasi paralleli
+### Nearly parallel segments
 
 ```js
 const eps = 0.001;
 if (Math.abs(bottom) > eps) {
 ```
 
-In `getIntersection` il denominatore `bottom` vale zero quando i due segmenti sono paralleli. Con
-i numeri in virgola mobile, però, segmenti quasi paralleli danno valori minuscoli ma non nulli, e
-dividere per quei valori produce incroci che non esistono. Con gli edifici capita spesso, perché
-nascono da contorni paralleli alle strade.
+In `getIntersection` the denominator `bottom` is zero when the two segments are parallel. With
+floating point numbers, though, nearly parallel segments give tiny but nonzero values, and dividing
+by those values produces intersections that don't exist. With buildings it happens often, because
+they come from outlines parallel to the roads.
 
-### Distanze
+### Distances
 
-Per tenere edifici e alberi alla giusta distanza da tutto il resto servono misure di distanza:
+To keep buildings and trees at the right distance from everything else we need distance measures:
 
-- `projectPoint` proietta un punto sulla retta del segmento con il prodotto scalare (`dot`) e
-  restituisce anche `offset`, la posizione lungo il segmento da 0 a 1;
-- `distanceToPoint` usa la proiezione se cade dentro il segmento, altrimenti la distanza
-  dall'estremo più vicino;
-- `Polygon.distanceToPoint` è il minimo sulle distanze dai lati, `distanceToPoly` il minimo sui
-  vertici dell'altro poligono;
-- `intersectsPoly` controlla se due poligoni hanno lati che si incrociano.
+- `projectPoint` projects a point onto the segment's line with the dot product (`dot`) and also
+  returns `offset`, the position along the segment from 0 to 1;
+- `distanceToPoint` uses the projection if it falls inside the segment, otherwise the distance
+  from the nearest endpoint;
+- `Polygon.distanceToPoint` is the minimum over the distances from the sides, `distanceToPoly` the
+  minimum over the vertices of the other polygon;
+- `intersectsPoly` checks whether two polygons have sides that cross.
 
-### Edifici
+### Buildings
 
-`#generateBuildings` lavora in quattro passi:
+`#generateBuildings` works in four steps:
 
-1. **guide**: per ogni segmento crea un involucro largo quanto strada, edificio e due spazi di
-   separazione, e unisce i contorni con `Polygon.union`. Il risultato corre parallelo alle strade,
-   alla distanza giusta per appoggiarci gli edifici. Le guide più corte di `buildingMinLength`
-   vengono scartate;
-2. **supporti**: ogni guida viene divisa nel massimo numero di pezzi lunghi almeno
-   `buildingMinLength`, separati da `spacing`. La lunghezza dei pezzi viene allungata per riempire
-   la guida senza avanzi;
-3. **basi**: ogni supporto diventa un rettangolo largo `buildingWidth`, cioè un `Envelope` con
+1. **guides**: for each segment it creates an envelope as wide as road, building and two spacing
+   gaps, and joins the outlines with `Polygon.union`. The result runs parallel to the roads, at the
+   right distance to lay the buildings against it. Guides shorter than `buildingMinLength` are
+   discarded;
+2. **supports**: each guide is divided into the maximum number of pieces at least
+   `buildingMinLength` long, separated by `spacing`. The length of the pieces is stretched to fill
+   the guide with no leftovers;
+3. **bases**: each support becomes a rectangle `buildingWidth` wide, that is an `Envelope` with
    `roundness` 1;
-4. **pulizia**: dove due guide si incontrano gli edifici si sovrappongono, quindi per ogni coppia
-   il secondo viene scartato se tocca il primo o gli sta più vicino di `spacing`.
+4. **cleanup**: where two guides meet the buildings overlap, so for each pair the second is
+   discarded if it touches the first or is closer to it than `spacing`.
 
-| Parametro | Default | Significato |
+| Parameter | Default | Meaning |
 |-----------|---------|-------------|
-| `buildingWidth` | 150 | Profondità degli edifici |
-| `buildingMinLength` | 150 | Lunghezza minima di un edificio |
-| `spacing` | 50 | Distanza tra edifici e tra edifici e strada |
+| `buildingWidth` | 150 | Depth of the buildings |
+| `buildingMinLength` | 150 | Minimum length of a building |
+| `spacing` | 50 | Distance between buildings and between buildings and road |
 
-### Alberi
+### Trees
 
-`#generateTrees` usa il **campionamento con rifiuto**: prende punti a caso dentro il rettangolo
-che racchiude strade ed edifici e tiene solo quelli che rispettano tre regole:
+`#generateTrees` uses **rejection sampling**: it picks random points inside the rectangle that
+encloses roads and buildings and keeps only those that respect three rules:
 
-1. non dentro una strada o un edificio, né a meno di mezzo albero da uno dei due;
-2. non a meno di un albero di distanza da un altro albero;
-3. non più lontano di due alberi da qualunque strada o edificio, per evitare alberi isolati nel
-   nulla ai margini.
+1. not inside a road or a building, nor closer than half a tree to either of them;
+2. not closer than one tree to another tree;
+3. not farther than two trees from any road or building, to avoid trees isolated in the middle of
+   nowhere at the edges.
 
-Il ciclo si ferma dopo 100 tentativi falliti di fila: `tryCount` torna a zero a ogni albero
-accettato, quindi si continua finché c'è spazio e ci si ferma quando restano solo buchi troppo
-piccoli.
+The loop stops after 100 failed attempts in a row: `tryCount` goes back to zero at every accepted
+tree, so it carries on as long as there's room and stops when only holes that are too small are
+left.
 
-Un albero è un `Point` disegnato con `size: 160` e un nero semitrasparente.
+A tree is a `Point` drawn with `size: 160` and a semi-transparent black.
 
-### Come provarlo
+### How to try it
 
-Apri `index.html` e disegna un piccolo quartiere. Lungo le strade compaiono rettangoli blu, gli
-edifici, e negli spazi liberi cerchi scuri, gli alberi. Trascinando un punto il mondo si
-rigenera e gli alberi cambiano posizione; zoom e spostamento della vista non toccano niente.
+Open `index.html` and draw a small neighborhood. Along the roads blue rectangles appear, the
+buildings, and in the free spaces dark circles, the trees. Dragging a point regenerates the world
+and the trees change position; zooming and panning the view don't touch anything.
 
-## Parte 6. Fake 3D
+## Part 6. Fake 3D
 
-Il mondo resta un disegno 2D visto dall'alto, ma edifici e alberi acquistano altezza: si
-inclinano allontanandosi dal centro dello schermo, come in una foto aerea scattata con un
-grandangolo. Niente WebGL e niente matrici di proiezione, solo poligoni disegnati nell'ordine
-giusto.
+The world stays a 2D drawing seen from above, but buildings and trees gain height: they lean away
+from the center of the screen, like in an aerial photo taken with a wide-angle lens. No WebGL and
+no projection matrices, just polygons drawn in the right order.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `js/items/building.js` | Nuovo: edificio con pareti, soffitto e tetto a due falde |
-| `js/items/tree.js` | Nuovo: albero fatto di livelli sovrapposti |
+| `js/items/building.js` | New: building with walls, ceiling and a gable roof |
+| `js/items/tree.js` | New: tree made of stacked levels |
 | `js/math/utils.js` | `getFake3dPoint`, `lerp2D` |
-| `js/primitives/polygon.js` | Opzione `join` in `draw` |
-| `js/world.js` | Edifici e alberi come oggetti, disegnati dal più lontano |
-| `index.html` | Passa a `world.draw` il punto di vista |
+| `js/primitives/polygon.js` | `join` option in `draw` |
+| `js/world.js` | Buildings and trees as objects, drawn from the farthest |
+| `index.html` | Passes the viewpoint to `world.draw` |
 
-### Il punto di vista
+### The viewpoint
 
 ```js
 const viewPoint = scale(viewport.getOffset(), -1);
 world.draw(ctx, viewPoint);
 ```
 
-L'offset del viewport è la traslazione applicata al canvas, cioè l'opposto del punto del mondo
-inquadrato al centro dello schermo. Cambiandogli segno si ottiene quel punto: è da lì che
-"guarda" la telecamera.
+The viewport offset is the translation applied to the canvas, that is the opposite of the world
+point framed at the center of the screen. Flipping its sign gives that point: that's where the
+camera "looks" from.
 
-### Il finto 3D
+### Fake 3D
 
 ```js
 function getFake3dPoint(point, viewPoint, height) {
@@ -567,44 +570,43 @@ function getFake3dPoint(point, viewPoint, height) {
 }
 ```
 
-Il punto in cima a un oggetto alto `height` viene spostato in direzione opposta al `viewPoint`.
-Lo spostamento cresce con la distanza: al centro dello schermo vale zero e l'oggetto si vede
-dritto dall'alto. L'arcotangente lo fa tendere a `height` senza superarlo mai, così ai bordi i
-tetti non schizzano via.
+The point at the top of an object of height `height` is moved in the direction opposite to the
+`viewPoint`. The displacement grows with the distance: at the center of the screen it's zero and
+the object is seen straight from above. The arctangent makes it approach `height` without ever
+exceeding it, so at the edges the roofs don't shoot off.
 
-### Edifici
+### Buildings
 
-`Building` avvolge la base generata nella Parte 5, un rettangolo di quattro punti, e la
-disegna a strati:
+`Building` wraps the base generated in Part 5, a rectangle of four points, and draws it in layers:
 
-1. la **base**, con un bordo largo e semitrasparente che fa da ombra;
-2. le **pareti**, un quadrilatero per lato tra base e soffitto;
-3. il **soffitto**, la base proiettata al 60% dell'altezza;
-4. il **tetto**: due falde che salgono dai lati lunghi del soffitto fino al colmo. Il colmo è
-   la proiezione, ad altezza piena, dei punti medi dei lati corti della base.
+1. the **base**, with a wide semi-transparent border that acts as a shadow;
+2. the **walls**, one quadrilateral per side between base and ceiling;
+3. the **ceiling**, the base projected at 60% of the height;
+4. the **roof**: two slopes rising from the long sides of the ceiling up to the ridge. The ridge is
+   the projection, at full height, of the midpoints of the short sides of the base.
 
-Pareti e falde vengono ordinate dalla più lontana alla più vicina al `viewPoint`, così quelle
-davanti coprono quelle dietro.
+Walls and slopes are sorted from the farthest to the nearest to the `viewPoint`, so the ones in
+front cover the ones behind.
 
-Per gli spigoli del tetto `Polygon.draw` accetta ora `join` (`lineJoin` del canvas). Il
-default `"miter"` va impostato a ogni chiamata: lo stato del contesto è condiviso, e un
-`"round"` rimasto da un tetto finirebbe su tutto quello che viene disegnato dopo.
+For the roof edges `Polygon.draw` now accepts `join` (the canvas `lineJoin`). The default
+`"miter"` has to be set on every call: the context state is shared, and a `"round"` left over from
+a roof would end up on everything drawn afterwards.
 
-### Alberi
+### Trees
 
-`Tree` disegna sette livelli dal centro alla cima proiettata, interpolando con `lerp2D`. Salendo
-ogni livello si restringe da `size` a 40 e passa da verde scuro a verde chiaro.
+`Tree` draws seven levels from the center to the projected top, interpolating with `lerp2D`. Going
+up, each level shrinks from `size` to 40 and goes from dark green to light green.
 
-Il contorno di ogni livello è frastagliato con un rumore deterministico:
+The outline of each level is jagged with deterministic noise:
 
 ```js
 const kindOfRandom = Math.cos(((a + this.center.x) * size) % 17) ** 2;
 ```
 
-Dipende solo dall'angolo e dalla posizione dell'albero, quindi è identico a ogni frame e non
-tremola, ma cambia da un albero all'altro.
+It depends only on the angle and on the tree's position, so it's identical every frame and doesn't
+flicker, but it changes from one tree to another.
 
-### Ordine di disegno
+### Drawing order
 
 ```js
 const items = [...this.buildings, ...this.trees];
@@ -615,47 +617,46 @@ items.sort(
 );
 ```
 
-È l'algoritmo del pittore: si disegna prima ciò che è lontano. Edifici e alberi stanno nella
-stessa lista perché hanno la stessa forma, una `base` e un `draw(ctx, viewPoint)`. La lista va
-riordinata a ogni frame, perché il `viewPoint` si muove con la vista.
+It's the painter's algorithm: what is far away is drawn first. Buildings and trees are in the same
+list because they have the same shape, a `base` and a `draw(ctx, viewPoint)`. The list has to be
+re-sorted every frame, because the `viewPoint` moves with the view.
 
-### Limiti
+### Limits
 
-- La distanza usata per ordinare è quella della base più vicina al `viewPoint`, non della sagoma
-  proiettata: un edificio lungo accanto a un albero può essere disegnato nell'ordine sbagliato.
-- Il tetto presuppone basi di esattamente quattro punti, garantite da `Envelope` con
-  `roundness` 1.
+- The distance used for sorting is the one of the base nearest to the `viewPoint`, not of the
+  projected silhouette: a long building next to a tree can be drawn in the wrong order.
+- The roof assumes bases of exactly four points, guaranteed by `Envelope` with `roundness` 1.
 
-### Come provarlo
+### How to try it
 
-Apri `index.html` con un grafo salvato, oppure disegnane uno. Spostando la vista con il tasto
-centrale, gli edifici si inclinano sempre verso l'esterno dello schermo. Quelli al centro
-mostrano solo il tetto rosso, quelli ai bordi anche le pareti. Gli alberi davanti a un
-edificio lo coprono, quelli dietro restano nascosti.
+Open `index.html` with a saved graph, or draw one. Moving the view with the middle button, the
+buildings always lean towards the outside of the screen. The ones at the center show only the red
+roof, the ones at the edges the walls too. Trees in front of a building cover it, the ones behind
+stay hidden.
 
-## Parte 7. Markings
+## Part 7. Markings
 
-Sulle strade arriva la segnaletica. Una barra di pulsanti sceglie lo strumento attivo: l'editor
-del grafo oppure uno degli editor di segnaletica, che piazzano un elemento sulla corsia più
-vicina al mouse, orientato nel senso di marcia.
+Road markings arrive on the roads. A bar of buttons picks the active tool: the graph editor or one
+of the marking editors, which place an item on the lane nearest to the mouse, oriented in the
+direction of travel.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `js/editors/graphEditor.js` | Spostato da `js/`; nuovi `enable()` e `disable()` |
-| `js/editors/markingEditor.js` | Nuovo: classe base degli editor di segnaletica |
-| `js/editors/*Editor.js` | Nuovi: un editor per ogni tipo di segnaletica |
-| `js/markings/marking.js` | Nuovo: classe base, un rettangolo centrato su un punto |
-| `js/markings/*.js` | Nuovi: `Stop`, `Yield`, `Crossing`, `Parking`, `Light`, `Start`, `Target` |
+| `js/editors/graphEditor.js` | Moved from `js/`; new `enable()` and `disable()` |
+| `js/editors/markingEditor.js` | New: base class of the marking editors |
+| `js/editors/*Editor.js` | New: one editor for each type of marking |
+| `js/markings/marking.js` | New: base class, a rectangle centered on a point |
+| `js/markings/*.js` | New: `Stop`, `Yield`, `Crossing`, `Parking`, `Light`, `Start`, `Target` |
 | `js/math/utils.js` | `getNearestSegment`, `perpendicular` |
-| `js/primitives/segment.js` | Opzione `cap` in `draw` |
-| `js/world.js` | Lane guides, elenco `markings`, fasi dei semafori |
-| `index.html` | Barra degli strumenti, `setMode` |
-| `styles.css` | Stile dei pulsanti |
-| `car.png` | Immagine dell'auto per il punto di partenza |
+| `js/primitives/segment.js` | `cap` option in `draw` |
+| `js/world.js` | Lane guides, `markings` list, traffic light phases |
+| `index.html` | Toolbar, `setMode` |
+| `styles.css` | Button style |
+| `car.png` | Car image for the start point |
 
-### Barra degli strumenti
+### Toolbar
 
 ```js
 const tools = {
@@ -665,296 +666,296 @@ const tools = {
 };
 ```
 
-`setMode(mode)` spegne tutti gli editor, rende grigi i pulsanti con `grayscale(100%)` e poi
-riaccende solo quello scelto. Gli editor ora non ascoltano più il mouse dal costruttore: lo
-fanno in `enable()` e smettono in `disable()`.
+`setMode(mode)` turns off all the editors, grays out the buttons with `grayscale(100%)` and then
+turns back on only the chosen one. The editors no longer listen to the mouse from the constructor:
+they do it in `enable()` and stop in `disable()`.
 
-Per togliere un listener serve la stessa funzione passata ad `addEventListener`. Ma
-`this.#handleMouseDown.bind(this)` crea una funzione nuova a ogni chiamata, quindi la versione
-legata viene salvata nel campo `boundMouseDown` e riusata in `removeEventListener`.
+To remove a listener you need the same function passed to `addEventListener`. But
+`this.#handleMouseDown.bind(this)` creates a new function on every call, so the bound version is
+saved in the `boundMouseDown` field and reused in `removeEventListener`.
 
-Tutti gli editor disegnano la propria anteprima a ogni frame con `display()`, ma solo quello
-attivo ne ha una.
+All the editors draw their own preview every frame with `display()`, but only the active one has
+one.
 
 ### Lane guides
 
-Le corsie sono le linee a metà tra il centro della strada e il bordo. `World` le ottiene come
-le strade, ma con buste larghe la metà:
+The lanes are the lines halfway between the center of the road and the border. `World` gets them
+like the roads, but with envelopes half as wide:
 
 ```js
 new Envelope(seg, this.roadWidth / 2, this.roadRoundness)
 ```
 
-L'unione delle buste dà i segmenti di `laneGuides`, uno per senso di marcia. La segnaletica si
-aggancia lì: uno STOP finisce sulla corsia giusta e non a cavallo della linea tratteggiata. Le
-strisce pedonali fanno eccezione e si agganciano ai segmenti del grafo, perché attraversano
-tutta la strada.
+The union of the envelopes gives the `laneGuides` segments, one per direction of travel. The
+markings snap there: a STOP ends up on the right lane and not straddling the dashed line.
+Pedestrian crossings are the exception and snap to the graph's segments, because they cross the
+whole road.
 
 ### MarkingEditor
 
-`MarkingEditor` fa tutto il lavoro comune:
+`MarkingEditor` does all the shared work:
 
-- al movimento del mouse cerca il segmento più vicino entro `10 * zoom` con
+- when the mouse moves it looks for the nearest segment within `10 * zoom` with
   `getNearestSegment`;
-- proietta il mouse su quel segmento e, se cade al suo interno, crea l'anteprima con
-  `createMarking(punto, direzione)`;
-- il click sinistro aggiunge l'anteprima a `world.markings`, il destro toglie la segnaletica
-  sotto il mouse.
+- it projects the mouse onto that segment and, if it falls inside it, creates the preview with
+  `createMarking(point, direction)`;
+- left click adds the preview to `world.markings`, right click removes the marking under the
+  mouse.
 
-Le sottoclassi decidono soltanto quale segnaletica creare e su quali segmenti, ridefinendo
-`createMarking`. È il pattern *template method*: lo schema è nella classe base, il passo che
-cambia è nelle figlie.
+The subclasses only decide which marking to create and on which segments, by overriding
+`createMarking`. It's the *template method* pattern: the outline is in the base class, the step
+that changes is in the children.
 
-### Segnaletica
+### Markings
 
-`Marking` costruisce un rettangolo largo `width` e lungo `height`, centrato in `center` e
-allineato a `directionVector`. Serve per il test del click destro (`poly.containsPoint`) e come
-disegno di default. Le sottoclassi ridefiniscono `draw`:
+`Marking` builds a rectangle `width` wide and `height` long, centered in `center` and aligned with
+`directionVector`. It's used for the right-click test (`poly.containsPoint`) and as the default
+drawing. The subclasses override `draw`:
 
-| Segnaletica | Pulsante | Disegno |
+| Marking | Button | Drawing |
 |-------------|----------|---------|
-| `Stop` | 🛑 | Linea bianca trasversale alla corsia e scritta STOP |
-| `Yield` | ⚠️ | Linea bianca trasversale e scritta YIELD |
-| `Crossing` | 🚶 | Strisce bianche: una linea tratteggiata spessa quanto la marking, perpendicolare alla strada |
-| `Parking` | 🅿️ | Due linee trasversali alla corsia e una P |
-| `Light` | 🚦 | Corpo arrotondato con tre luci |
-| `Start` | 🚙 | L'immagine `car.png`, ruotata nel senso di marcia |
-| `Target` | 🎯 | Tre cerchi concentrici rossi e bianchi |
+| `Stop` | 🛑 | White line across the lane and the word STOP |
+| `Yield` | ⚠️ | White line across and the word YIELD |
+| `Crossing` | 🚶 | White stripes: a dashed line as thick as the marking, perpendicular to the road |
+| `Parking` | 🅿️ | Two lines across the lane and a P |
+| `Light` | 🚦 | Rounded body with three lights |
+| `Start` | 🚙 | The `car.png` image, rotated in the direction of travel |
+| `Target` | 🎯 | Three concentric red and white circles |
 
-Le scritte usano sempre lo stesso schema: `translate` sul centro, `rotate` nel senso di
-marcia, `fillText` in coordinate locali e infine `restore`. `scale(1, 3)` allunga le lettere
-come la segnaletica vera, che si legge di scorcio.
+The text always uses the same pattern: `translate` to the center, `rotate` in the direction of
+travel, `fillText` in local coordinates and finally `restore`. `scale(1, 3)` stretches the letters
+like real road markings, which are read foreshortened.
 
-La segnaletica si disegna subito dopo l'asfalto, sotto la linea tratteggiata e i bordi.
+The markings are drawn right after the asphalt, below the dashed line and the borders.
 
-### Semafori
+### Traffic lights
 
-A ogni frame `#updateLights()` raggruppa i semafori per incrocio, cioè per punto del grafo con
-più di due segmenti, e li accende a turno:
+Every frame `#updateLights()` groups the traffic lights by intersection, that is by graph point
+with more than two segments, and turns them on in turn:
 
-- un tick vale 60 frame;
-- il semaforo di turno resta verde per 2 tick e giallo per 1;
-- tutti gli altri semafori dello stesso incrocio sono rossi.
+- one tick is 60 frames;
+- the traffic light whose turn it is stays green for 2 ticks and yellow for 1;
+- all the other traffic lights of the same intersection are red.
 
-Lo stato non viene memorizzato da un frame all'altro: si ricalcola da `frameCount`.
+The state isn't stored from one frame to the next: it's recomputed from `frameCount`.
 
-### Array modificati sul posto
+### Arrays modified in place
 
 ```js
 this.laneGuides.length = 0;
 this.laneGuides.push(...this.#generateLaneGuides());
 ```
 
-Gli editor ricevono `world.laneGuides` e `world.markings` nel costruttore e li conservano.
-Se `World` assegnasse un array nuovo, gli editor resterebbero agganciati a quello vecchio. Per
-lo stesso motivo `dispose()` svuota la segnaletica con `world.markings.length = 0`.
+The editors receive `world.laneGuides` and `world.markings` in the constructor and keep them. If
+`World` assigned a new array, the editors would stay attached to the old one. For the same reason
+`dispose()` empties the markings with `world.markings.length = 0`.
 
-### Limiti
+### Limits
 
-- La segnaletica non si salva: 💾 salva ancora solo il grafo.
-- La segnaletica non segue il grafo: spostando o cancellando una strada, rimane dov'era.
-- Un semaforo in un grafo senza incroci blocca il disegno: `getNearestPoint` restituisce `null`
-  e `#updateLights` lancia un errore a ogni frame.
-- Il tick conta i frame, non i secondi: su uno schermo a 120 Hz i semafori vanno al doppio
-  della velocità.
-- `Light` ignora l'altezza ricevuta e usa sempre 18.
-- Gli editor usano la variabile globale `world` in `createMarking` invece di `this.world`, e
-  la funzione si chiama `dissableEditors`: entrambi sono tenuti come nell'originale.
+- The markings aren't saved: 💾 still saves only the graph.
+- The markings don't follow the graph: moving or deleting a road, they stay where they were.
+- A traffic light in a graph without intersections blocks the drawing: `getNearestPoint` returns
+  `null` and `#updateLights` throws an error every frame.
+- The tick counts frames, not seconds: on a 120 Hz screen the traffic lights go twice as fast.
+- `Light` ignores the height it receives and always uses 18.
+- The editors use the global variable `world` in `createMarking` instead of `this.world`, and the
+  function is called `dissableEditors`: both are kept as in the original.
 
-### Come provarlo
+### How to try it
 
-Apri `index.html` e disegna qualche strada con 🌐, con almeno un incrocio a tre vie. Scegli
-uno strumento dalla barra: avvicinando il mouse a una corsia compare l'anteprima
-semitrasparente, il click sinistro la fissa e il destro la toglie. I semafori di uno stesso
-incrocio diventano verdi uno alla volta.
+Open `index.html` and draw a few roads with 🌐, with at least one three-way intersection. Pick a
+tool from the bar: moving the mouse near a lane shows the semi-transparent preview, left click
+fixes it and right click removes it. The traffic lights of the same intersection turn green one at
+a time.
 
-## Parte 8. Saving The World
+## Part 8. Saving The World
 
-Fino alla Parte 7 si salvava solo il grafo: segnaletica, edifici e alberi andavano persi, e gli
-alberi cambiavano posto a ogni caricamento. Ora si salva tutto il mondo, insieme alla vista, in
-`localStorage` e in un file `.world` da scaricare e ricaricare.
+Up to Part 7 only the graph was saved: markings, buildings and trees were lost, and the trees
+changed place at every load. Now the whole world is saved, together with the view, in
+`localStorage` and in a `.world` file to download and load again.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `js/world.js` | `World.load`, ricostruisce il mondo da un oggetto JSON |
+| `js/world.js` | `World.load`, rebuilds the world from a JSON object |
 | `js/primitives/polygon.js` | `Polygon.load` |
-| `js/primitives/envelope.js` | `Envelope.load`; il costruttore accetta di non ricevere lo scheletro |
+| `js/primitives/envelope.js` | `Envelope.load`; the constructor accepts not receiving the skeleton |
 | `js/items/building.js` | `Building.load` |
-| `js/markings/marking.js` | Campo `type` e `Marking.load`, che crea la sottoclasse giusta |
-| `js/markings/*.js` | Ogni sottoclasse imposta il proprio `type` |
-| `js/viewport.js` | Il costruttore accetta `zoom` e `offset` iniziali |
-| `index.html` | Chiave `"world"` in `localStorage`, pulsante 📁, `save()` scarica il file |
-| `styles.css` | Stile dell'etichetta 📁, input di file nascosto |
+| `js/markings/marking.js` | `type` field and `Marking.load`, which creates the right subclass |
+| `js/markings/*.js` | Each subclass sets its own `type` |
+| `js/viewport.js` | The constructor accepts initial `zoom` and `offset` |
+| `index.html` | `"world"` key in `localStorage`, 📁 button, `save()` downloads the file |
+| `styles.css` | Style of the 📁 label, hidden file input |
 
-### Da JSON a oggetti
+### From JSON to objects
 
-`JSON.stringify(world)` salva i campi ma non le classi: da `JSON.parse` escono oggetti senza
-metodi. Ogni classe che finisce nel file ha quindi un `static load(info)` che ricostruisce le
-istanze:
+`JSON.stringify(world)` saves the fields but not the classes: what comes out of `JSON.parse` are
+objects without methods. Each class that ends up in the file therefore has a `static load(info)`
+that rebuilds the instances:
 
-| Metodo | Ricostruisce |
+| Method | Rebuilds |
 |--------|--------------|
-| `World.load` | Parametri, grafo, buste, bordi, edifici, alberi, lane guides, segnaletica, vista |
-| `Graph.load` | Punti e segmenti, già presente dalla Parte 3 |
-| `Envelope.load` | Scheletro e poligono, senza ricalcolarli |
-| `Polygon.load` | I punti come `Point` |
-| `Building.load` | Base e altezza |
-| `Marking.load` | La sottoclasse indicata da `type` |
+| `World.load` | Parameters, graph, envelopes, borders, buildings, trees, lane guides, markings, view |
+| `Graph.load` | Points and segments, already there since Part 3 |
+| `Envelope.load` | Skeleton and polygon, without recomputing them |
+| `Polygon.load` | The points as `Point` |
+| `Building.load` | Base and height |
+| `Marking.load` | The subclass indicated by `type` |
 
-Da un oggetto JSON non si capisce più se era uno `Stop` o un `Yield`. Per questo ogni marking
-scrive il proprio `type` e `Marking.load` sceglie la classe con uno `switch`.
+From a JSON object you can no longer tell whether it was a `Stop` or a `Yield`. That's why each
+marking writes its own `type` and `Marking.load` picks the class with a `switch`.
 
-`World.load` non chiama `generate()`: usa le buste, gli edifici e gli alberi salvati. Gli alberi
-nascono da `Math.random()`, e rigenerandoli cambierebbero posto a ogni caricamento.
+`World.load` doesn't call `generate()`: it uses the saved envelopes, buildings and trees. The trees
+come from `Math.random()`, and regenerating them would change their place at every load.
 
-### La vista
+### The view
 
-`save()` copia `viewport.zoom` e `viewport.offset` nel mondo prima di salvarlo, e al caricamento
-il `Viewport` riparte da lì. Un mondo salvato senza vista usa i valori di default: zoom 1 e
-origine al centro del canvas.
+`save()` copies `viewport.zoom` and `viewport.offset` into the world before saving it, and on load
+the `Viewport` starts again from there. A world saved without a view uses the default values: zoom
+1 and origin at the center of the canvas.
 
-### File .world
+### .world files
 
-💾 crea un `<a>` con un *data URL* che contiene il JSON e l'attributo `download`, poi lo clicca
-da codice. Il browser scarica `name.world`.
+💾 creates an `<a>` with a *data URL* containing the JSON and the `download` attribute, then clicks
+it from code. The browser downloads `name.world`.
 
-📁 è un `<label>` collegato a un `<input type="file">` nascosto. Il file scelto viene letto con
-`FileReader`, salvato in `localStorage` e la pagina si ricarica. Ricaricare è più semplice che
-sostituire il mondo al volo: editor, grafo e strumenti tengono riferimenti al mondo vecchio, e
-il codice di avvio legge già da `localStorage`.
+📁 is a `<label>` linked to a hidden `<input type="file">`. The chosen file is read with
+`FileReader`, saved in `localStorage` and the page reloads. Reloading is simpler than replacing the
+world on the fly: editors, graph and tools hold references to the old world, and the startup code
+already reads from `localStorage`.
 
-### Limiti
+### Limits
 
-- Il grafo salvato con `"graph"` nelle parti precedenti non viene più letto: la nuova chiave è
+- The graph saved with `"graph"` in the previous parts is no longer read: the new key is
   `"world"`.
-- Il file si chiama sempre `name.world`.
-- Il data URL contiene tutto il mondo: per mappe molto grandi sarebbe meglio un `Blob` con
-  `URL.createObjectURL`.
+- The file is always called `name.world`.
+- The data URL contains the whole world: for very large maps a `Blob` with `URL.createObjectURL`
+  would be better.
 
-### Come provarlo
+### How to try it
 
-Disegna qualche strada, aggiungi segnaletica e sposta la vista, poi premi 💾: il browser scarica
-`name.world`. Ricaricando la pagina il mondo, la segnaletica e la vista sono quelli salvati, con
-gli alberi negli stessi punti. Con 📁 puoi caricare un altro file `.world`.
+Draw a few roads, add some markings and move the view, then press 💾: the browser downloads
+`name.world`. Reloading the page, the world, the markings and the view are the saved ones, with
+the trees in the same spots. With 📁 you can load another `.world` file.
 
-## Parte 9. Integration
+## Part 9. Integration
 
-Le due basi di codice si incontrano. L'editor delle parti 1-8 si sposta in `world/`, nella radice
-della cartella arriva l'auto della cartella "9. Fine-tuning" e le auto, invece della strada dritta,
-guidano nel mondo disegnato con l'editor.
+The two codebases meet. The editor from parts 1-8 moves to `world/`, the car from the
+"9. Fine-tuning" folder arrives in the root of the folder, and the cars, instead of the straight
+road, drive in the world drawn with the editor.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `world/` | Tutto l'editor delle parti 1-8, spostato senza modifiche |
-| `car.js`, `controls.js`, `network.js`, `sensor.js`, `utils.js`, `visualizer.js`, `car.png` | Arrivano dalla cartella 9 |
-| `car.js` | Angolo iniziale nel costruttore, campo `fittness` |
-| `index.html` | Carica gli script di `world/js/` prima di quelli dell'auto |
-| `main.js` | Mondo da `localStorage`, partenza dal marking Start, vista che segue l'auto migliore |
-| `world/js/world.js` | Disegna le auto e può nascondere i marking Start |
-| `style.css` | Sfondo verde al posto del grigio |
-| `road.js` | Eliminato: i bordi arrivano dal mondo |
+| `world/` | The whole editor from parts 1-8, moved without changes |
+| `car.js`, `controls.js`, `network.js`, `sensor.js`, `utils.js`, `visualizer.js`, `car.png` | Come from folder 9 |
+| `car.js` | Initial angle in the constructor, `fittness` field |
+| `index.html` | Loads the scripts from `world/js/` before the car's ones |
+| `main.js` | World from `localStorage`, start from the Start marking, view following the best car |
+| `world/js/world.js` | Draws the cars and can hide the Start markings |
+| `style.css` | Green background instead of gray |
+| `road.js` | Deleted: the borders come from the world |
 
-### Due pagine
+### Two pages
 
-`world/index.html` è l'editor, `index.html` nella radice è la simulazione. Le due pagine leggono la
-stessa chiave `"world"` in `localStorage`: quello che l'editor salva con 💾 è il mondo in cui
-partono le auto.
+`world/index.html` is the editor, `index.html` in the root is the simulation. The two pages read
+the same `"world"` key in `localStorage`: what the editor saves with 💾 is the world the cars start
+in.
 
-I percorsi negli script sono relativi alla pagina che li carica, non al file che li contiene.
-`Start` carica `"car.png"`: nell'editor è l'icona 30×50 di `world/`, nella simulazione è lo sprite
-dell'auto nella radice. Nella simulazione i marking Start non vengono disegnati, perché le auto ci
-partono sopra.
+Paths in scripts are relative to the page that loads them, not to the file that contains them.
+`Start` loads `"car.png"`: in the editor it's the 30×50 icon in `world/`, in the simulation it's
+the car sprite in the root. In the simulation the Start markings aren't drawn, because the cars
+start on top of them.
 
-### Dal mondo all'auto
+### From the world to the car
 
-`main.js` carica il mondo con `World.load` (o ne crea uno vuoto) e passa ai sensori i bordi delle
-strade nel formato che conoscono già: `world.roadBorders.map((s) => [s.p1, s.p2])`, una coppia di
-punti per segmento, come i bordi di `Road`.
+`main.js` loads the world with `World.load` (or creates an empty one) and passes the road borders
+to the sensors in the format they already know: `world.roadBorders.map((s) => [s.p1, s.p2])`, a
+pair of points per segment, like the borders of `Road`.
 
-Le 100 auto partono dal centro del primo marking Start, rivolte come l'icona che l'editor disegna.
-Senza marking partono da `(100, 100)` con `dir = Point(0, -1)`. L'angolo iniziale è
-`-angle(dir) + Math.PI / 2`, perché le due basi di codice usano convenzioni diverse:
+The 100 cars start from the center of the first Start marking, facing like the icon the editor
+draws. Without a marking they start from `(100, 100)` with `dir = Point(0, -1)`. The initial angle
+is `-angle(dir) + Math.PI / 2`, because the two codebases use different conventions:
 
-| Codice | Angolo 0 | Verso positivo |
+| Code | Angle 0 | Positive direction |
 |--------|----------|----------------|
-| Mondo, `angle()` con `Math.atan2` | Destra | Orario sullo schermo, con la y verso il basso |
-| Auto, `x -= sin(angle)`, `y -= cos(angle)` | Alto | Antiorario sullo schermo |
+| World, `angle()` with `Math.atan2` | Right | Clockwise on screen, with y pointing down |
+| Car, `x -= sin(angle)`, `y -= cos(angle)` | Up | Counterclockwise on screen |
 
-La formula non si limita a cambiare convenzione: con `a = π/2 - angle(dir)` l'auto si muove lungo
-`(-sin a, -cos a)`, che è l'opposto di `dir`. Anche `Start.draw` ruota l'icona di
-`angle(dir) - Math.PI / 2` e la rivolge allo stesso modo, quindi auto e icona puntano dalla stessa
-parte. Per lo stesso motivo, senza marking le auto partono verso il basso.
+The formula doesn't just change convention: with `a = π/2 - angle(dir)` the car moves along
+`(-sin a, -cos a)`, which is the opposite of `dir`. `Start.draw` also rotates the icon by
+`angle(dir) - Math.PI / 2` and faces it the same way, so car and icon point the same way. For the
+same reason, without a marking the cars start heading down.
 
 ### Fitness
 
-Sulla strada dritta l'auto migliore era la più avanti, quella con la `y` più piccola. In un mondo
-dove la partenza può puntare in qualsiasi direzione quel criterio premierebbe l'auto più a nord,
-quindi ogni auto accumula `fittness += speed` a ogni frame e vince quella che ha percorso più
-strada. Il nome `fittness` è quello dell'originale.
+On the straight road the best car was the one furthest ahead, the one with the smallest `y`. In a
+world where the start can point in any direction that criterion would reward the northernmost car,
+so each car accumulates `fittness += speed` every frame and the one that has covered the most road
+wins. The name `fittness` is the original's.
 
-### Vista e disegno
+### View and drawing
 
-A ogni frame `main.js` mette `viewport.offset` sulla posizione dell'auto migliore, chiama
-`viewport.reset()` e lascia disegnare tutto a `world.draw(carCtx, viewPoint, false)`. Il mondo
-riceve le auto in `world.cars` e `world.bestCar` e le disegna dopo la segnaletica e prima di
-edifici e alberi, così il finto 3D le copre quando ci passano dietro.
+Every frame `main.js` sets `viewport.offset` to the position of the best car, calls
+`viewport.reset()` and leaves all the drawing to `world.draw(carCtx, viewPoint, false)`. The world
+receives the cars in `world.cars` and `world.bestCar` and draws them after the markings and before
+buildings and trees, so the fake 3D covers them when they pass behind.
 
-Il `Viewport` tiene i suoi listener: la rotella cambia lo zoom, mentre lo spostamento con il tasto
-centrale viene sovrascritto al frame successivo.
+The `Viewport` keeps its listeners: the wheel changes the zoom, while panning with the middle
+button is overwritten on the next frame.
 
-### Differenze dall'originale
+### Differences from the original
 
-- Il cervello si salva con la chiave `"worldBestBrain"`. Se è vuota si parte da `"bestBrain"`, il
-  cervello allenato sulla strada dritta della cartella 9, che resta intatto.
-- `index.html` mantiene `<html lang="en">` e `<meta charset="utf-8">` della cartella 9 e carica
-  gli script del mondo nello stesso ordine di `world/index.html`.
-- `visualizer.js` è in UTF-8 come nella cartella 9; nell'originale è in UTF-16.
-- `world/index.html` dichiara `<meta charset="utf-8">`. Senza, un server che non manda il charset
-  nell'header, come `python3 -m http.server`, fa leggere la pagina in Windows-1252 e le emoji dei
-  pulsanti diventano caratteri illeggibili.
+- The brain is saved with the `"worldBestBrain"` key. If it's empty it starts from `"bestBrain"`,
+  the brain trained on the straight road of folder 9, which stays untouched.
+- `index.html` keeps the `<html lang="en">` and `<meta charset="utf-8">` from folder 9 and loads
+  the world's scripts in the same order as `world/index.html`.
+- `visualizer.js` is in UTF-8 as in folder 9; in the original it's in UTF-16.
+- `world/index.html` declares `<meta charset="utf-8">`. Without it, a server that doesn't send the
+  charset in the header, like `python3 -m http.server`, makes the page be read as Windows-1252 and
+  the button emoji turn into unreadable characters.
 
-### Limiti
+### Limits
 
-- Nessun traffico: `traffic` è vuoto e un'auto si danneggia solo toccando i bordi.
-- Le auto non vedono la segnaletica: stop, semafori e strisce sono solo disegni.
-- La fitness premia la strada percorsa, non l'arrivo: un'auto che gira in tondo senza toccare i
-  bordi continua ad accumularla.
-- La dimensione dei canvas è calcolata solo al caricamento.
+- No traffic: `traffic` is empty and a car gets damaged only by touching the borders.
+- The cars don't see the road markings: stop signs, traffic lights and crossings are just
+  drawings.
+- The fitness rewards the road covered, not reaching the target: a car going around in circles
+  without touching the borders keeps accumulating it.
+- The size of the canvases is computed only on load.
 
-### Come provarlo
+### How to try it
 
-Apri `world/index.html`, disegna qualche strada e metti un marking Start su una corsia, poi premi
-💾 (il file scaricato non serve). Apri `index.html` nella radice: le auto partono dallo Start, la
-vista segue la migliore e a destra c'è la sua rete. 💾 salva il cervello, 🗑️ lo cancella.
+Open `world/index.html`, draw a few roads and put a Start marking on a lane, then press 💾 (the
+downloaded file isn't needed). Open `index.html` in the root: the cars start from the Start, the
+view follows the best one and on the right there's its network. 💾 saves the brain, 🗑️ deletes it.
 
-Se la simulazione non vede il mondo salvato, le due pagine non condividono `localStorage`: servi
-la cartella con un server locale, ad esempio `python3 -m http.server`, e apri entrambe da lì.
+If the simulation doesn't see the saved world, the two pages don't share `localStorage`: serve the
+folder with a local server, for example `python3 -m http.server`, and open both from there.
 
-## Parte 10. OpenStreetMap
+## Part 10. OpenStreetMap
 
-Disegnare a mano una città intera richiede molto tempo. OpenStreetMap ha già le strade di tutto il
-mondo: basta scaricarle in JSON e convertirle nel grafo dell'editor. Da lì il mondo si genera come
-sempre, con buste, bordi, edifici e alberi.
+Drawing a whole city by hand takes a lot of time. OpenStreetMap already has the roads of the whole
+world: you just download them as JSON and convert them into the editor's graph. From there the
+world is generated as always, with envelopes, borders, buildings and trees.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `world/js/math/osm.js` | `Osm.parseRoads`, da dati OpenStreetMap a punti e segmenti |
-| `world/js/math/utils.js` | `invLerp` e `degToRad` |
-| `world/index.html` | Pulsante 🗺️ e pannello in cui incollare i dati |
-| `world/styles.css` | Stile del pannello, `overflow: hidden` sul body |
-| `world/js/primitives/segment.js` | Campo `oneWay`, tratteggio più fitto per i sensi unici |
-| `world/js/world.js` | `draw()` riceve `renderRadius` |
+| `world/js/math/osm.js` | `Osm.parseRoads`, from OpenStreetMap data to points and segments |
+| `world/js/math/utils.js` | `invLerp` and `degToRad` |
+| `world/index.html` | 🗺️ button and panel to paste the data into |
+| `world/styles.css` | Panel style, `overflow: hidden` on the body |
+| `world/js/primitives/segment.js` | `oneWay` field, denser dash for one-way roads |
+| `world/js/world.js` | `draw()` receives `renderRadius` |
 
-### I dati
+### The data
 
-I dati si scaricano con [Overpass Turbo](https://overpass-turbo.eu/): sposta la mappa sulla zona
-che ti interessa, incolla una query come questa e premi *Run*.
+The data is downloaded with [Overpass Turbo](https://overpass-turbo.eu/): move the map to the area
+you're interested in, paste a query like this one and press *Run*.
 
 ```
 [out:json];
@@ -969,132 +970,134 @@ out body;
 out skel;
 ```
 
-La query prende le *way* con il tag `highway`, cioè le strade, e scarta quelle che le auto non
-percorrono. `{{bbox}}` è il rettangolo visibile sulla mappa. `out body` restituisce le way con la
-lista dei loro nodi, `>` aggiunge i nodi a cui fanno riferimento e `out skel` li restituisce con le
-sole coordinate. Il JSON del tab *Data* va incollato nel pannello 🗺️ e confermato con ✔️.
+The query takes the *ways* with the `highway` tag, that is the roads, and discards the ones cars
+don't drive on. `{{bbox}}` is the rectangle visible on the map. `out body` returns the ways with
+the list of their nodes, `>` adds the nodes they refer to and `out skel` returns them with just
+the coordinates. The JSON from the *Data* tab is pasted into the 🗺️ panel and confirmed with ✔️.
 
-### Da latitudine e longitudine a punti
+### From latitude and longitude to points
 
-`Osm.parseRoads` prende tutti i nodi, ne calcola il rettangolo che li contiene e lo proietta sul
-piano:
+`Osm.parseRoads` takes all the nodes, computes the rectangle that contains them and projects it
+onto the plane:
 
-- un grado di latitudine vale circa 111 km ovunque. L'altezza è `deltaLat * 111000 * 10`, quindi
-  un metro vale 10 unità. Con questa scala la strada larga 100 è larga 10 m e l'auto 30×50 misura
+- a degree of latitude is about 111 km everywhere. The height is `deltaLat * 111000 * 10`, so one
+  meter is 10 units. With this scale the 100-wide road is 10 m wide and the 30×50 car measures
   3×5 m;
-- un grado di longitudine si accorcia andando verso i poli, quindi la larghezza è moltiplicata per
+- a degree of longitude gets shorter going towards the poles, so the width is multiplied by
   `cos(lat)`;
-- ogni nodo diventa un `Point` con `invLerp` sui due assi. Per la `y` gli estremi sono invertiti,
-  `invLerp(maxLat, minLat, lat)`, perché la latitudine cresce verso nord e la `y` del canvas verso
-  il basso.
+- each node becomes a `Point` with `invLerp` on the two axes. For `y` the extremes are swapped,
+  `invLerp(maxLat, minLat, lat)`, because latitude grows towards the north and the canvas `y`
+  downwards.
 
-È una proiezione equirettangolare locale: precisa su un quartiere, sempre più distorta su
-un'area grande.
+It's a local equirectangular projection: accurate over a neighborhood, more and more distorted
+over a large area.
 
-Ogni way diventa una catena di segmenti tra nodi consecutivi. Per ritrovarli il punto conserva
-l'`id` del nodo. `parseOsmData` sostituisce `graph.points` e `graph.segments`: l'editor vede che
-l'hash del grafo è cambiato e rigenera il mondo, come quando si modifica il grafo con il mouse.
+Each way becomes a chain of segments between consecutive nodes. To find them again the point keeps
+the node's `id`. `parseOsmData` replaces `graph.points` and `graph.segments`: the editor sees that
+the graph's hash has changed and regenerates the world, as when the graph is modified with the
+mouse.
 
-### Sensi unici
+### One-way roads
 
-Una way con `oneway` o con `lanes` uguale a 1 crea segmenti `oneWay`. `Segment.draw` ignora il
-tratteggio ricevuto e usa `[4, 4]`, quindi un senso unico ha la mezzeria più fitta e nell'editor
-del grafo appare tratteggiato. Le auto non ne tengono conto.
+A way with `oneway` or with `lanes` equal to 1 creates `oneWay` segments. `Segment.draw` ignores
+the dash it receives and uses `[4, 4]`, so a one-way road has a denser center line and appears
+dashed in the graph editor. The cars don't take it into account.
 
-### Disegnare solo il vicino
+### Drawing only what's near
 
-Una mappa reale ha migliaia di edifici, e ognuno costa il calcolo del finto 3D e un disegno sul
-canvas. `World.draw` scarta gli edifici e gli alberi la cui base è a più di `renderRadius` (1000)
-dal punto di vista, prima dell'ordinamento. Strade, segnaletica e bordi restano tutti: sono linee
-semplici e senza di loro si vedrebbero buchi nella rete.
+A real map has thousands of buildings, and each one costs the fake 3D calculation and a drawing on
+the canvas. `World.draw` discards the buildings and trees whose base is more than `renderRadius`
+(1000) away from the viewpoint, before sorting. Roads, markings and borders all stay: they're
+simple lines and without them you'd see holes in the network.
 
-### Cosa non è stato portato
+### What wasn't carried over
 
-- `miniMap.js` nella radice: nell'originale è un abbozzo della parte successiva, interrotto a metà
-  e non caricato da nessuna pagina.
-- `world/saves/big.world`: un mondo d'esempio da 6 MB, che un file `.world` generato da sé
-  sostituisce.
+- `miniMap.js` in the root: in the original it's a sketch of the next part, interrupted halfway
+  and not loaded by any page.
+- `world/saves/big.world`: a 6 MB sample world, which can be replaced by a `.world` file you
+  generate yourself.
 
-### Limiti
+### Limits
 
-- `oneWay` viene scritto nel file ma `Graph.load` non lo legge: dopo un caricamento tutte le strade
-  tornano a doppio senso.
-- `oneway` è una stringa: anche `oneway=no` risulta un senso unico, e `oneway=-1` (senso unico nel
-  verso opposto) non è distinto. In un estratto di prova di Bologna, 44 dei 153 segmenti a senso
-  unico venivano da `oneway=no`.
-- Ogni segmento cerca i suoi due punti con `points.find`, quindi la conversione rallenta con il
-  quadrato dei nodi. Anche la generazione del mondo, con l'unione delle buste, diventa lenta su
-  mappe grandi.
-- Un mondo grande può superare il limite di `localStorage`, intorno ai 5 MB in molti browser. In
-  quel caso il salvataggio fallisce, mentre il file `.world` si scarica comunque.
-- `renderRadius` è in unità del mondo: nell'editor, allontanando la vista, gli edifici lontani dal
-  centro spariscono.
-- Ponti e sottopassi non sono distinti: le due strade non condividono un nodo, ma le loro buste si
-  uniscono e dove si sovrappongono sembra un incrocio.
+- `oneWay` is written to the file but `Graph.load` doesn't read it: after a load all the roads go
+  back to two-way.
+- `oneway` is a string: even `oneway=no` counts as one-way, and `oneway=-1` (one-way in the
+  opposite direction) isn't distinguished. In a test extract of Bologna, 44 of the 153 one-way
+  segments came from `oneway=no`.
+- Each segment looks up its two points with `points.find`, so the conversion slows down with the
+  square of the nodes. The world generation too, with the union of the envelopes, becomes slow on
+  large maps.
+- A large world can exceed the `localStorage` limit, around 5 MB in many browsers. In that case
+  saving fails, while the `.world` file downloads anyway.
+- `renderRadius` is in world units: in the editor, zooming out, the buildings far from the center
+  disappear.
+- Bridges and underpasses aren't distinguished: the two roads don't share a node, but their
+  envelopes are joined and where they overlap it looks like an intersection.
 
-### Come provarlo
+### How to try it
 
-Apri `world/index.html`, premi 🗺️ e incolla il JSON di Overpass Turbo per una zona piccola, qualche
-isolato. Con ✔️ compare la rete stradale con edifici e alberi; i sensi unici hanno la mezzeria più
-fitta. Aggiungi un marking Start, premi 💾 e apri `index.html` nella radice per far guidare le auto
-nelle strade vere.
+Open `world/index.html`, press 🗺️ and paste the JSON from Overpass Turbo for a small area, a few
+blocks. With ✔️ the road network appears with buildings and trees; one-way roads have a denser
+center line. Add a Start marking, press 💾 and open `index.html` in the root to let the cars drive
+on real roads.
 
-## Parte 11. MiniMap
+## Part 11. MiniMap
 
-Su una mappa vera, con la vista che segue l'auto da vicino, si perde l'orientamento. La minimappa
-mostra la rete stradale intorno all'auto migliore, rimpicciolita, nel riquadro sotto la rete
-neurale.
+On a real map, with the view following the car up close, you lose your bearings. The minimap shows
+the road network around the best car, scaled down, in the box below the neural network.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `miniMap.js` | Classe `MiniMap`, disegna il grafo su un canvas a parte |
-| `index.html` | `miniMapCanvas` sotto `networkCanvas`, script `miniMap.js` |
-| `main.js` | Crea la minimappa e la aggiorna a ogni frame con il punto di vista |
-| `style.css` | Sfondo nero per `miniMapCanvas` |
+| `miniMap.js` | `MiniMap` class, draws the graph on a separate canvas |
+| `index.html` | `miniMapCanvas` below `networkCanvas`, `miniMap.js` script |
+| `main.js` | Creates the minimap and updates it every frame with the viewpoint |
+| `style.css` | Black background for `miniMapCanvas` |
 
-### Come si disegna
+### How it's drawn
 
-`MiniMap.update(viewPoint)` ripete in piccolo quello che il `Viewport` fa sulla vista principale:
+`MiniMap.update(viewPoint)` repeats on a small scale what the `Viewport` does on the main view:
 
-- `translate` porta il punto di vista al centro del canvas, `scale(0.05)` rimpicciolisce il mondo
-  di 20 volte. I 300 pixel del riquadro coprono 6000 unità, circa 600 m con la scala di
+- `translate` brings the viewpoint to the center of the canvas, `scale(0.05)` shrinks the world 20
+  times. The 300 pixels of the box cover 6000 units, about 600 m with the scale of
   `Osm.parseRoads`;
-- disegna solo `graph.segments`, lo scheletro delle strade, senza buste, edifici e segnaletica;
-- i segmenti sono larghi `3 / scaler`, quindi dopo la scala restano di 3 pixel;
-- dopo il `restore` disegna un punto blu al centro, fisso: è la mappa che si sposta, non l'auto.
+- it draws only `graph.segments`, the skeleton of the roads, without envelopes, buildings and
+  markings;
+- the segments are `3 / scaler` wide, so after the scaling they stay 3 pixels;
+- after the `restore` it draws a blue dot at the center, fixed: it's the map that moves, not the
+  car.
 
-`main.js` passa lo stesso `viewPoint` usato da `world.draw`, cioè la posizione dell'auto migliore.
+`main.js` passes the same `viewPoint` used by `world.draw`, that is the position of the best car.
 
-### La colonna di destra
+### The right column
 
-`networkCanvas` e `miniMapCanvas` stanno in un `div`, e la rete ora è alta
-`window.innerHeight - 300`. Il `div` è un elemento del flex del body: il canvas dell'auto, largo
-`innerWidth - 330`, lascia poco spazio, il `div` si restringe alla larghezza minima di 300 e i due
-canvas, che sono inline, vanno a capo uno sotto l'altro.
+`networkCanvas` and `miniMapCanvas` are in a `div`, and the network is now
+`window.innerHeight - 300` tall. The `div` is an item of the body's flex: the car canvas,
+`innerWidth - 330` wide, leaves little room, the `div` shrinks to the minimum width of 300 and the
+two canvases, which are inline, wrap one below the other.
 
-### Differenze dall'originale
+### Differences from the original
 
-- Il mondo si carica ancora da `localStorage`. L'originale commenta quel codice e carica
-  `world/saves/big.world` con un tag `<script>`: è un file JS scritto a mano,
-  `const world = World.load({...})`, che qui non c'è (vedi la Parte 10). Il 💾 dell'editor salva
-  JSON puro, che non si può caricare così.
-- `world/js/math/utils.js` resta in UTF-8. Nell'originale questa parte lo converte in UTF-16
-  senza cambiarne il contenuto.
+- The world is still loaded from `localStorage`. The original comments out that code and loads
+  `world/saves/big.world` with a `<script>` tag: it's a hand-written JS file,
+  `const world = World.load({...})`, which isn't here (see Part 10). The editor's 💾 saves plain
+  JSON, which can't be loaded that way.
+- `world/js/math/utils.js` stays in UTF-8. In the original this part converts it to UTF-16
+  without changing its content.
 
-### Limiti
+### Limits
 
-- La scala è fissa: su un mondo disegnato a mano, piccolo, la minimappa è un groviglio di pochi
-  pixel; su una città intera mostra solo i dintorni.
-- Il punto blu non ha una direzione e le altre auto non compaiono.
-- Tutti i segmenti si disegnano a ogni frame, anche quelli fuori dal riquadro.
-- Sotto il primo canvas inline resta lo spazio sotto la linea di base del testo, circa 4 pixel: la
-  colonna supera di poco l'altezza della finestra e il fondo della minimappa viene tagliato da
+- The scale is fixed: on a small, hand-drawn world the minimap is a tangle of a few pixels; on a
+  whole city it shows only the surroundings.
+- The blue dot has no direction and the other cars don't appear.
+- All the segments are drawn every frame, even the ones outside the box.
+- Below the first inline canvas there's the space under the text baseline, about 4 pixels: the
+  column slightly exceeds the window height and the bottom of the minimap is cut off by
   `overflow: hidden`.
 
-### Come provarlo
+### How to try it
 
-Salva un mondo dall'editor, meglio se importato da OpenStreetMap, e apri `index.html` nella
-radice. Sotto la rete compare la minimappa: il punto blu resta al centro e le strade scorrono
-mentre l'auto migliore avanza.
+Save a world from the editor, ideally one imported from OpenStreetMap, and open `index.html` in the
+root. The minimap appears below the network: the blue dot stays at the center and the roads scroll
+by as the best car moves forward.

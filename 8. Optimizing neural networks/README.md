@@ -1,20 +1,20 @@
 # 8. Optimizing neural networks
 
-Qui la rete inizia a imparare. Non con la backpropagation, ma con un approccio evolutivo molto
-semplice: si lanciano tante auto insieme, ognuna con una rete leggermente diversa, si sceglie la
-migliore, la si salva e la si usa come base per la generazione successiva.
+Here the network starts learning. Not with backpropagation, but with a very simple evolutionary
+approach: many cars are launched together, each with a slightly different network, the best one is
+chosen, saved and used as the base for the next generation.
 
-## Cosa cambia rispetto al capitolo 7
+## What changes compared to chapter 7
 
-| File | Novità |
+| File | What's new |
 |------|--------|
-| `network.js` | Aggiunto `NeuralNetwork.mutate` |
-| `main.js` | N auto in parallelo, `bestCar`, salvataggio in `localStorage`, 7 auto di traffico |
-| `car.js` | `draw` riceve `drawSensor` per disegnare i raggi solo della migliore |
-| `index.html` | Pulsanti 💾 e 🗑️ tra i due canvas |
-| `style.css` | Layout flex e stile dei pulsanti |
+| `network.js` | Added `NeuralNetwork.mutate` |
+| `main.js` | N cars in parallel, `bestCar`, saving to `localStorage`, 7 traffic cars |
+| `car.js` | `draw` receives `drawSensor` to draw the rays of the best car only |
+| `index.html` | 💾 and 🗑️ buttons between the two canvases |
+| `style.css` | Flex layout and button style |
 
-## Mutazione
+## Mutation
 
 ```js
 static mutate(network,amount=1){
@@ -26,34 +26,34 @@ static mutate(network,amount=1){
                 amount
             )
         }
-        ...stessa cosa per weights...
+        ...same for weights...
     });
 }
 ```
 
-Ogni peso e ogni bias si sposta verso un valore casuale in [-1, 1] di una quantità pari a
-`amount`. Ancora una volta è `lerp` a fare il lavoro:
+Every weight and every bias moves towards a random value in [-1, 1] by an amount equal to
+`amount`. Once again it is `lerp` that does the work:
 
-- `amount=0`: la rete resta identica;
-- `amount=1`: la rete diventa completamente casuale;
-- `amount=0.1`: ogni valore si sposta del 10% verso un numero casuale, cioè una piccola variazione
-  attorno alla rete di partenza.
+- `amount=0`: the network stays identical;
+- `amount=1`: the network becomes completely random;
+- `amount=0.1`: every value moves 10% towards a random number, that is a small variation around
+  the starting network.
 
-Un aspetto che mi piace: il valore resta sempre nell'intervallo [-1, 1], perché è una media
-pesata tra due numeri che stanno già in quell'intervallo.
+One thing I like: the value always stays in the [-1, 1] range, because it is a weighted average
+between two numbers that are already in that range.
 
-## Tante auto in parallelo
+## Many cars in parallel
 
 ```js
 const N=1;
 const cars=generateCars(N);
 ```
 
-`generateCars` crea N auto `"AI"` tutte nella corsia centrale a y=100. Nel codice di questo
-capitolo N vale 1. Per addestrare davvero va alzato (nel capitolo 9 diventa 100): più auto vuol
-dire più varianti provate a ogni generazione.
+`generateCars` creates N `"AI"` cars, all in the middle lane at y=100. In the code of this chapter
+N is 1. To actually train it has to be raised (in chapter 9 it becomes 100): more cars means more
+variants tried at each generation.
 
-### Chi è la migliore
+### Which one is the best
 
 ```js
 bestCar=cars.find(
@@ -62,13 +62,13 @@ bestCar=cars.find(
     ));
 ```
 
-La "fitness" è semplicemente quanto è andata avanti l'auto: la y più piccola (ricordo che salire
-vuol dire diminuire y). È una funzione di fitness molto rozza, ma basta: per andare avanti l'auto
-deve evitare traffico e bordi, quindi chi arriva più lontano è anche chi guida meglio.
+The "fitness" is simply how far the car went: the smallest y (remember that going up means
+decreasing y). It is a very rough fitness function, but it is enough: to move forward the car has
+to avoid traffic and borders, so whoever gets the farthest is also whoever drives the best.
 
-`bestCar` viene ricalcolata a ogni frame, e la camera segue sempre lei.
+`bestCar` is recomputed every frame, and the camera always follows it.
 
-## Salvare e riprendere
+## Saving and resuming
 
 ```js
 function save(){
@@ -80,10 +80,10 @@ function discard(){
 }
 ```
 
-- 💾 salva il cervello dell'auto migliore come JSON in `localStorage`.
-- 🗑️ cancella il salvataggio e si riparte da reti casuali.
+- 💾 saves the brain of the best car as JSON in `localStorage`.
+- 🗑️ deletes the save and starts again from random networks.
 
-All'avvio, se c'è un cervello salvato:
+At startup, if there is a saved brain:
 
 ```js
 for(let i=0;i<cars.length;i++){
@@ -95,28 +95,28 @@ for(let i=0;i<cars.length;i++){
 }
 ```
 
-Due dettagli che mi sono sembrati intelligenti:
+Two details that struck me as clever:
 
-1. **`JSON.parse` dentro il ciclo**: ogni auto riceve una copia indipendente della rete. Se avessi
-   fatto il parse una volta sola e assegnato lo stesso oggetto a tutte, mutare la rete di una avrebbe
-   mutato quella di tutte.
-2. **L'auto 0 non viene mutata**: tiene esattamente la rete salvata. È quello che negli algoritmi
-   genetici si chiama elitismo: la generazione nuova non può mai essere peggiore della precedente,
-   perché la migliore è sempre presente.
+1. **`JSON.parse` inside the loop**: every car gets an independent copy of the network. If I had
+   parsed it only once and assigned the same object to all of them, mutating the network of one
+   would have mutated the network of all of them.
+2. **Car 0 is not mutated**: it keeps exactly the saved network. This is what genetic algorithms
+   call elitism: the new generation can never be worse than the previous one, because the best one
+   is always there.
 
-Il ciclo di addestramento quindi è manuale: lascio girare, quando una macchina va lontano premo 💾,
-ricarico la pagina, e ripeto. Ogni ricarica è una nuova generazione.
+So the training loop is manual: I let it run, when a car goes far I press 💾, reload the page, and
+repeat. Every reload is a new generation.
 
-Una cosa da ricordare: `JSON.parse` restituisce oggetti semplici e non istanze di `NeuralNetwork`.
-Funziona solo perché `feedForward` e `mutate` sono statici e ricevono la rete come parametro (la
-scelta fatta nel capitolo 6).
+One thing to remember: `JSON.parse` returns plain objects and not `NeuralNetwork` instances. It only
+works because `feedForward` and `mutate` are static and receive the network as a parameter (the
+choice made in chapter 6).
 
-## Traffico più impegnativo
+## Harder traffic
 
-Sette auto DUMMY distribuite tra y=-100 e y=-700 in tutte e tre le corsie, a coppie, in modo da
-lasciare sempre una sola corsia libera. L'auto deve imparare a cambiare corsia nel momento giusto.
+Seven DUMMY cars spread between y=-100 and y=-700 across all three lanes, in pairs, so as to always
+leave a single lane free. The car has to learn to change lanes at the right moment.
 
-## Disegno
+## Drawing
 
 ```js
 carCtx.globalAlpha=0.2;
@@ -127,22 +127,22 @@ carCtx.globalAlpha=1;
 bestCar.draw(carCtx,"blue",true);
 ```
 
-Tutte le auto vengono disegnate semitrasparenti (20% di opacità), poi la migliore viene ridisegnata
-sopra opaca e con i sensori. Con 100 auto sovrapposte, senza trasparenza e con tutti i raggi
-disegnati, non si capirebbe niente. Il visualizer mostra la rete di `bestCar`.
+All the cars are drawn semi-transparent (20% opacity), then the best one is drawn again on top,
+opaque and with its sensors. With 100 overlapping cars, without transparency and with all the rays
+drawn, you couldn't make anything out. The visualizer shows the network of `bestCar`.
 
 ## Layout
 
-Il body diventa un contenitore flex centrato orizzontalmente e verticalmente: canvas dell'auto, la
-colonna dei pulsanti (`#verticalButtons`, flex in colonna) e canvas della rete, uno accanto
-all'altro. I pulsanti diventano blu al passaggio del mouse.
+The body becomes a flex container centered horizontally and vertically: car canvas, the column of
+buttons (`#verticalButtons`, flex in a column) and network canvas, side by side. The buttons turn
+blue on mouse hover.
 
-## Come provarlo
+## How to try it
 
-1. Alza `N` in `main.js` (per esempio a 100).
-2. Apri `index.html` e aspetta che qualche auto superi le prime auto rosse.
-3. Premi 💾 e ricarica. Ripeti finché l'auto migliore supera tutto il traffico.
-4. Se l'addestramento va in una direzione sbagliata, 🗑️ e si ricomincia.
+1. Raise `N` in `main.js` (for example to 100).
+2. Open `index.html` and wait for some car to get past the first red cars.
+3. Press 💾 and reload. Repeat until the best car gets past all the traffic.
+4. If the training goes in a wrong direction, 🗑️ and start over.
 
-Attenzione: `localStorage` è condiviso da tutte le pagine della stessa origine. Se apro i capitoli
-8, 9 e 10 dallo stesso server (o tutti da `file://`), usano tutti la stessa chiave `bestBrain`.
+Watch out: `localStorage` is shared by all the pages of the same origin. If I open chapters 8, 9
+and 10 from the same server (or all from `file://`), they all use the same `bestBrain` key.

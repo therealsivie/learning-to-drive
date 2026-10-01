@@ -1,22 +1,22 @@
 # 1. Car driving mechanics
 
-Primo passo del progetto: una macchina (per ora un rettangolo nero) che si guida con le frecce
-della tastiera dentro un canvas. Niente strada, niente sensori, niente rete neurale. Serve solo a
-costruire la fisica di base che poi resta praticamente invariata fino all'ultimo capitolo.
+First step of the project: a car (for now a black rectangle) driven with the keyboard arrow keys
+inside a canvas. No road, no sensors, no neural network. It only serves to build the basic physics,
+which then stays practically unchanged until the last chapter.
 
-## File
+## Files
 
-| File | Cosa fa |
+| File | What it does |
 |------|---------|
-| `index.html` | Pagina con un solo `<canvas id="myCanvas">` e gli script caricati in ordine |
-| `style.css` | Sfondo grigio scuro, canvas grigio chiaro centrato, `overflow:hidden` per non avere scrollbar |
-| `controls.js` | Classe `Controls`: legge le frecce e tiene quattro booleani |
-| `car.js` | Classe `Car`: posizione, velocità, angolo, fisica e disegno |
-| `main.js` | Crea canvas e auto e fa girare il loop di animazione |
+| `index.html` | Page with a single `<canvas id="myCanvas">` and the scripts loaded in order |
+| `style.css` | Dark gray background, centered light gray canvas, `overflow:hidden` to avoid scrollbars |
+| `controls.js` | `Controls` class: reads the arrow keys and keeps four booleans |
+| `car.js` | `Car` class: position, speed, angle, physics and drawing |
+| `main.js` | Creates canvas and car and runs the animation loop |
 
-Non ci sono moduli ES né bundler: gli script sono caricati con dei semplici `<script src>` e
-condividono lo scope globale. Per questo l'ordine nell'HTML conta: `controls.js` deve arrivare
-prima di `car.js`, perché il costruttore di `Car` fa `new Controls()`, e `main.js` va per ultimo.
+There are no ES modules or bundlers: the scripts are loaded with plain `<script src>` tags and
+share the global scope. That's why the order in the HTML matters: `controls.js` must come before
+`car.js`, because the `Car` constructor does `new Controls()`, and `main.js` goes last.
 
 ## Controls
 
@@ -27,25 +27,25 @@ this.right=false;
 this.reverse=false;
 ```
 
-Quattro flag, uno per freccia. Su `keydown` diventano `true`, su `keyup` tornano `false`.
-Il fatto che siano stati separati e non eventi singoli è quello che permette di tenere premute
-due frecce insieme (per esempio su e sinistra per curvare mentre si accelera).
+Four flags, one per arrow key. On `keydown` they become `true`, on `keyup` they go back to `false`.
+The fact that they are separate states and not single events is what allows holding two arrow keys
+together (for example up and left to turn while accelerating).
 
-Particolarità che mi ha colpito: i listener sono assegnati con `document.onkeydown = ...` e non con
-`addEventListener`. Funziona, ma vuol dire che esiste un solo handler per tutta la pagina: se
-creassi due `Controls`, il secondo sovrascriverebbe il primo. In questo capitolo non è un problema
-(c'è una sola auto), ma è il motivo per cui più avanti solo un'auto alla volta può essere guidata
-da tastiera.
+A peculiarity that struck me: the listeners are assigned with `document.onkeydown = ...` and not
+with `addEventListener`. It works, but it means there is a single handler for the whole page: if I
+created two `Controls`, the second would overwrite the first. In this chapter it's not a problem
+(there is a single car), but it's the reason why later on only one car at a time can be driven
+from the keyboard.
 
-Il metodo `#addKeyboardListeners` è privato (sintassi `#` delle classi ES2022), così come `#move`
-in `Car`. Non è indispensabile, ma rende chiaro cosa è API pubblica e cosa no.
+The `#addKeyboardListeners` method is private (`#` syntax of ES2022 classes), as is `#move` in
+`Car`. It isn't essential, but it makes clear what is public API and what isn't.
 
-Dentro gli handler si usano arrow function: è importante, perché così `this` resta l'istanza di
-`Controls`. Con una `function` normale `this` sarebbe `document`.
+Inside the handlers arrow functions are used: this is important, because that way `this` stays the
+`Controls` instance. With a regular `function`, `this` would be `document`.
 
 ## Car
 
-Stato iniziale:
+Initial state:
 
 ```js
 this.speed=0;
@@ -55,29 +55,29 @@ this.friction=0.05;
 this.angle=0;
 ```
 
-Tutti i valori sono in pixel per frame (non per secondo). Il loop non tiene conto del tempo
-trascorso tra un frame e l'altro, quindi su uno schermo a 120 Hz la macchina va al doppio della
-velocità rispetto a uno a 60 Hz. Per una demo va benissimo.
+All values are in pixels per frame (not per second). The loop doesn't take into account the time
+elapsed between one frame and the next, so on a 120 Hz screen the car goes twice as fast as on a
+60 Hz one. For a demo that's perfectly fine.
 
-### La fisica in `#move()`
+### The physics in `#move()`
 
-1. **Accelerazione**: freccia su somma `acceleration`, freccia giù la sottrae. La stessa freccia
-   giù fa da freno e da retromarcia: se vai avanti rallenti, quando arrivi a zero inizi ad andare
-   indietro.
-2. **Limiti**: la velocità non supera `maxSpeed` in avanti e `-maxSpeed/2` in retromarcia. La
-   retromarcia è volutamente più lenta, come in una macchina vera.
-3. **Attrito**: a ogni frame si toglie `friction` nella direzione del moto. Se la velocità in
-   valore assoluto è minore dell'attrito la si porta a zero, altrimenti la macchina oscillerebbe
-   all'infinito tra +0.05 e -0.05 senza mai fermarsi davvero.
-4. **Sterzo**: si gira solo se la macchina si muove (`speed!=0`), perché una macchina ferma che
-   ruota su se stessa non è realistica.
-5. **Spostamento** in base all'angolo.
+1. **Acceleration**: the up arrow adds `acceleration`, the down arrow subtracts it. The same down
+   arrow acts as brake and reverse: if you are going forward you slow down, when you reach zero
+   you start going backwards.
+2. **Limits**: the speed doesn't exceed `maxSpeed` forward and `-maxSpeed/2` in reverse. Reverse
+   is deliberately slower, like in a real car.
+3. **Friction**: on every frame `friction` is subtracted in the direction of motion. If the
+   absolute value of the speed is less than the friction it is set to zero, otherwise the car
+   would oscillate forever between +0.05 and -0.05 without ever really stopping.
+4. **Steering**: the car only turns if it is moving (`speed!=0`), because a stationary car spinning
+   on itself is not realistic.
+5. **Movement** based on the angle.
 
-Un dettaglio sottile: siccome l'attrito viene applicato dopo il limite di velocità, la velocità
-massima reale a regime è `3 - 0.05 = 2.95`. A ogni frame si arriva a 3.15, si taglia a 3 e
-l'attrito porta a 2.95.
+A subtle detail: since friction is applied after the speed limit, the actual top speed at steady
+state is `3 - 0.05 = 2.95`. On every frame it reaches 3.15, gets cut to 3 and friction brings it
+to 2.95.
 
-### Il trucco del `flip`
+### The `flip` trick
 
 ```js
 const flip=this.speed>0?1:-1;
@@ -86,27 +86,26 @@ if(this.controls.left){
 }
 ```
 
-In retromarcia lo sterzo si inverte. Se vai indietro e giri a sinistra, il muso della macchina va
-a destra, proprio come succede guidando davvero. Senza `flip` la retromarcia risulta controintuitiva.
+In reverse the steering is inverted. If you go backwards and turn left, the nose of the car goes
+right, just as happens when actually driving. Without `flip` reverse feels counterintuitive.
 
-### Perché `x -= sin` e `y -= cos`
+### Why `x -= sin` and `y -= cos`
 
 ```js
 this.x-=Math.sin(this.angle)*this.speed;
 this.y-=Math.cos(this.angle)*this.speed;
 ```
 
-Qui l'angolo 0 corrisponde a "dritto verso l'alto" e non a "verso destra" come nella
-trigonometria classica. In più nel canvas l'asse y cresce verso il basso. Mettendo insieme le due
-cose:
+Here angle 0 corresponds to "straight up" and not to "to the right" as in classic trigonometry. On
+top of that, in the canvas the y axis grows downwards. Putting the two things together:
 
-- con `angle=0`: `sin=0`, `cos=1`, quindi x non cambia e y diminuisce (la macchina sale);
-- con angolo positivo la macchina va verso sinistra, ed è per questo che la freccia sinistra
-  *aumenta* l'angolo.
+- with `angle=0`: `sin=0`, `cos=1`, so x doesn't change and y decreases (the car goes up);
+- with a positive angle the car goes left, and that's why the left arrow *increases* the angle.
 
-È la stessa convenzione che poi useranno i sensori nel capitolo 3, quindi conviene capirla bene qui.
+It's the same convention the sensors will use in chapter 3, so it's worth understanding it well
+here.
 
-### Disegno
+### Drawing
 
 ```js
 ctx.save();
@@ -117,13 +116,13 @@ ctx.fill();
 ctx.restore();
 ```
 
-Invece di calcolare i quattro angoli ruotati a mano, si sposta l'origine del canvas sul centro
-dell'auto, si ruota il sistema di riferimento e si disegna un rettangolo centrato in (0,0).
-`save`/`restore` rimettono il contesto com'era, così la trasformazione non si accumula frame dopo
-frame. La rotazione è `-this.angle` perché `rotate` del canvas va in senso orario, mentre il nostro
-angolo positivo va verso sinistra.
+Instead of computing the four rotated corners by hand, the canvas origin is moved to the center of
+the car, the reference frame is rotated and a rectangle centered at (0,0) is drawn.
+`save`/`restore` put the context back as it was, so the transformation doesn't accumulate frame
+after frame. The rotation is `-this.angle` because the canvas `rotate` goes clockwise, while our
+positive angle goes left.
 
-## main.js e il loop
+## main.js and the loop
 
 ```js
 function animate(){
@@ -134,14 +133,13 @@ function animate(){
 }
 ```
 
-- `requestAnimationFrame` chiama `animate` al prossimo refresh dello schermo, in genere 60 volte
-  al secondo.
-- `canvas.height=window.innerHeight` fa due cose insieme: adatta il canvas all'altezza della
-  finestra e **pulisce il canvas**. Assegnare `width` o `height` a un canvas lo resetta
-  completamente (pixel, trasformazioni, stili). È un modo compatto per evitare un `clearRect`.
-- La larghezza è fissa a 200 px, la macchina parte da (100,100) ed è 30x50.
+- `requestAnimationFrame` calls `animate` at the next screen refresh, usually 60 times per second.
+- `canvas.height=window.innerHeight` does two things at once: it fits the canvas to the window
+  height and **clears the canvas**. Assigning `width` or `height` to a canvas resets it completely
+  (pixels, transformations, styles). It's a compact way to avoid a `clearRect`.
+- The width is fixed at 200 px, the car starts at (100,100) and is 30x50.
 
-## Come provarlo
+## How to try it
 
-Basta aprire `index.html` nel browser e usare le frecce. La macchina può uscire dal canvas: non
-c'è ancora nessun limite né una camera che la segua, arriveranno nel capitolo successivo.
+Just open `index.html` in the browser and use the arrow keys. The car can leave the canvas: there
+is no limit yet, nor a camera following it; they will come in the next chapter.

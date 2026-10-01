@@ -1,19 +1,19 @@
 # 7. Visualizing neural networks
 
-In questo capitolo il secondo canvas prende vita: la rete neurale viene disegnata in tempo reale,
-con i neuroni che si accendono e si spengono mentre l'auto guida. È il capitolo che rende "visibile"
-quello che fino a prima era solo una manciata di numeri.
+In this chapter the second canvas comes to life: the neural network is drawn in real time, with the
+neurons turning on and off while the car drives. It is the chapter that makes "visible" what up to
+now was just a handful of numbers.
 
-## Cosa cambia rispetto al capitolo 6
+## What changes compared to chapter 6
 
-| File | Novità |
+| File | What's new |
 |------|--------|
-| `visualizer.js` | Nuovo, classe `Visualizer` |
-| `utils.js` | Aggiunta `getRGBA` |
-| `main.js` | `animate(time)` riceve il tempo, imposta `lineDashOffset` e chiama il visualizer |
-| `index.html` | Carica `visualizer.js` |
+| `visualizer.js` | New, `Visualizer` class |
+| `utils.js` | Added `getRGBA` |
+| `main.js` | `animate(time)` receives the time, sets `lineDashOffset` and calls the visualizer |
+| `index.html` | Loads `visualizer.js` |
 
-## Codifica dei valori in colori
+## Encoding values as colors
 
 ```js
 function getRGBA(value){
@@ -25,15 +25,15 @@ function getRGBA(value){
 }
 ```
 
-Ogni valore tra -1 e 1 (peso, bias, input, output) diventa un colore:
+Every value between -1 and 1 (weight, bias, input, output) becomes a color:
 
-- **positivo**: giallo (255,255,0);
-- **negativo**: blu (0,0,255);
-- **intensità**: l'opacità è il valore assoluto, quindi un valore vicino a 0 è quasi trasparente
-  e non si vede.
+- **positive**: yellow (255,255,0);
+- **negative**: blue (0,0,255);
+- **intensity**: the opacity is the absolute value, so a value close to 0 is almost transparent
+  and can't be seen.
 
-Con un solo colpo d'occhio si capisce quali collegamenti contano (quelli più evidenti) e in che
-direzione spingono.
+At a single glance you can tell which connections matter (the most visible ones) and in which
+direction they push.
 
 ## Visualizer.drawNetwork
 
@@ -48,36 +48,36 @@ for(let i=network.levels.length-1;i>=0;i--){
 }
 ```
 
-- La rete viene disegnata dal basso (input) verso l'alto (output), con 50 px di margine.
-- Ogni livello occupa una fascia verticale, posizionata con `lerp`. Il livello 0 sta in basso e
-  l'ultimo in alto.
-- I livelli vengono disegnati **dall'ultimo al primo**. Non è un caso: gli output di un livello
-  coincidono con gli input del livello sopra, nello stesso punto dello schermo. Il livello sotto,
-  disegnato per ultimo, mette i suoi nodi di output sopra i nodi di input del livello superiore,
-  e così il cerchio del bias resta visibile invece di essere coperto.
-- `network.levels.length==1?0.5:...` evita una divisione per zero con un solo livello. In questo
-  capitolo i livelli sono 2, ma nel capitolo 10 la rete avrà un solo livello e questo caso verrà
-  usato davvero.
-- Solo l'ultimo livello riceve le etichette `['🠉','🠈','🠊','🠋']`, cioè avanti, sinistra, destra e
-  indietro.
+- The network is drawn from the bottom (inputs) to the top (outputs), with a 50 px margin.
+- Each level takes up a vertical band, positioned with `lerp`. Level 0 is at the bottom and the
+  last one at the top.
+- The levels are drawn **from the last to the first**. It is not by chance: the outputs of a level
+  coincide with the inputs of the level above, at the same point on the screen. The level below,
+  drawn last, puts its output nodes over the input nodes of the level above, and so the bias circle
+  stays visible instead of being covered.
+- `network.levels.length==1?0.5:...` avoids a division by zero with a single level. In this
+  chapter there are 2 levels, but in chapter 10 the network will have a single level and this case
+  will actually be used.
+- Only the last level gets the labels `['🠉','🠈','🠊','🠋']`, that is forward, left, right and
+  reverse.
 
 ## Visualizer.drawLevel
 
-Per ogni livello disegna, in quest'ordine:
+For each level it draws, in this order:
 
-1. **Le connessioni**: una linea da ogni input a ogni output, colorata con `getRGBA(weights[i][j])`.
-   Sono tratteggiate (`[7,3]`).
-2. **I nodi di input** in basso: un cerchio nero di raggio 18 e dentro un cerchio più piccolo
-   (60%) colorato con il valore dell'input.
-3. **I nodi di output** in alto: stesso schema, più un anello al 80% del raggio colorato con il
-   **bias** e tratteggiato con `[3,3]`. Subito dopo si torna a `setLineDash([])`.
-4. **Le etichette** sui nodi di output, testo nero con contorno bianco sottile, così la freccia si
-   legge sia su nodo spento che acceso.
+1. **The connections**: a line from each input to each output, colored with
+   `getRGBA(weights[i][j])`. They are dashed (`[7,3]`).
+2. **The input nodes** at the bottom: a black circle with radius 18 and inside it a smaller circle
+   (60%) colored with the input value.
+3. **The output nodes** at the top: same scheme, plus a ring at 80% of the radius colored with the
+   **bias** and dashed with `[3,3]`. Right after that it goes back to `setLineDash([])`.
+4. **The labels** on the output nodes, black text with a thin white outline, so the arrow can be
+   read on both an off and an on node.
 
-Le coordinate x dei nodi si calcolano con `#getNodeX`, che usa `lerp` tra bordo sinistro e destro
-(e, di nuovo, gestisce il caso di un solo nodo mettendolo al centro).
+The x coordinates of the nodes are computed with `#getNodeX`, which uses `lerp` between the left
+and right edge (and, again, handles the case of a single node by putting it in the center).
 
-## L'animazione del tratteggio
+## The dash animation
 
 ```js
 function animate(time){
@@ -88,24 +88,24 @@ function animate(time){
 }
 ```
 
-`requestAnimationFrame` passa alla callback un timestamp in millisecondi. Usandolo come
-`lineDashOffset` il tratteggio scorre lentamente e le connessioni sembrano "scorrere" dal basso
-verso l'alto, come un segnale che attraversa la rete. Il segno meno decide la direzione. È un
-effetto da una riga che rende la rete molto più leggibile.
+`requestAnimationFrame` passes a timestamp in milliseconds to the callback. Using it as
+`lineDashOffset` the dashes move slowly and the connections seem to "flow" from the bottom to the
+top, like a signal going through the network. The minus sign decides the direction. It is a
+one-line effect that makes the network much more readable.
 
-Una curiosità: alla primissima chiamata (`animate()` lanciata a mano) `time` è `undefined`, quindi
-l'offset vale `NaN`. Il canvas ignora i valori non validi, quindi non succede niente di brutto, e
-dal frame successivo il tempo è quello giusto.
+A curiosity: on the very first call (`animate()` launched by hand) `time` is `undefined`, so the
+offset is `NaN`. The canvas ignores invalid values, so nothing bad happens, and from the next frame
+the time is the right one.
 
-## Una nota sul file
+## A note on the file
 
-Nel repository originale `visualizer.js` era salvato in UTF-16 con terminazioni CRLF, a differenza
-di tutti gli altri file. Il browser lo leggeva comunque grazie al BOM, ma git lo trattava come
-binario (niente diff, niente anteprima). L'ho convertito in UTF-8 con LF senza toccare il codice:
-le frecce delle etichette sono caratteri Unicode e funzionano uguale.
+In the original repository `visualizer.js` was saved in UTF-16 with CRLF line endings, unlike all
+the other files. The browser read it anyway thanks to the BOM, but git treated it as binary (no
+diff, no preview). I converted it to UTF-8 with LF without touching the code: the label arrows are
+Unicode characters and work the same.
 
-## Come provarlo
+## How to try it
 
-Apri `index.html`. A sinistra l'auto con la sua rete casuale, a destra la rete. Ricarica qualche
-volta e confronta reti diverse: si vede subito quando un output resta sempre acceso (per esempio la
-freccia su) o non si accende mai.
+Open `index.html`. On the left the car with its random network, on the right the network. Reload a
+few times and compare different networks: you can see right away when an output always stays on
+(for example the up arrow) or never turns on.

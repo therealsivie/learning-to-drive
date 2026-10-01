@@ -1,124 +1,126 @@
 # learning-to-drive
 
-Una macchina che impara a guidare da sola nel traffico, scritta in JavaScript puro: niente
-framework, niente librerie di machine learning, solo Canvas 2D e qualche classe. Fisica dell'auto,
-sensori, collisioni, rete neurale e algoritmo di addestramento sono tutti fatti a mano.
+A car that learns to drive by itself in traffic, written in plain JavaScript: no frameworks, no
+machine learning libraries, just Canvas 2D and a few classes. Car physics, sensors, collisions,
+neural network and training algorithm are all made by hand.
 
-## Struttura
+## Structure
 
-Ogni cartella è uno snapshot completo e funzionante del progetto alla fine di un capitolo. Non
-dipendono l'una dall'altra: si può aprire qualsiasi cartella e lanciarla da sola. Ogni cartella ha
-il suo README con la spiegazione dettagliata di cosa cambia rispetto al capitolo precedente. Le
-cartelle 11 e 12 raccolgono più parti ciascuna, nello stesso codice: ogni parte è una serie di
-commit, e il README della cartella le spiega una per una.
+Each folder is a complete, working snapshot of the project at the end of a chapter. They don't
+depend on each other: you can open any folder and run it on its own. Each folder has its own README
+with a detailed explanation of what changes compared to the previous chapter. Folders 11 and 12
+each bring together several parts, in the same code: each part is a series of commits, and the
+folder's README explains them one by one.
 
-| # | Cartella | Cosa aggiunge |
+| # | Folder | What it adds |
 |---|----------|---------------|
-| 1 | [Car driving mechanics](1.%20Car%20driving%20mechanics) | Un'auto guidata con le frecce: accelerazione, attrito, sterzo, retromarcia |
-| 2 | [Road definition](2.%20Road%20definition) | Strada a tre corsie con bordi e una camera che segue l'auto |
-| 3 | [Artificial sensors](3.%20Artificial%20sensors) | Cinque raggi che misurano la distanza dai bordi, intersezione tra segmenti |
-| 4 | [Collision detection](4.%20Collision%20detection) | L'auto diventa un poligono e si rompe se tocca un bordo |
-| 5 | [Traffic simulation](5.%20Traffic%20simulation) | Auto "DUMMY" che vanno dritto, da vedere con i sensori ed evitare |
-| 6 | [Neural network](6.%20Neural%20network) | Rete neurale `[5,6,4]` che trasforma le letture dei sensori in comandi |
-| 7 | [Visualizing neural networks](7.%20Visualizing%20neural%20networks) | Disegno della rete in tempo reale accanto alla strada |
-| 8 | [Optimizing neural networks](8.%20Optimizing%20neural%20networks) | Tante auto in parallelo, mutazione, salvataggio della rete migliore |
-| 9 | [Fine-tuning](9.%20Fine-tuning) | 100 auto, sprite colorato per ogni auto, traffico multicolore |
-| 10 | [Curved road](10.%20Curved%20road) | Strada curva fatta di polilinee e rete senza strato nascosto |
-| 11 | [Car in the world](11.%20Car%20in%20the%20world) | Editor di un mondo virtuale (strade, edifici, segnaletica, import da OpenStreetMap) in cui guidano le auto |
-| 12 | [Race in the world](12.%20Race%20in%20the%20world) | Gara contro le auto AI su un percorso trovato con Dijkstra, suoni sintetizzati, vista 3D, guida dal telefono o con la webcam |
+| 1 | [Car driving mechanics](1.%20Car%20driving%20mechanics) | A car driven with the arrow keys: acceleration, friction, steering, reverse |
+| 2 | [Road definition](2.%20Road%20definition) | Three-lane road with borders and a camera that follows the car |
+| 3 | [Artificial sensors](3.%20Artificial%20sensors) | Five rays that measure the distance from the borders, segment intersection |
+| 4 | [Collision detection](4.%20Collision%20detection) | The car becomes a polygon and gets damaged if it touches a border |
+| 5 | [Traffic simulation](5.%20Traffic%20simulation) | "DUMMY" cars that go straight, to be seen with the sensors and avoided |
+| 6 | [Neural network](6.%20Neural%20network) | `[5,6,4]` neural network that turns the sensor readings into controls |
+| 7 | [Visualizing neural networks](7.%20Visualizing%20neural%20networks) | Real-time drawing of the network next to the road |
+| 8 | [Optimizing neural networks](8.%20Optimizing%20neural%20networks) | Many cars in parallel, mutation, saving the best network |
+| 9 | [Fine-tuning](9.%20Fine-tuning) | 100 cars, a colored sprite for each car, multicolor traffic |
+| 10 | [Curved road](10.%20Curved%20road) | Curved road made of polylines and a network without a hidden layer |
+| 11 | [Car in the world](11.%20Car%20in%20the%20world) | Editor of a virtual world (roads, buildings, road markings, import from OpenStreetMap) where the cars drive |
+| 12 | [Race in the world](12.%20Race%20in%20the%20world) | Race against the AI cars on a path found with Dijkstra, synthesized sounds, 3D view, driving with the phone or the webcam |
 
-## Il percorso in breve
+## The journey in short
 
-1. **Fisica (cap. 1-2).** L'auto ha velocità e angolo; si muove con `x -= sin(angle)*speed` e
-   `y -= cos(angle)*speed`, perché l'angolo 0 punta verso l'alto e l'asse y del canvas va verso il
-   basso. La strada è definita da segmenti, e la camera è una semplice `translate` del canvas.
-2. **Percezione (cap. 3-5).** I sensori lanciano raggi e calcolano l'intersezione con bordi e auto
-   tramite una formula parametrica tra segmenti. La stessa funzione serve poi per le collisioni tra
-   poligoni.
-3. **Decisione (cap. 6-7).** Una rete neurale feed-forward con attivazione a gradino riceve
-   `1 - offset` di ogni raggio e accende o spegne i quattro comandi (avanti, sinistra, destra,
-   indietro). Il visualizer mostra pesi e bias in giallo (positivi) e blu (negativi).
-4. **Apprendimento (cap. 8-9).** Niente backpropagation: si lanciano N auto con reti leggermente
-   mutate, si salva quella che va più lontano e la si usa come base della generazione successiva.
-   È un algoritmo genetico ridotto all'osso, con elitismo.
-5. **Esperimento (cap. 10).** Strada sinusoidale fatta di polilinee, rete senza strato nascosto e
-   mutazione più forte.
-6. **Mondo (cap. 11).** Un editor separato costruisce un grafo di strade, ne ricava i bordi con
-   l'unione dei poligoni, aggiunge edifici, alberi e segnaletica, e può importare le strade da
-   OpenStreetMap. La simulazione carica quel mondo e fa partire le auto dal marking Start, con una
-   minimappa che segue l'auto migliore.
-7. **Gara (cap. 12).** Mondo e auto addestrata arrivano da file. Dijkstra trova il percorso più
-   breve dallo Start al Target, e i bordi di quel percorso diventano l'unica strada che le auto
-   vedono. Sopra ci gira un gioco: tu contro 100 auto AI, con suoni generati dal Web Audio, una
-   camera 3D che proietta il mondo in prospettiva a mano e due controlli alternativi alle
-   frecce, l'inclinazione del telefono e un volante fatto di due oggetti blu visti dalla webcam.
+1. **Physics (ch. 1-2).** The car has a speed and an angle; it moves with `x -= sin(angle)*speed`
+   and `y -= cos(angle)*speed`, because angle 0 points up and the canvas y axis points down. The
+   road is defined by segments, and the camera is a simple `translate` of the canvas.
+2. **Perception (ch. 3-5).** The sensors cast rays and compute the intersection with borders and
+   cars through a parametric formula between segments. The same function is then used for
+   collisions between polygons.
+3. **Decision (ch. 6-7).** A feed-forward neural network with a step activation receives
+   `1 - offset` from each ray and turns the four controls (forward, left, right, reverse) on or
+   off. The visualizer shows weights and biases in yellow (positive) and blue (negative).
+4. **Learning (ch. 8-9).** No backpropagation: N cars are launched with slightly mutated networks,
+   the one that goes farthest is saved and used as the base of the next generation. It is a
+   genetic algorithm stripped to the bone, with elitism.
+5. **Experiment (ch. 10).** Sinusoidal road made of polylines, a network without a hidden layer and
+   stronger mutation.
+6. **World (ch. 11).** A separate editor builds a graph of roads, derives the borders from it with
+   polygon union, adds buildings, trees and road markings, and can import roads from
+   OpenStreetMap. The simulation loads that world and starts the cars from the Start marking, with
+   a minimap that follows the best car.
+7. **Race (ch. 12).** World and trained car come from files. Dijkstra finds the shortest path from
+   Start to Target, and the borders of that path become the only road the cars see. A game runs on
+   top of it: you against 100 AI cars, with sounds generated by Web Audio, a 3D camera that
+   projects the world in perspective by hand, and two alternatives to the arrow keys, tilting the
+   phone and a steering wheel made of two blue objects seen by the webcam.
 
-La funzione che ritorna più spesso è `lerp(A,B,t)`: serve per le corsie, per distribuire i raggi,
-per i punti di intersezione, per posizionare i nodi nel visualizer e per mutare i pesi.
+The function that comes back most often is `lerp(A,B,t)`: it is used for the lanes, to spread the
+rays, for the intersection points, to position the nodes in the visualizer and to mutate the
+weights.
 
-## Come avviarlo
+## How to run it
 
-Non serve installare niente. Basta aprire `index.html` di una qualsiasi cartella nel browser.
+There is nothing to install. Just open `index.html` of any folder in the browser.
 
-In alternativa, con un piccolo server locale dalla root del repository:
+Alternatively, with a small local server from the repository root:
 
 ```bash
 python3 -m http.server
 ```
 
-e poi aprire `http://localhost:8000` e scegliere la cartella.
+and then open `http://localhost:8000` and pick the folder.
 
-Il capitolo 11 ha bisogno del server: l'editor (`world/index.html`) e la simulazione
-(`index.html`) si passano il mondo tramite `localStorage`, e due pagine aperte da `file://` non
-sempre lo condividono. Prima si apre l'editor, si costruisce o si importa un mondo e lo si salva
-con 💾; poi si apre la simulazione.
+Chapter 11 needs the server: the editor (`world/index.html`) and the simulation (`index.html`)
+pass the world to each other through `localStorage`, and two pages opened from `file://` don't
+always share it. First you open the editor, build or import a world and save it with 💾; then you
+open the simulation.
 
-Anche il capitolo 12 va aperto dal server, e non ha un `index.html`: le pagine sono `sim.html` (il
-simulatore), `race.html` (la gara con le frecce), `phone.html` (la gara guidata dal telefono),
-`markers.html` (il rilevatore di marker) e `camera.html` (la gara guidata con la webcam). La
-webcam funziona solo su `localhost`; per il telefono la cartella va servita sulla rete locale.
-L'editor è in `world/index.html`.
+Chapter 12 must also be opened from the server, and it has no `index.html`: the pages are
+`sim.html` (the simulator), `race.html` (the race with the arrow keys), `phone.html` (the race
+driven by the phone), `markers.html` (the marker detector) and `camera.html` (the race driven with
+the webcam). The webcam only works on `localhost`; for the phone the folder must be served on the
+local network. The editor is in `world/index.html`.
 
-### Comandi
+### Controls
 
-- Capitoli 1-5: si guida con le frecce della tastiera.
-- Capitoli 6-7: l'auto è guidata dalla rete (casuale, non addestrata). Basta ricaricare per
-  provare una rete nuova.
-- Capitoli 8-9: 💾 salva la rete dell'auto migliore, 🗑️ la cancella. Il ciclo è: lascia girare,
-  salva quando un'auto va lontano, ricarica, ripeti. Nel capitolo 8 conviene alzare `N` in
-  `main.js` (nel 9 è già 100).
-- Capitolo 10: `save()` e `discard()` si lanciano dalla console del browser.
-- Capitolo 11: nell'editor si disegnano le strade col mouse in modalità 🌐 e si posa la
-  segnaletica con gli altri pulsanti (🚙 è il punto di partenza delle auto); 🗺️ importa le strade
-  da OpenStreetMap, 💾 salva il mondo, 📁 ne carica uno da file. Nella simulazione 💾 e 🗑️
-  funzionano come nei capitoli 8-9.
-- Capitolo 12: in `race.html` si guida con le frecce dopo il conto alla rovescia, fino al Target.
-  In `phone.html` si sterza inclinando il telefono tenuto in orizzontale, e un dito sullo schermo
-  frena e fa retromarcia. In `camera.html` si tengono due oggetti blu davanti alla webcam, uno per
-  mano, e li si ruota come un volante; allontanarli dalla camera fa retromarcia. In `sim.html`
-  💾 e 🗑️ salvano e cancellano la rete. Nell'editor, in modalità 🌐, s ed e scelgono partenza e
-  arrivo del percorso, e 💾 scarica il mondo come file.
+- Chapters 1-5: you drive with the keyboard arrow keys.
+- Chapters 6-7: the car is driven by the network (random, not trained). Just reload to try a new
+  network.
+- Chapters 8-9: 💾 saves the network of the best car, 🗑️ deletes it. The cycle is: let it run,
+  save when a car goes far, reload, repeat. In chapter 8 it's worth raising `N` in `main.js` (in 9
+  it is already 100).
+- Chapter 10: `save()` and `discard()` are run from the browser console.
+- Chapter 11: in the editor you draw the roads with the mouse in 🌐 mode and place the road
+  markings with the other buttons (🚙 is the cars' starting point); 🗺️ imports the roads from
+  OpenStreetMap, 💾 saves the world, 📁 loads one from a file. In the simulation 💾 and 🗑️ work
+  as in chapters 8-9.
+- Chapter 12: in `race.html` you drive with the arrow keys after the countdown, up to the Target.
+  In `phone.html` you steer by tilting the phone held horizontally, and a finger on the screen
+  brakes and reverses. In `camera.html` you hold two blue objects in front of the webcam, one per
+  hand, and rotate them like a steering wheel; moving them away from the camera reverses. In
+  `sim.html` 💾 and 🗑️ save and delete the network. In the editor, in 🌐 mode, s and e pick the
+  start and the target of the path, and 💾 downloads the world as a file.
 
-### Attenzione al localStorage
+### Watch out for localStorage
 
-Il `localStorage` è condiviso da tutte le pagine della stessa origine: se i capitoli vengono
-aperti dallo stesso server (o tutti da `file://`), vedono le stesse chiavi. I capitoli 8 e 9
-salvano la rete in `bestBrain` e si leggono a vicenda la rete salvata. Va bene così: entrambi
-usano una rete `[5,6,4]` su una strada dritta a 3 corsie. Il capitolo 10 usa una rete `[5,4]` su
-una strada curva, quindi salva in una chiave sua, `curvedRoadBestBrain`, e non si mescola con gli
-altri. Il capitolo 11 salva in `worldBestBrain`; se la chiave manca, parte dalla `bestBrain` dei
-capitoli 8-9, che ha la stessa forma `[5,6,4]`. Il mondo dell'editor sta nella chiave `world`.
+`localStorage` is shared by all the pages of the same origin: if the chapters are opened from the
+same server (or all from `file://`), they see the same keys. Chapters 8 and 9 save the network in
+`bestBrain` and read each other's saved network. That's fine: both use a `[5,6,4]` network on a
+straight 3-lane road. Chapter 10 uses a `[5,4]` network on a curved road, so it saves in a key of
+its own, `curvedRoadBestBrain`, and doesn't mix with the others. Chapter 11 saves in
+`worldBestBrain`; if the key is missing, it starts from the `bestBrain` of chapters 8-9, which has
+the same `[5,6,4]` shape. The editor's world is in the `world` key.
 
-Il capitolo 12 salva la rete in `raceBestBrain`, scritta da `sim.html` e letta anche dalle pagine
-della gara. Non ripiega su `bestBrain`: la sua rete ha 3 ingressi (due raggi e la velocità) e
-quelle dei capitoli precedenti non andrebbero. Il mondo non passa più dal `localStorage`, è un file
-in `world/saves/`; la soglia del rilevatore di marker sta in `markerThreshold`.
+Chapter 12 saves the network in `raceBestBrain`, written by `sim.html` and also read by the race
+pages. It doesn't fall back on `bestBrain`: its network has 3 inputs (two rays and the speed) and
+the ones from the previous chapters wouldn't work. The world no longer goes through
+`localStorage`, it is a file in `world/saves/`; the marker detector threshold is in
+`markerThreshold`.
 
-## Note tecniche
+## Technical notes
 
-- JavaScript vanilla con le classi ES2022 e i metodi privati `#`. Nessun modulo: gli script sono
-  caricati in ordine nell'HTML e condividono lo scope globale.
-- Tutte le grandezze sono per frame, non per secondo: su uno schermo a 120 Hz la simulazione va
-  più veloce che su uno a 60 Hz.
-- I file `visualizer.js` erano salvati in UTF-16; li ho convertiti in UTF-8 per poterli vedere
-  come testo su git, senza modificare il codice.
+- Vanilla JavaScript with ES2022 classes and `#` private methods. No modules: the scripts are
+  loaded in order in the HTML and share the global scope.
+- All quantities are per frame, not per second: on a 120 Hz screen the simulation runs faster than
+  on a 60 Hz one.
+- The `visualizer.js` files were saved in UTF-16; I converted them to UTF-8 so they can be seen as
+  text on git, without changing the code.

@@ -1,70 +1,70 @@
 # 12. Race in the world
 
-Terza fase del progetto. Si riparte dal mondo della cartella 11, ma l'auto non deve più imparare da
-zero: arriva già addestrata, e il mondo diventa il circuito di un gioco. Le parti successive
-aggiungono la ricerca del percorso, la gara contro l'auto, i suoni, una camera in prima persona e
-i controlli dal telefono e dalla webcam.
+Third phase of the project. We start again from the world of folder 11, but the car no longer has
+to learn from scratch: it arrives already trained, and the world becomes the track of a game. The
+following parts add path finding, the race against the car, sounds, a first-person camera and
+controls from the phone and the webcam.
 
-## Una cartella, tante parti
+## One folder, many parts
 
-Come la cartella 11, questa contiene tutte le parti della fase, una dopo l'altra, nello stesso
-codice. Ogni parte è una serie di commit; per vedere lo stato a metà percorso basta fare checkout
-del commit che chiude quella parte.
+Like folder 11, this one contains all the parts of the phase, one after the other, in the same
+code. Each part is a series of commits; to see the state halfway through, just check out the
+commit that closes that part.
 
-| Parte | Cosa aggiunge |
+| Part | What it adds |
 |-------|---------------|
-| 1. Starting Codebase | Mondo e auto addestrata caricati da file, velocità tra gli input della rete |
-| 2. Dijkstra Part 1 | Percorso più breve tra due punti del grafo, scelti nell'editor con s ed e |
-| 3. Dijkstra Part 2 | Corridoio dalla partenza al Target: le auto vedono solo i bordi del percorso |
-| 4. Racing Game | Pagina della gara: tu contro 100 auto AI, con conto alla rovescia e classifica |
-| 5. Procedural Sound | Suoni sintetizzati con il Web Audio: bip del via, motore, esplosione e arrivo |
-| 6. Camera Part 1 | Camera in prima persona: le basi degli edifici proiettate in prospettiva |
-| 7. Camera Part 2 | Vista 3D a tutto schermo: edifici, bordi e auto estrusi, camera che insegue da dietro |
-| 8. Phone Input | Pagina `phone.html`: si sterza inclinando il telefono, un tocco mette la retromarcia |
-| 9. Marker Detector | Pagina `markers.html`: trova due oggetti blu nella webcam, con centro e grandezza |
-| 10. Camera Input | Pagina `camera.html`: si guida con un volante a due marker blu davanti alla webcam |
-| 11. Fine Tuning | Auto 3D con ruote che sterzano, ombre e dissolvenza; i muri respingono invece di distruggere |
+| 1. Starting Codebase | World and trained car loaded from files, speed among the network inputs |
+| 2. Dijkstra Part 1 | Shortest path between two points of the graph, chosen in the editor with s and e |
+| 3. Dijkstra Part 2 | Corridor from the start to the Target: the cars see only the borders of the path |
+| 4. Racing Game | Race page: you against 100 AI cars, with countdown and ranking |
+| 5. Procedural Sound | Sounds synthesized with Web Audio: start beep, engine, explosion and finish |
+| 6. Camera Part 1 | First-person camera: the building bases projected in perspective |
+| 7. Camera Part 2 | Full-screen 3D view: buildings, borders and cars extruded, camera chasing from behind |
+| 8. Phone Input | `phone.html` page: you steer by tilting the phone, a tap engages reverse |
+| 9. Marker Detector | `markers.html` page: finds two blue objects in the webcam, with center and size |
+| 10. Camera Input | `camera.html` page: you drive with a steering wheel of two blue markers in front of the webcam |
+| 11. Fine Tuning | 3D car with steering wheels, shadows and fade; walls push back instead of destroying |
 
-Restano i due stili della cartella 11: il codice del mondo (`world/`) è indentato a 3 spazi, con
-spazi intorno agli operatori; quello dell'auto a 4 spazi, compatto.
+The two styles of folder 11 remain: the world code (`world/`) is indented with 3 spaces, with
+spaces around operators; the car code with 4 spaces, compact.
 
-## Parte 1. Starting Codebase
+## Part 1. Starting Codebase
 
-Il punto di partenza è la cartella 11 con due cambi di abitudine. Il mondo non passa più
-dall'editor alla simulazione tramite `localStorage`: è un file nel progetto, caricato con un tag
-`<script>`. E le auto non partono più da una rete casuale, ma da un'auto addestrata salvata su
-file.
+The starting point is folder 11 with two changes of habit. The world no longer goes from the
+editor to the simulation through `localStorage`: it is a file in the project, loaded with a
+`<script>` tag. And the cars no longer start from a random network, but from a trained car saved
+to a file.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `world/saves/path_finding.world` | Nuovo: il mondo di partenza, una piccola rete con Start e Target |
-| `saves/right_hand_rule.car` | Nuovo: l'auto addestrata, con rete, sensori e parametri di guida |
-| `world/index.html` | Carica il mondo dal file; 💾 scarica uno script `.world`; via il 📁 |
-| `index.html` | Carica i due file prima degli script dell'auto |
-| `main.js` | Mondo dallo script, `car.load(carInfo)` per ogni auto, chiave `"raceBestBrain"` |
-| `car.js` | Metodo `load(info)`; la velocità diventa un input della rete |
-| `sensor.js` | Campo `rayOffset`, che ruota tutto il ventaglio dei raggi |
-| `world/js/math/graph.js` | `Graph.load` conserva i sensi unici |
+| `world/saves/path_finding.world` | New: the starting world, a small network with Start and Target |
+| `saves/right_hand_rule.car` | New: the trained car, with network, sensors and driving parameters |
+| `world/index.html` | Loads the world from the file; 💾 downloads a `.world` script; the 📁 is gone |
+| `index.html` | Loads the two files before the car scripts |
+| `main.js` | World from the script, `car.load(carInfo)` for each car, key `"raceBestBrain"` |
+| `car.js` | `load(info)` method; speed becomes a network input |
+| `sensor.js` | `rayOffset` field, which rotates the whole fan of rays |
+| `world/js/math/graph.js` | `Graph.load` keeps the one-way roads |
 
-### Il mondo come script
+### The world as a script
 
-Il file `.world` non è JSON, è JavaScript:
+The `.world` file is not JSON, it is JavaScript:
 
 ```js
 const world = World.load({"graph":{"points":[...]}, ...});
 ```
 
-Incluso con `<script src="world/saves/path_finding.world">`, dichiara la variabile globale `world`
-che l'editor e `main.js` usano già. Niente `fetch`, niente `localStorage`: le due pagine leggono
-lo stesso file e non devono più condividere niente.
+Included with `<script src="world/saves/path_finding.world">`, it declares the global variable
+`world` that the editor and `main.js` already use. No `fetch`, no `localStorage`: the two pages
+read the same file and no longer need to share anything.
 
-`World.load` gira mentre il file viene caricato, quindi tutte le classi del mondo devono essere già
-definite: il file va incluso dopo gli script di `world/js/` e prima di `main.js` o dello script
-inline dell'editor.
+`World.load` runs while the file is being loaded, so all the world classes must already be
+defined: the file must be included after the `world/js/` scripts and before `main.js` or the
+editor's inline script.
 
-Il 💾 dell'editor ora scrive lo stesso formato:
+The editor's 💾 now writes the same format:
 
 ```js
 encodeURIComponent(
@@ -72,24 +72,24 @@ encodeURIComponent(
 )
 ```
 
-Il file scaricato si chiama sempre `name.world`. Per usarlo va rinominato e messo al posto di
+The downloaded file is always called `name.world`. To use it, rename it and put it in place of
 `world/saves/path_finding.world`.
 
-Il file pesa circa 470 KB anche se la rete ha solo 13 punti: dentro ci sono anche buste, bordi,
-edifici e alberi già generati, e gli alberi da soli sono tre quarti del totale. `World.load` li
-legge così come sono, senza ricalcolarli.
+The file weighs about 470 KB even though the network has only 13 points: inside there are also
+the already generated envelopes, borders, buildings and trees, and the trees alone are three
+quarters of the total. `World.load` reads them as they are, without recomputing them.
 
-### Sensi unici
+### One-way roads
 
-`Graph.load` passa `i.oneWay` al costruttore di `Segment`. Senza, il terzo parametro prendeva il
-default `false` e le strade a senso unico importate da OpenStreetMap tornavano a doppio senso dopo
-ogni caricamento (era un limite della Parte 10 della cartella 11).
+`Graph.load` passes `i.oneWay` to the `Segment` constructor. Without it, the third parameter took
+the default `false` and the one-way roads imported from OpenStreetMap went back to two-way after
+every load (it was a limitation of Part 10 of folder 11).
 
-### L'auto addestrata
+### The trained car
 
-`right_hand_rule.car` è un'auto intera passata a `JSON.stringify`, preceduta da `let carInfo = `.
-Contiene più campi di quelli che la nostra `Car` conosce (sensori per stop, semafori e precedenze,
-per esempio): vengono da una versione più avanzata del codice. `Car.load` ne prende solo alcuni:
+`right_hand_rule.car` is a whole car passed to `JSON.stringify`, preceded by `let carInfo = `.
+It contains more fields than our `Car` knows (sensors for stops, traffic lights and yields, for
+example): they come from a more advanced version of the code. `Car.load` takes only some of them:
 
 ```js
 load(info){
@@ -104,34 +104,33 @@ load(info){
 }
 ```
 
-| Parametro | Prima | Auto addestrata |
+| Parameter | Before | Trained car |
 |-----------|-------|-----------------|
-| Raggi | 5 | 2 |
-| Lunghezza dei raggi | 150 | 350 |
-| Apertura del ventaglio | `Math.PI/2` | 0.8 |
+| Rays | 5 | 2 |
+| Ray length | 150 | 350 |
+| Fan spread | `Math.PI/2` | 0.8 |
 | `rayOffset` | — | −0.4 |
-| Velocità massima | 3 | 8 |
-| Accelerazione | 0.2 | 0.08 |
-| Attrito | 0.05 | 0.04 |
-| Rete | `[5,6,4]` | `[3,4,4]` |
+| Max speed | 3 | 8 |
+| Acceleration | 0.2 | 0.08 |
+| Friction | 0.05 | 0.04 |
+| Network | `[5,6,4]` | `[3,4,4]` |
 
-`load` sostituisce i parametri dopo il costruttore, che ha già creato una rete `[5,6,4]` per i 5
-raggi di default: quella rete viene buttata e sostituita da quella del file.
+`load` replaces the parameters after the constructor, which has already created a `[5,6,4]`
+network for the 5 default rays: that network is thrown away and replaced by the one from the file.
 
-### Due raggi e la mano destra
+### Two rays and the right hand
 
-`rayOffset` si somma all'angolo di ogni raggio:
+`rayOffset` is added to the angle of each ray:
 
 ```js
 )+this.car.angle+this.rayOffset;
 ```
 
-Con −0.4 radianti il ventaglio, già stretto, ruota verso destra. L'auto vede quasi solo il bordo
-destro della strada e lo segue: è la regola della mano destra dei labirinti, da cui il nome del
-file. In un vicolo cieco l'auto non si schianta, gira intorno alla fine della strada e torna
-indietro.
+With −0.4 radians the fan, already narrow, rotates to the right. The car sees almost only the
+right border of the road and follows it: it is the right-hand rule of mazes, hence the file name.
+In a dead end the car doesn't crash, it turns around the end of the road and comes back.
 
-### La velocità come input
+### Speed as an input
 
 ```js
 const offsets=this.sensor.readings.map(
@@ -139,63 +138,63 @@ const offsets=this.sensor.readings.map(
 ).concat([this.speed/this.maxSpeed]);
 ```
 
-Oltre ai raggi, la rete riceve la velocità divisa per quella massima, un valore tra 0 e 1 come le
-letture dei sensori (in retromarcia diventa negativo). Due raggi più la velocità fanno i 3 input
-della rete `[3,4,4]`.
+Besides the rays, the network receives the speed divided by the max speed, a value between 0 and
+1 like the sensor readings (in reverse it becomes negative). Two rays plus the speed make the 3
+inputs of the `[3,4,4]` network.
 
-### Il cervello salvato
+### The saved brain
 
-Le 100 auto caricano tutte lo stesso `carInfo`, e `this.brain=info.brain` assegna a tutte **lo
-stesso oggetto**. Senza un cervello salvato non c'è mutazione: le auto sono identiche e si muovono
-sovrapposte, come se fossero una sola.
+The 100 cars all load the same `carInfo`, and `this.brain=info.brain` assigns to all of them **the
+same object**. Without a saved brain there is no mutation: the cars are identical and move on top
+of each other, as if they were just one.
 
-💾 e 🗑️ funzionano come nella cartella 11, ma con la chiave `"raceBestBrain"`. Se la chiave esiste,
-ogni auto riceve una copia nuova da `JSON.parse` e tutte tranne la prima vengono mutate.
+💾 and 🗑️ work as in folder 11, but with the `"raceBestBrain"` key. If the key exists, each car
+receives a new copy from `JSON.parse` and all but the first are mutated.
 
-### Differenze dall'originale
+### Differences from the original
 
-- Il cervello si salva in `"raceBestBrain"` invece che in `"bestBrain"`, senza ripiegare su
-  un'altra chiave: le reti `[5,6,4]` dei capitoli precedenti hanno 5 input e qui non funzionano.
-- `main.js` elimina il vecchio caricamento da `localStorage` invece di commentarlo.
-- `save()` dell'editor non scrive più `"world"` in `localStorage`, perché nessuno la legge.
-- Non sono stati portati `big.world` e `big_with_target.world`, due mondi da 5-6 MB che
-  l'originale lascia commentati.
-- Restano le correzioni della cartella 11 che l'originale non ha: `GraphEditor` disegna con
-  `this.ctx` e il `Viewport` ascolta l'evento `wheel` invece del vecchio `mousewheel`.
-- Le due pagine mantengono `<meta charset="utf-8">`, `index.html` anche `<html lang="en">`, e gli
-  script del mondo restano nell'ordine della cartella 11.
+- The brain is saved in `"raceBestBrain"` instead of `"bestBrain"`, without falling back on
+  another key: the `[5,6,4]` networks of the previous chapters have 5 inputs and don't work here.
+- `main.js` removes the old loading from `localStorage` instead of commenting it out.
+- The editor's `save()` no longer writes `"world"` to `localStorage`, because nobody reads it.
+- `big.world` and `big_with_target.world` were not brought over, two 5-6 MB worlds that the
+  original leaves commented out.
+- The fixes of folder 11 that the original doesn't have remain: `GraphEditor` draws with
+  `this.ctx` and the `Viewport` listens to the `wheel` event instead of the old `mousewheel`.
+- The two pages keep `<meta charset="utf-8">`, `index.html` also `<html lang="en">`, and the
+  world scripts stay in the order of folder 11.
 
-### Limiti
+### Limitations
 
-- Cambiare mondo richiede di sostituire un file nel progetto: le modifiche fatte nell'editor e non
-  esportate si perdono al primo ricaricamento.
-- L'editor del grafo permette di modificare la rete, ma `oneWay` non si imposta a mano: i sensi
-  unici arrivano solo da OpenStreetMap.
-- Finché non si salva un cervello, le 100 auto sono copie identiche e l'evoluzione è ferma.
+- Changing world requires replacing a file in the project: the changes made in the editor and
+  not exported are lost on the first reload.
+- The graph editor lets you modify the network, but `oneWay` can't be set by hand: the one-way
+  roads come only from OpenStreetMap.
+- Until a brain is saved, the 100 cars are identical copies and evolution is stuck.
 
-### Come provarlo
+### How to try it
 
-Servi la cartella con un server locale, ad esempio `python3 -m http.server`, e apri `index.html`:
-l'auto parte dallo Start di `path_finding.world`, segue la strada tenendo la destra e nei vicoli
-ciechi torna indietro. La rete a destra ha 3 ingressi, i due raggi e la velocità.
+Serve the folder with a local server, for example `python3 -m http.server`, and open `index.html`:
+the car starts from the Start of `path_finding.world`, follows the road keeping to the right and
+in dead ends comes back. The network on the right has 3 inputs, the two rays and the speed.
 
-`world/index.html` apre lo stesso mondo. Dopo una modifica, 💾 scarica `name.world`: rinominalo in
-`path_finding.world`, mettilo in `world/saves/` e ricarica la simulazione.
+`world/index.html` opens the same world. After a change, 💾 downloads `name.world`: rename it to
+`path_finding.world`, put it in `world/saves/` and reload the simulation.
 
-## Parte 2. Dijkstra Part 1
+## Part 2. Dijkstra Part 1
 
-Il grafo delle strade, finora usato solo per generare buste e bordi, diventa una mappa in cui
-cercare il percorso più breve tra due punti. Per ora la ricerca si vede solo nell'editor; la
-simulazione non cambia.
+The road graph, so far used only to generate envelopes and borders, becomes a map in which to
+search for the shortest path between two points. For now the search is visible only in the
+editor; the simulation doesn't change.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `world/js/math/graph.js` | `getSegmentsLeavingFromPoint` e `getShortestPath` (Dijkstra) |
-| `world/js/editors/graphEditor.js` | Tasti s ed e per scegliere partenza e arrivo, disegno del percorso |
+| `world/js/math/graph.js` | `getSegmentsLeavingFromPoint` and `getShortestPath` (Dijkstra) |
+| `world/js/editors/graphEditor.js` | Keys s and e to choose start and end, drawing of the path |
 
-### I segmenti percorribili
+### The drivable segments
 
 ```js
 getSegmentsLeavingFromPoint(point) {
@@ -215,22 +214,23 @@ getSegmentsLeavingFromPoint(point) {
 }
 ```
 
-È la versione "con i sensi unici" di `getSegmentsWithPoint`: un segmento a doppio senso si può
-prendere da entrambi gli estremi, uno a senso unico solo da `p1`, nella direzione in cui è stato
-disegnato. È qui che serve la correzione di `Graph.load` della Parte 1: senza `oneWay` tutte le
-strade sarebbero percorribili nei due sensi.
+It is the "with one-way roads" version of `getSegmentsWithPoint`: a two-way segment can be taken
+from both ends, a one-way one only from `p1`, in the direction it was drawn in. This is where the
+`Graph.load` fix of Part 1 is needed: without `oneWay` all roads would be drivable in both
+directions.
 
 ### Dijkstra
 
-`getShortestPath(start, end)` è l'algoritmo di Dijkstra nella sua forma più diretta:
+`getShortestPath(start, end)` is Dijkstra's algorithm in its most direct form:
 
-1. ogni punto riceve `dist = Number.MAX_SAFE_INTEGER` e `visited = false`; la partenza ha
+1. each point gets `dist = Number.MAX_SAFE_INTEGER` and `visited = false`; the start has
    `dist = 0`;
-2. dal punto corrente si guardano i segmenti percorribili: se passando di qui l'altro estremo
-   diventa più vicino, si aggiornano la sua `dist` e il suo `prev`;
-3. il punto corrente diventa visitato, e il prossimo è il non visitato con la `dist` più piccola;
-4. ci si ferma quando l'arrivo è visitato, e si ricostruisce il percorso risalendo i `prev`
-   dall'arrivo con `unshift`.
+2. from the current point we look at the drivable segments: if going through here the other end
+   becomes closer, its `dist` and its `prev` are updated;
+3. the current point becomes visited, and the next one is the unvisited one with the smallest
+   `dist`;
+4. we stop when the end is visited, and rebuild the path by walking back the `prev` links from
+   the end with `unshift`.
 
 ```js
 const unvisited = this.points.filter((p) => p.visited == false);
@@ -238,72 +238,72 @@ const dists = unvisited.map((p) => p.dist);
 currentPoint = unvisited.find((p) => p.dist == Math.min(...dists));
 ```
 
-Non c'è una coda di priorità: a ogni passo si scorrono tutti i punti non visitati, quindi il costo
-cresce col quadrato del numero di punti. Con i 13 punti di `path_finding.world` non si nota.
+There is no priority queue: at each step all the unvisited points are scanned, so the cost grows
+with the square of the number of points. With the 13 points of `path_finding.world` it isn't
+noticeable.
 
-`dist`, `visited` e `prev` sono scritti direttamente sugli oggetti `Point` e cancellati con
-`delete` prima di restituire il percorso. Cancellarli è necessario: `graph.hash()` e il 💾 sono
-entrambi un `JSON.stringify` del grafo, e dei campi rimasti sui punti farebbero credere all'editor
-che il grafo sia cambiato (con una `world.generate()` inutile) e finirebbero nel file salvato.
+`dist`, `visited` and `prev` are written directly on the `Point` objects and removed with
+`delete` before returning the path. Removing them is necessary: `graph.hash()` and 💾 are both a
+`JSON.stringify` of the graph, and leftover fields on the points would make the editor believe
+the graph has changed (with a useless `world.generate()`) and would end up in the saved file.
 
-### Partenza e arrivo nell'editor
+### Start and end in the editor
 
-In modalità 🌐, con il mouse sopra un punto, **s** lo segna come partenza e **e** come arrivo.
-Appena ci sono entrambi, `display()` calcola il percorso a ogni frame e lo disegna sopra il grafo:
-punti blu grandi uniti da una linea spessa. Spostare un punto col mouse ricalcola subito il
-percorso.
+In 🌐 mode, with the mouse over a point, **s** marks it as the start and **e** as the end.
+As soon as both are there, `display()` computes the path at every frame and draws it over the
+graph: big blue points joined by a thick line. Moving a point with the mouse recomputes the path
+right away.
 
-Il listener è su `window`, non sul canvas, perché il canvas non riceve gli eventi della tastiera.
-Viene aggiunto e tolto insieme agli altri listener dell'editor, quindi in un'altra modalità i tasti
-non fanno niente.
+The listener is on `window`, not on the canvas, because the canvas doesn't receive keyboard
+events. It is added and removed together with the other editor listeners, so in another mode the
+keys do nothing.
 
-### Differenze dall'originale
+### Differences from the original
 
-- L'originale disegna i collegamenti del percorso con `point.prev`, che però `getShortestPath` ha
-  già cancellato: si vedevano solo i punti blu. Qui la linea unisce i punti consecutivi del
-  percorso.
-- L'originale aggiunge il listener `keydown` a ogni `enable()` senza mai toglierlo, e ogni cambio di
-  modalità ne accumulava uno. Qui è un `boundKeyDown` rimosso in `#removeEventListeners`.
-- Eliminare il punto di partenza o di arrivo, o svuotare il grafo con 🗑️, azzera partenza e
-  arrivo. Nell'originale `getShortestPath` cercava un punto non più nel grafo, lanciava un errore
-  dentro il ciclo di disegno e l'editor si bloccava.
-- L'originale passa a `big_with_target.world`, allarga il canvas a 1000 pixel e commenta
-  `world.generate()` per non rigenerare un mondo enorme; con `path_finding.world` non serve, e
-  restano canvas da 600 e rigenerazione.
+- The original draws the links of the path with `point.prev`, which however `getShortestPath` has
+  already deleted: only the blue points were visible. Here the line joins the consecutive points
+  of the path.
+- The original adds the `keydown` listener at every `enable()` without ever removing it, and every
+  mode change piled up another one. Here it is a `boundKeyDown` removed in `#removeEventListeners`.
+- Deleting the start or end point, or emptying the graph with 🗑️, resets start and end. In the
+  original `getShortestPath` looked for a point no longer in the graph, threw an error inside the
+  draw loop and the editor froze.
+- The original switches to `big_with_target.world`, widens the canvas to 1000 pixels and comments
+  out `world.generate()` so as not to regenerate a huge world; with `path_finding.world` it isn't
+  needed, and the 600 canvas and the regeneration stay.
 
-### Limiti
+### Limitations
 
-- Se l'arrivo non è raggiungibile (per esempio per colpa di un senso unico), l'algoritmo visita
-  anche i punti irraggiungibili e restituisce il solo arrivo: viene disegnato un punto blu e nessuna
-  linea.
-- Partenza e arrivo devono essere punti del grafo, non posizioni qualsiasi sulla strada.
-- Il percorso viene ricalcolato a ogni frame anche se il grafo non cambia.
+- If the end is not reachable (for example because of a one-way road), the algorithm also visits
+  the unreachable points and returns only the end: one blue point is drawn and no line.
+- Start and end must be points of the graph, not arbitrary positions on the road.
+- The path is recomputed at every frame even if the graph doesn't change.
 
-### Come provarlo
+### How to try it
 
-Apri `world/index.html` dal server locale, in modalità 🌐. Passa col mouse su un punto e premi s,
-poi su un altro e premi e: il percorso più breve compare in blu. Prova a trascinare un punto
-intermedio per allungare una strada e guarda il percorso cambiare.
+Open `world/index.html` from the local server, in 🌐 mode. Hover over a point and press s, then
+over another and press e: the shortest path appears in blue. Try dragging an intermediate point
+to lengthen a road and watch the path change.
 
-## Parte 3. Dijkstra Part 2
+## Part 3. Dijkstra Part 2
 
-Il percorso diventa una strada: dal percorso più breve si costruisce un **corridoio**, cioè i bordi
-di una strada che segue solo quel percorso. Nella simulazione, se il mondo ha un Target, le auto
-guidano dentro il corridoio invece che nella rete intera, e la regola della mano destra le porta
-dritte all'arrivo.
+The path becomes a road: from the shortest path we build a **corridor**, that is the borders of a
+road that follows only that path. In the simulation, if the world has a Target, the cars drive
+inside the corridor instead of the whole network, and the right-hand rule takes them straight to
+the end.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `world/js/world.js` | `generateCorridor(start, end)`; il corridoio disegnato in rosso |
-| `world/js/editors/graphEditor.js` | s ed e prendono la posizione del mouse e generano il corridoio |
-| `main.js` | Bordi delle auto = corridoio fino al Target; 500 auto |
+| `world/js/world.js` | `generateCorridor(start, end)`; the corridor drawn in red |
+| `world/js/editors/graphEditor.js` | s and e take the mouse position and generate the corridor |
+| `main.js` | Car borders = corridor up to the Target; 500 cars |
 
-### Partire a metà strada
+### Starting halfway along a road
 
-Dijkstra sa andare solo da un punto del grafo a un altro, ma un'auto o un Target stanno quasi
-sempre a metà di una strada. `generateCorridor` aggiunge al grafo due punti temporanei:
+Dijkstra can only go from one point of the graph to another, but a car or a Target are almost
+always halfway along a road. `generateCorridor` adds two temporary points to the graph:
 
 ```js
 const startSeg = getNearestSegment(start, this.graph.segments);
@@ -313,19 +313,21 @@ const { point: projStart } = startSeg.projectPoint(start);
 const { point: projEnd } = endSeg.projectPoint(end);
 ```
 
-1. trova il segmento più vicino alla partenza e quello più vicino all'arrivo;
-2. proietta le due posizioni sui rispettivi segmenti, ottenendo `projStart` e `projEnd`;
-3. aggiunge le proiezioni a `graph.points`, e quattro segmenti temporanei che le collegano agli
-   estremi del loro segmento (più uno diretto tra le due, se stanno sullo stesso segmento);
-4. lancia `getShortestPath(projStart, projEnd)`;
-5. toglie le proiezioni con `removePoint`, che elimina anche i segmenti temporanei.
+1. it finds the segment nearest to the start and the one nearest to the end;
+2. it projects the two positions on their segments, getting `projStart` and `projEnd`;
+3. it adds the projections to `graph.points`, and four temporary segments that connect them to
+   the ends of their segment (plus a direct one between the two, if they are on the same segment);
+4. it runs `getShortestPath(projStart, projEnd)`;
+5. it removes the projections with `removePoint`, which also deletes the temporary segments.
 
-Il grafo torna com'era, con lo stesso `hash()`: l'editor non rigenera il mondo.
+The graph goes back to how it was, with the same `hash()`: the editor doesn't regenerate the
+world.
 
-Il segmento originale resta nel grafo durante la ricerca, ma non dà fastidio: collega i suoi due
-estremi, e il percorso passa comunque dalla proiezione perché è da lì che parte.
+The original segment stays in the graph during the search, but it doesn't get in the way: it
+connects its two ends, and the path goes through the projection anyway because that's where it
+starts.
 
-### Dal percorso alla strada
+### From the path to the road
 
 ```js
 const tmpEnvelopes = segs.map(
@@ -335,22 +337,22 @@ const tmpEnvelopes = segs.map(
 const segments = Polygon.union(tmpEnvelopes.map((e) => e.poly));
 ```
 
-È lo stesso procedimento che in `generate()` produce `roadBorders`: una busta per ogni segmento del
-percorso, poi l'unione dei poligoni per tenere solo i lati esterni. Il risultato, `world.corridor`,
-è una lista di segmenti chiusa: arrotondata alle due estremità e, dove il percorso tira dritto
-davanti a un incrocio, sbarrata sull'imbocco della traversa.
+It is the same procedure that produces `roadBorders` in `generate()`: one envelope for each
+segment of the path, then the union of the polygons to keep only the outer sides. The result,
+`world.corridor`, is a closed list of segments: rounded at the two ends and, where the path goes
+straight past an intersection, barred at the mouth of the side road.
 
-### Nell'editor
+### In the editor
 
-In modalità 🌐 **s** segna la posizione del mouse come partenza ed **e** come arrivo, ovunque, anche
-lontano dai punti del grafo. Appena ci sono entrambi, il tasto chiama `world.generateCorridor`, e
-`World.draw` disegna il corridoio con linee rosse. Il calcolo avviene una volta, alla pressione del
-tasto, e non a ogni frame come il percorso della Parte 2.
+In 🌐 mode **s** marks the mouse position as the start and **e** as the end, anywhere, even far
+from the points of the graph. As soon as both are there, the key calls `world.generateCorridor`,
+and `World.draw` draws the corridor with red lines. The computation happens once, when the key is
+pressed, and not at every frame like the path of Part 2.
 
-`GraphEditor` usa direttamente la variabile globale `world`, come nell'originale: l'editor del grafo
-non conosce il mondo, ma lo trova nello scope globale della pagina.
+`GraphEditor` uses the global variable `world` directly, as in the original: the graph editor
+doesn't know the world, but finds it in the global scope of the page.
 
-### Nella simulazione
+### In the simulation
 
 ```js
 let roadBorders = [];
@@ -363,79 +365,80 @@ if (target) {
 }
 ```
 
-La partenza è `bestCar`, cioè la prima auto: tutte partono dallo Start, quindi è la stessa cosa.
-Basta che l'oggetto abbia `x` e `y`, perché `projectPoint` e `distanceToPoint` usano solo quelli.
+The start is `bestCar`, that is the first car: they all start from the Start, so it's the same
+thing. The object just needs `x` and `y`, because `projectPoint` and `distanceToPoint` use only
+those.
 
-Le auto vedono solo i bordi del corridoio: le traverse sono chiuse, quindi l'auto che segue il bordo
-destro non può più infilarsi in una strada sbagliata. Arrivata al Target trova il fondo arrotondato
-del corridoio, fa inversione e torna indietro. Senza Target tutto resta come prima.
+The cars see only the borders of the corridor: the side roads are closed, so the car that follows
+the right border can no longer slip into a wrong road. Once at the Target it finds the rounded end
+of the corridor, makes a U-turn and comes back. Without a Target everything stays as before.
 
-`N` passa da 100 a 500. Finché non si salva un cervello le auto restano copie identiche (vedi la
-Parte 1), ma con un cervello salvato ci sono cinque volte più mutazioni per generazione.
+`N` goes from 100 to 500. Until a brain is saved the cars stay identical copies (see Part 1), but
+with a saved brain there are five times more mutations per generation.
 
-### Differenze dall'originale
+### Differences from the original
 
-- Restano le scelte della Parte 2 sul listener `keydown`, aggiunto e tolto con gli altri. Non
-  servono più invece gli azzeramenti di partenza e arrivo in `#removePoint` e `dispose`: partenza e
-  arrivo non sono più punti del grafo, e sono stati tolti.
+- The choices of Part 2 on the `keydown` listener, added and removed with the others, remain. The
+  resets of start and end in `#removePoint` and `dispose` are no longer needed instead: start and
+  end are no longer points of the graph, and they were removed.
 
-### Limiti
+### Limitations
 
-- Il corridoio si calcola una volta sola, all'avvio, dallo Start: non segue l'auto se cambia strada,
-  e con più Target viene usato solo il primo.
-- I segmenti temporanei sono sempre a doppio senso: se la partenza o l'arrivo cadono su un senso
-  unico, il primo e l'ultimo tratto lo ignorano.
-- Se l'arrivo non è raggiungibile il percorso ha un solo punto, il corridoio è vuoto e le auto non
-  hanno bordi.
-- Nell'editor il corridoio non si aggiorna quando si modifica il grafo, e resta disegnato anche dopo
-  🗑️. Premere s o e con il grafo vuoto dà un errore in console.
-- `World` non ha un `toJSON`: il 💾 dell'editor salva anche `corridor` nel file `.world`.
-  `World.load` lo ignora.
+- The corridor is computed only once, at startup, from the Start: it doesn't follow the car if it
+  changes road, and with more than one Target only the first is used.
+- The temporary segments are always two-way: if the start or the end fall on a one-way road, the
+  first and last stretch ignore it.
+- If the end is not reachable the path has only one point, the corridor is empty and the cars
+  have no borders.
+- In the editor the corridor doesn't update when the graph is modified, and stays drawn even
+  after 🗑️. Pressing s or e with an empty graph gives an error in the console.
+- `World` has no `toJSON`: the editor's 💾 also saves `corridor` in the `.world` file.
+  `World.load` ignores it.
 
-### Come provarlo
+### How to try it
 
-Apri `index.html`: le linee rosse sono il corridoio, e le auto lo percorrono dallo Start fino al
-Target senza entrare nelle traverse. Nell'editor, in modalità 🌐, premi s col mouse su una strada ed
-e su un'altra: il corridoio rosso le collega lungo il percorso più breve.
+Open `index.html`: the red lines are the corridor, and the cars drive along it from the Start to
+the Target without entering the side roads. In the editor, in 🌐 mode, press s with the mouse on
+a road and e on another: the red corridor connects them along the shortest path.
 
-## Parte 4. Racing Game
+## Part 4. Racing Game
 
-Il mondo diventa un gioco. Accanto al simulatore, che serve ad addestrare, nasce una seconda pagina
-in cui si guida con le frecce contro 100 auto AI, dallo Start al Target, con un conto alla rovescia
-e una classifica aggiornata a ogni frame.
+The world becomes a game. Next to the simulator, which is used for training, a second page is
+born where you drive with the arrow keys against 100 AI cars, from the Start to the Target, with
+a countdown and a ranking updated at every frame.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `index.html`, `main.js` | Rinominati in `sim.html` e `sim.js`: il simulatore |
-| `sim.js` | Legge i bordi da `world.corridor.borders` |
-| `race.html` | Nuova pagina: canvas a tutto schermo, minimappa, classifica, conto alla rovescia |
-| `race.js` | La gara |
-| `world/js/world.js` | `generateCorridor(start, end, extendEnd)`; `corridor` diventa `{ borders, skeleton }` |
-| `car.js` | L'auto si ricorda `color` e `type`; i sensori non si disegnano più |
-| `style.css` | Stili di minimappa, classifica e conto alla rovescia |
+| `index.html`, `main.js` | Renamed to `sim.html` and `sim.js`: the simulator |
+| `sim.js` | Reads the borders from `world.corridor.borders` |
+| `race.html` | New page: full-screen canvas, minimap, ranking, countdown |
+| `race.js` | The race |
+| `world/js/world.js` | `generateCorridor(start, end, extendEnd)`; `corridor` becomes `{ borders, skeleton }` |
+| `car.js` | The car remembers `color` and `type`; the sensors are no longer drawn |
+| `style.css` | Styles of minimap, ranking and countdown |
 
-### Due pagine
+### Two pages
 
-Da qui il progetto ha due ingressi, che condividono tutto tranne l'ultimo script:
+From here on the project has two entry points, which share everything except the last script:
 
-- `sim.html` è la pagina di sempre, con la rete disegnata e i pulsanti 💾 e 🗑️. Serve a migliorare
-  l'auto: si lascia girare, si salva la migliore, si ricarica.
-- `race.html` è il gioco: niente visualizer né pulsanti, il canvas occupa tutta la finestra e
-  minimappa e classifica ci stanno sopra, semitrasparenti, con `position:absolute`.
+- `sim.html` is the usual page, with the network drawn and the 💾 and 🗑️ buttons. It is used to
+  improve the car: you let it run, save the best one, reload.
+- `race.html` is the game: no visualizer or buttons, the canvas takes up the whole window and
+  minimap and ranking sit on top of it, semi-transparent, with `position:absolute`.
 
-### Il corridoio diventa un oggetto
+### The corridor becomes an object
 
 ```js
 this.corridor = { borders: segments, skeleton: segs };
 ```
 
-`borders` sono i bordi di prima, quelli che le auto vedono con i sensori. `skeleton` sono i
-segmenti del percorso, la linea centrale della strada: servono a misurare quanta strada ha fatto
-ogni auto. `World.draw` e `sim.js` ora leggono `corridor.borders`.
+`borders` are the borders from before, the ones the cars see with the sensors. `skeleton` are the
+segments of the path, the center line of the road: they are used to measure how much road each
+car has covered. `World.draw` and `sim.js` now read `corridor.borders`.
 
-Con `extendEnd` a `true` il corridoio prosegue oltre il Target di due larghezze di strada:
+With `extendEnd` set to `true` the corridor continues past the Target by two road widths:
 
 ```js
 if (extendEnd) {
@@ -450,39 +453,39 @@ if (extendEnd) {
 }
 ```
 
-Il segmento in più serve solo a costruire le buste. Subito dopo `segs.pop()` lo toglie, quindi
-`skeleton` finisce esattamente sul Target. Il risultato è un traguardo da attraversare: senza il
-prolungamento il corridoio si chiuderebbe con il fondo arrotondato proprio sull'arrivo, e chi
-taglia il traguardo andrebbe a sbattere. La gara lo usa, il simulatore no.
+The extra segment is only used to build the envelopes. Right after, `segs.pop()` removes it, so
+`skeleton` ends exactly on the Target. The result is a finish line to cross: without the
+extension the corridor would close with the rounded end right on the finish, and whoever crosses
+the line would crash. The race uses it, the simulator doesn't.
 
-### Le auto in gara
+### The cars in the race
 
 ```js
 const cars=generateCars(1, "KEYS").concat(generateCars(N, "AI"));
 const myCar=cars[0];
 ```
 
-`generateCars` ora prende anche il tipo. La tua auto è `"KEYS"` e blu; le AI hanno un colore a caso
-e un nome, da `AI1` a `AI100`. Tutte caricano `carInfo` dal file `.car`, quindi hanno la stessa
-rete e la stessa `maxSpeed` (8, quella dell'auto addestrata, non il 3 passato al costruttore). La
-tua auto ha una rete anche lei, ma con `controlType` diverso da `"AI"` non la usa e guida con
-`Controls`.
+`generateCars` now also takes the type. Your car is `"KEYS"` and blue; the AI cars have a random
+color and a name, from `AI1` to `AI100`. They all load `carInfo` from the `.car` file, so they
+have the same network and the same `maxSpeed` (8, the one of the trained car, not the 3 passed to
+the constructor). Your car has a network too, but with a `controlType` other than `"AI"` it
+doesn't use it and drives with `Controls`.
 
-Se c'è un cervello salvato in `raceBestBrain` lo ricevono tutte, e dalla terza auto in poi viene
-mutato: `myCar` e `AI1` guidano con il cervello salvato così com'è, le altre con una variante.
+If there is a brain saved in `raceBestBrain` they all receive it, and from the third car on it is
+mutated: `myCar` and `AI1` drive with the saved brain as it is, the others with a variant.
 
-La camera segue sempre la tua auto: `world.bestCar = myCar`, e il viewport si centra su di lei.
+The camera always follows your car: `world.bestCar = myCar`, and the viewport centers on it.
 
-### Il conto alla rovescia
+### The countdown
 
-`startCounter` incatena quattro `setTimeout` da un secondo: 3, 2, 1, GO!, e poi il testo sparisce,
-`started` diventa `true` e `frameCount` torna a zero. Prima di quel momento `animate` disegna ma non
-chiama `update`: le auto sono ferme sulla linea di partenza.
+`startCounter` chains four one-second `setTimeout`s: 3, 2, 1, GO!, and then the text disappears,
+`started` becomes `true` and `frameCount` goes back to zero. Before that moment `animate` draws
+but doesn't call `update`: the cars stand still on the start line.
 
-`counter` e `statistics` non sono mai dichiarati in `race.js`: il browser crea una variabile
-globale per ogni elemento con un `id`, e l'originale ci si appoggia.
+`counter` and `statistics` are never declared in `race.js`: the browser creates a global variable
+for each element with an `id`, and the original relies on it.
 
-### Chi è in testa
+### Who is in the lead
 
 ```js
 const carSeg = getNearestSegment(car, world.corridor.skeleton);
@@ -499,74 +502,75 @@ for (let i = 0; i < world.corridor.skeleton.length; i++) {
 }
 ```
 
-`updateCarProgress` misura la strada percorsa, non la distanza dal Target in linea d'aria:
+`updateCarProgress` measures the road covered, not the distance from the Target as the crow
+flies:
 
-1. trova il segmento dello scheletro più vicino all'auto;
-2. somma le lunghezze di tutti i segmenti che lo precedono;
-3. aggiunge il pezzo del segmento corrente fino alla proiezione dell'auto;
-4. divide per la lunghezza totale, ottenendo un numero tra 0 e 1.
+1. it finds the segment of the skeleton nearest to the car;
+2. it adds up the lengths of all the segments before it;
+3. it adds the piece of the current segment up to the projection of the car;
+4. it divides by the total length, getting a number between 0 and 1.
 
-A 1 l'auto è arrivata: `finishTime` prende il numero del frame, e da lì il progresso non si ricalcola
-più. Poi `cars.sort` ordina per progresso, e ogni riga della classifica mostra posizione, nome, 💀
-se l'auto è distrutta e il tempo all'arrivo, in secondi. La tua riga ha lo sfondo bianco, le altre
-nero.
+At 1 the car has arrived: `finishTime` takes the frame number, and from then on the progress is no
+longer recomputed. Then `cars.sort` sorts by progress, and each row of the ranking shows position,
+name, 💀 if the car is destroyed and the finish time, in seconds. Your row has a white background,
+the others black.
 
-L'ordinamento cambia l'ordine dell'array `cars` a ogni frame, ma `myCar` resta un riferimento alla
-tua auto, ovunque finisca.
+Sorting changes the order of the `cars` array at every frame, but `myCar` remains a reference to
+your car, wherever it ends up.
 
-### L'auto
+### The car
 
-`Car` salva `color` e `type`, che prima usava solo nel costruttore: la classifica ne ha bisogno
-per colorare le righe e distinguere la tua.
+`Car` saves `color` and `type`, which it used to use only in the constructor: the ranking needs
+them to color the rows and tell yours apart.
 
-Il disegno dei sensori è commentato, quindi i raggi non si vedono più né nella gara né nel
-simulatore. Il parametro `drawSensor` resta, ma non ha più effetto.
+The drawing of the sensors is commented out, so the rays are no longer visible either in the race
+or in the simulator. The `drawSensor` parameter remains, but it no longer has any effect.
 
-### Differenze dall'originale
+### Differences from the original
 
-- Anche `race.js` usa la chiave `raceBestBrain` invece di `bestBrain`, come `sim.js` dalla Parte 1:
-  il simulatore salva il cervello, la gara lo legge.
-- `race.html` ha gli stessi `<meta charset>`, `lang` e ordine degli script di `sim.html`, senza le
-  righe commentate dei mondi alternativi.
+- `race.js` also uses the `raceBestBrain` key instead of `bestBrain`, like `sim.js` since Part 1:
+  the simulator saves the brain, the race reads it.
+- `race.html` has the same `<meta charset>`, `lang` and script order as `sim.html`, without the
+  commented-out lines of the alternative worlds.
 
-### Limiti
+### Limitations
 
-- Il tempo è `finishTime / 60`: presuppone 60 frame al secondo. Su uno schermo a 120 Hz la gara va
-  al doppio della velocità, e i tempi mostrati sono il doppio di quelli reali.
-- Senza un Target `world.corridor` non esiste e `updateCarProgress` va in errore al primo frame: la
-  gara ha bisogno di un mondo con un Target.
-- Senza un cervello salvato le AI sono copie identiche: fanno la stessa strada, arrivano insieme e
-  hanno tutte lo stesso tempo.
-- Le auto non si vedono e non si urtano tra loro: ognuna aggiorna solo con i bordi
-  (`update(roadBorders, [])`), quindi si attraversano.
-- `race.js` ha ancora `save()` e `discard()` ma nessun pulsante, e `save()` salverebbe il cervello
-  di `myCar`, che non guida: si possono chiamare solo dalla console.
-- Con il progresso basato sul segmento più vicino, un'auto che torna indietro perde posizioni, e
-  vicino a una curva stretta può essere attribuita per un istante al segmento sbagliato.
+- The time is `finishTime / 60`: it assumes 60 frames per second. On a 120 Hz screen the race runs
+  at double speed, and the times shown are double the real ones.
+- Without a Target `world.corridor` doesn't exist and `updateCarProgress` errors out on the first
+  frame: the race needs a world with a Target.
+- Without a saved brain the AI cars are identical copies: they take the same road, arrive together
+  and all have the same time.
+- The cars don't see each other and don't collide with each other: each one updates only with the
+  borders (`update(roadBorders, [])`), so they pass through each other.
+- `race.js` still has `save()` and `discard()` but no buttons, and `save()` would save the brain
+  of `myCar`, which doesn't drive: they can only be called from the console.
+- With the progress based on the nearest segment, a car that goes back loses positions, and near a
+  tight curve it can be assigned for an instant to the wrong segment.
 
-### Come provarlo
+### How to try it
 
-Apri `race.html` dal server locale. Dopo il 3, 2, 1, GO! guida con le frecce e prova a battere le
-AI fino al Target: la classifica a destra si aggiorna mentre corri. `sim.html` è il simulatore di
-prima, senza i raggi dei sensori.
+Open `race.html` from the local server. After the 3, 2, 1, GO! drive with the arrow keys and try
+to beat the AI cars to the Target: the ranking on the right updates while you race. `sim.html` is
+the simulator from before, without the sensor rays.
 
-## Parte 5. Procedural Sound
+## Part 5. Procedural Sound
 
-La gara prende voce. Non ci sono file audio: ogni suono è costruito al momento con la Web Audio API,
-partendo da oscillatori e regolando il volume nel tempo.
+The race gets a voice. There are no audio files: each sound is built on the fly with the Web Audio
+API, starting from oscillators and adjusting the volume over time.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `sound.js` | Nuovo: `beep`, `taDaa`, `explode` e la classe `Engine` |
-| `race.html` | Carica `sound.js` |
-| `race.js` | Bip a ogni numero del conto alla rovescia, motore dopo il via, `taDaa()` all'arrivo |
-| `car.js` | Un'auto distrutta si ferma; la tua esplode; il motore segue la velocità |
+| `sound.js` | New: `beep`, `taDaa`, `explode` and the `Engine` class |
+| `race.html` | Loads `sound.js` |
+| `race.js` | Beep at each number of the countdown, engine after the start, `taDaa()` at the finish |
+| `car.js` | A destroyed car stops; yours explodes; the engine follows the speed |
 
-### Un suono fatto a mano
+### A handmade sound
 
-Ogni funzione di `sound.js` costruisce un piccolo grafo audio:
+Each function of `sound.js` builds a small audio graph:
 
 ```js
 const osc = audioContext.createOscillator();
@@ -584,29 +588,29 @@ envelope.gain.linearRampToValueAtTime(0, 0.4);
 envelope.connect(audioContext.destination);
 ```
 
-1. l'oscillatore produce un'onda alla frequenza data (sinusoide di default);
-2. passa da un `GainNode`, che ne regola il volume;
-3. il gain fa da inviluppo: sale da 0 a 1 in un decimo di secondo e torna a 0 a 0.4 secondi;
-4. l'uscita va a `audioContext.destination`, cioè alle casse.
+1. the oscillator produces a wave at the given frequency (sine by default);
+2. it goes through a `GainNode`, which adjusts its volume;
+3. the gain acts as an envelope: it rises from 0 to 1 in a tenth of a second and goes back to 0 at
+   0.4 seconds;
+4. the output goes to `audioContext.destination`, that is the speakers.
 
-Senza l'inviluppo il suono partirebbe e si fermerebbe di colpo, con un "clic" a ogni estremo.
+Without the envelope the sound would start and stop abruptly, with a "click" at each end.
 
-I tempi passati a `setValueAtTime`, `linearRampToValueAtTime` e `stop` non sono durate: sono
-istanti sull'orologio del contesto audio, `audioContext.currentTime`, che parte da 0 quando il
-contesto nasce. Per questo ogni funzione crea un `AudioContext` nuovo: con un orologio appena
-partito, "0.4" vuol dire davvero "fra 0.4 secondi".
+The times passed to `setValueAtTime`, `linearRampToValueAtTime` and `stop` are not durations: they
+are instants on the audio context clock, `audioContext.currentTime`, which starts from 0 when the
+context is created. That's why each function creates a new `AudioContext`: with a clock that has
+just started, "0.4" really means "in 0.4 seconds".
 
-### I suoni della gara
+### The race sounds
 
-- `beep(400)` su 3, 2 e 1, `beep(700)` su GO!: lo stesso bip, più acuto per il via.
-- `taDaa()` quando la tua auto arriva al Target: due bip a dente di sega (`"sawtooth"`), 400 e
-  600 Hz, a 200 ms di distanza. L'onda a dente di sega è ricca di armoniche e suona più
-  "elettronica" della sinusoide.
-- `explode()` quando la tua auto si schianta: dieci oscillatori insieme, ognuno a una frequenza a
-  caso tra 100 e 300 Hz, che sfumano in un secondo. Frequenze vicine ma diverse battono tra loro e
-  danno un rombo sporco, più simile a un rumore che a una nota.
+- `beep(400)` on 3, 2 and 1, `beep(700)` on GO!: the same beep, higher-pitched for the start.
+- `taDaa()` when your car reaches the Target: two sawtooth (`"sawtooth"`) beeps, 400 and 600 Hz,
+  200 ms apart. The sawtooth wave is rich in harmonics and sounds more "electronic" than the sine.
+- `explode()` when your car crashes: ten oscillators together, each at a random frequency between
+  100 and 300 Hz, fading out in one second. Close but different frequencies beat against each
+  other and give a dirty rumble, more like a noise than a note.
 
-### Il motore
+### The engine
 
 ```js
 const lfo = audioContext.createOscillator();
@@ -617,13 +621,14 @@ lfo.connect(mod);
 mod.connect(osc.frequency);
 ```
 
-`Engine` è un oscillatore che non si ferma mai. Il suo tono però non è fermo: un secondo
-oscillatore, l'LFO (*low frequency oscillator*), a 30 Hz, passa da un gain di 60 e viene collegato
-non alle casse ma al parametro `frequency` del primo. Un `AudioParam` collegato a un nodo somma il
-segnale al proprio valore: la frequenza del motore oscilla di ±60 Hz intorno al valore base, 30
-volte al secondo. È quel tremolio a farlo sembrare un motore a scoppio invece di un fischio.
+`Engine` is an oscillator that never stops. Its tone, however, is not steady: a second oscillator,
+the LFO (*low frequency oscillator*), at 30 Hz, goes through a gain of 60 and is connected not to
+the speakers but to the `frequency` parameter of the first one. An `AudioParam` connected to a
+node adds the signal to its own value: the engine frequency oscillates by ±60 Hz around the base
+value, 30 times per second. It's that tremolo that makes it sound like a combustion engine instead
+of a whistle.
 
-`setVolume` e `setPitch` ricevono la velocità in percentuale:
+`setVolume` and `setPitch` receive the speed as a percentage:
 
 ```js
 if (this.engine) {
@@ -633,13 +638,14 @@ if (this.engine) {
 }
 ```
 
-Da fermi il motore è muto e gira a 100 Hz; alla velocità massima ha volume 1 e frequenza base
-300 Hz. `Math.abs` fa girare il motore anche in retromarcia, quando `speed` è negativa.
+When standing still the engine is silent and runs at 100 Hz; at max speed it has volume 1 and a
+base frequency of 300 Hz. `Math.abs` makes the engine run in reverse too, when `speed` is
+negative.
 
-Il motore nasce in `startCounter`, quando il "GO!" sparisce, e solo per `myCar`: le AI non hanno
-`engine`, e il controllo `if (this.engine)` le salta.
+The engine is created in `startCounter`, when the "GO!" disappears, and only for `myCar`: the AI
+cars have no `engine`, and the `if (this.engine)` check skips them.
 
-### L'auto distrutta
+### The destroyed car
 
 ```js
 if(this.damaged){
@@ -650,62 +656,63 @@ if(this.damaged){
 }
 ```
 
-Un'auto distrutta smetteva già di muoversi, perché tutto il movimento è dentro
-`if(!this.damaged)`, ma conservava l'ultima velocità. Ora la velocità va a zero, e con lei il
-volume del motore: dopo lo schianto si sente solo l'esplosione.
+A destroyed car already stopped moving, because all the movement is inside `if(!this.damaged)`,
+but it kept its last speed. Now the speed goes to zero, and with it the engine volume: after the
+crash you only hear the explosion.
 
-Il blocco è dentro lo stesso `if(!this.damaged)`, quindi `explode()` parte una sola volta, nel frame
-dello schianto. Il controllo sul tipo la limita alla tua auto: cento esplosioni delle AI coprirebbero
-tutto il resto. Per lo stesso motivo `sim.html` non carica `sound.js`: lì le auto sono tutte AI e
-nessuna chiama `explode()`.
+The block is inside the same `if(!this.damaged)`, so `explode()` fires only once, in the frame of
+the crash. The check on the type limits it to your car: a hundred explosions from the AI cars would
+drown out everything else. For the same reason `sim.html` doesn't load `sound.js`: there the cars
+are all AI and none calls `explode()`.
 
-### Differenze dall'originale
+### Differences from the original
 
-Nessuna: il codice di questa parte è quello dell'originale.
+None: the code of this part is the original's.
 
-### Limiti
+### Limitations
 
-- Ogni suono crea un `AudioContext` e nessuno viene mai chiuso. In una gara sono una decina, quindi
-  non pesa, ma ogni contesto tiene occupate risorse audio finché la pagina resta aperta. Il modo
-  consueto è un solo contesto per tutta la pagina, con i tempi calcolati da `currentTime`.
-- I browser bloccano l'audio partito prima di un'interazione dell'utente: un `AudioContext` creato
-  così nasce `"suspended"` e nessuno chiama `resume()`. Se la pagina non ha ancora ricevuto un clic
-  o un tasto, i bip del conto alla rovescia e il motore, che nasce prima che tu tocchi le frecce,
-  possono restare muti per tutta la gara. Dipende dal browser e da quanto spesso visiti la pagina:
-  nella mia prova i contesti erano già attivi.
-- I suoni ci sono solo nella gara.
+- Each sound creates an `AudioContext` and none is ever closed. In a race there are about ten, so
+  it doesn't weigh much, but each context holds audio resources as long as the page stays open.
+  The usual way is a single context for the whole page, with the times computed from
+  `currentTime`.
+- Browsers block audio started before a user interaction: an `AudioContext` created like this
+  starts `"suspended"` and nobody calls `resume()`. If the page hasn't received a click or a key
+  yet, the countdown beeps and the engine, which is created before you touch the arrow keys, may
+  stay silent for the whole race. It depends on the browser and on how often you visit the page:
+  in my test the contexts were already active.
+- The sounds are only in the race.
 
-### Come provarlo
+### How to try it
 
-Apri `race.html` dal server locale, con l'audio acceso, e clicca sulla pagina prima che finisca il
-conto alla rovescia. Senti i bip di 3, 2, 1 e GO!, poi il motore che sale di tono mentre acceleri.
-Sbatti contro un bordo per sentire l'esplosione, oppure arriva al Target per il ta-daa.
+Open `race.html` from the local server, with the audio on, and click on the page before the
+countdown ends. You hear the beeps of 3, 2, 1 and GO!, then the engine rising in pitch as you
+accelerate. Hit a border to hear the explosion, or reach the Target for the ta-daa.
 
-## Parte 6. Camera Part 1
+## Part 6. Camera Part 1
 
-Primo passo verso la vista dal posto di guida. Una camera montata sull'auto guarda avanti, sceglie
-gli edifici che ha davanti e li proietta in prospettiva su un secondo canvas. Per ora disegna solo
-le loro basi, cioè le impronte a terra: il 3D vero arriva nella parte successiva.
+First step toward the view from the driver's seat. A camera mounted on the car looks ahead, picks
+the buildings in front of it and projects them in perspective onto a second canvas. For now it
+draws only their bases, that is their footprints on the ground: the real 3D comes in the next part.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `camera.js` | Nuovo: la classe `Camera`, con campo visivo, ritaglio e proiezione |
-| `race.html` | Nuovo canvas `cameraCanvas`; carica `camera.js` |
-| `race.js` | Pagina divisa in due metà; la camera segue `myCar` a ogni frame |
-| `world/js/math/utils.js` | `cross(p1, p2)`, il prodotto vettoriale in 2D |
-| `world/js/primitives/polygon.js` | `containsPoly`; `break` può marcare i punti di intersezione |
-| `car.js` | `#assessDamage` restituisce sempre `false` (temporaneo) |
+| `camera.js` | New: the `Camera` class, with field of view, clipping and projection |
+| `race.html` | New `cameraCanvas` canvas; loads `camera.js` |
+| `race.js` | Page split in two halves; the camera follows `myCar` at every frame |
+| `world/js/math/utils.js` | `cross(p1, p2)`, the cross product in 2D |
+| `world/js/primitives/polygon.js` | `containsPoly`; `break` can mark the intersection points |
+| `car.js` | `#assessDamage` always returns `false` (temporary) |
 
-### La pagina divisa
+### The split page
 
-`race.js` mette il body in colonna (`flexDirection = "column"`) e dà a ciascun canvas metà
-dell'altezza della finestra: sopra il mondo visto dall'alto, sotto la vista della camera. Il canvas
-della camera viene ripulito a ogni frame e non disegna uno sfondo: il grigio è il `darkgray` del
-body che si vede attraverso.
+`race.js` puts the body in a column (`flexDirection = "column"`) and gives each canvas half of the
+window height: above, the world seen from above, below, the camera view. The camera canvas is
+cleared at every frame and doesn't draw a background: the gray is the body's `darkgray` showing
+through.
 
-### Il campo visivo
+### The field of view
 
 ```js
 this.z = -20;
@@ -715,23 +722,24 @@ this.tip = new Point(
 );
 ```
 
-`move` mette la camera nella posizione dell'auto, con il suo stesso angolo, e calcola tre punti a
-distanza `range` (1000): `tip` dritto davanti, `left` e `right` ruotati di 45° da una parte e
-dall'altra. Sono le stesse formule `x - sin`, `y - cos` con cui si muove l'auto. Il centro e i due
-punti laterali formano un triangolo, `this.poly`: è il campo visivo, 90° di apertura, e `draw` lo
-disegna in blu nella vista dall'alto.
+`move` puts the camera at the car's position, with the same angle, and computes three points at
+distance `range` (1000): `tip` straight ahead, `left` and `right` rotated by 45° to one side and
+the other. They are the same `x - sin`, `y - cos` formulas the car moves with. The center and the
+two side points form a triangle, `this.poly`: it is the field of view, 90° wide, and `draw` draws
+it in blue in the top view.
 
-Il costruttore e `move` destrutturano `{ x, y, angle }`, quindi accettano direttamente un'auto:
-`new Camera(myCar)` e `camera.move(myCar)`.
+The constructor and `move` destructure `{ x, y, angle }`, so they accept a car directly:
+`new Camera(myCar)` and `camera.move(myCar)`.
 
-### Cosa entra nell'inquadratura
+### What gets into the frame
 
-`#filter` sceglie le basi degli edifici da disegnare:
+`#filter` chooses the building bases to draw:
 
-1. scarta i poligoni senza nemmeno un vertice dentro il triangolo (`containsPoly`);
-2. se un poligono attraversa il bordo del triangolo, lavora su due copie: `Polygon.break` le spezza
-   nei punti di intersezione, e di quel poligono restano solo i vertici interni e i punti di taglio;
-3. i poligoni interamente dentro passano così come sono.
+1. it discards the polygons with not even one vertex inside the triangle (`containsPoly`);
+2. if a polygon crosses the edge of the triangle, it works on two copies: `Polygon.break` splits
+   them at the intersection points, and of that polygon only the inner vertices and the cut points
+   remain;
+3. polygons entirely inside go through as they are.
 
 ```js
 if (markIntersections) {
@@ -739,12 +747,12 @@ if (markIntersections) {
 }
 ```
 
-Il nuovo parametro di `Polygon.break` serve a riconoscere dopo i punti di taglio: è lo stesso
-metodo che nel capitolo 11 spezzava i contorni delle strade per unirle, con in più un'etichetta sui
-punti che crea. `containsPoly` ha un nome generoso: restituisce `true` se il poligono ha *almeno un*
-vertice dentro, non se ci sta tutto.
+The new parameter of `Polygon.break` is used to recognize the cut points later: it is the same
+method that in chapter 11 split the road outlines to join them, plus a label on the points it
+creates. `containsPoly` has a generous name: it returns `true` if the polygon has *at least one*
+vertex inside, not if it fits entirely.
 
-### La proiezione
+### The projection
 
 ```js
 const seg = new Segment(this.center, this.tip);
@@ -754,92 +762,91 @@ const x = Math.sign(c) * distance(p, p1) / distance(this, p1);
 const y = - this.z / distance(this, p1);
 ```
 
-Per ogni vertice:
+For each vertex:
 
-1. `p1` è la proiezione del punto sull'asse di vista: `distance(this, p1)` è la profondità, quanto
-   il punto è avanti rispetto alla camera;
-2. la distanza del punto dall'asse, divisa per la profondità, dà la x sullo schermo. Il segno di
-   `cross` dice se il punto sta a destra o a sinistra dell'asse;
-3. la y è l'altezza della camera divisa per la profondità: il suolo è 20 unità sotto l'occhio, e
-   più un punto è lontano più sale verso l'orizzonte, la linea a metà canvas.
+1. `p1` is the projection of the point on the view axis: `distance(this, p1)` is the depth, how
+   far ahead the point is relative to the camera;
+2. the distance of the point from the axis, divided by the depth, gives the x on the screen. The
+   sign of `cross` says whether the point is to the right or to the left of the axis;
+3. the y is the camera height divided by the depth: the ground is 20 units below the eye, and the
+   farther a point is the more it rises toward the horizon, the line at mid canvas.
 
-Dividere per la profondità è la divisione prospettica: le cose lontane si rimpiccioliscono e
-convergono verso il centro. Il risultato, tra −1 e 1, viene scalato su metà del canvas e spostato
-al centro. Con un'apertura di 90° il bordo del campo visivo ha distanza dall'asse uguale alla
-profondità, quindi x = ±1 cade proprio sui bordi del canvas.
+Dividing by the depth is the perspective divide: far things shrink and converge toward the
+center. The result, between −1 and 1, is scaled to half the canvas and moved to the center. With
+a 90° field of view the edge of the field of view is as far from the axis as the depth, so
+x = ±1 falls right on the edges of the canvas.
 
-### Il disegno
+### The drawing
 
-`render` proietta i poligoni filtrati, pulisce il canvas della camera e ci disegna sopra le basi in
-prospettiva. Poi disegna gli stessi poligoni filtrati, non proiettati, su `carCtx`, la vista
-dall'alto: è un aiuto per il debug, che evidenzia gli edifici visti dalla camera. `carCtx` non
-arriva come parametro: `render` lo prende dallo scope globale di `race.js`.
+`render` projects the filtered polygons, clears the camera canvas and draws the bases in
+perspective on it. Then it draws the same filtered polygons, not projected, on `carCtx`, the top
+view: it is a debugging aid, which highlights the buildings seen by the camera. `carCtx` doesn't
+arrive as a parameter: `render` takes it from the global scope of `race.js`.
 
-### Due scorciatoie temporanee
+### Two temporary shortcuts
 
-L'originale, in questa parte, aggira due cose per provare la camera più comodamente:
+The original, in this part, works around two things to try the camera more comfortably:
 
-- `#assessDamage` comincia con `return false;`: nessuna auto si rompe più, e si può guidare
-  attraverso edifici e prati. Vale anche per `sim.html`, che usa lo stesso `car.js`;
-- `let started = true;`: le auto si muovono subito, durante il conto alla rovescia.
+- `#assessDamage` begins with `return false;`: no car breaks anymore, and you can drive through
+  buildings and lawns. It also applies to `sim.html`, which uses the same `car.js`;
+- `let started = true;`: the cars move right away, during the countdown.
 
-Il codice dopo il `return` resta lì, irraggiungibile. La Parte 7 toglie entrambe le scorciatoie.
+The code after the `return` stays there, unreachable. Part 7 removes both shortcuts.
 
-### Differenze dall'originale
+### Differences from the original
 
-Nessuna oltre a quelle delle parti precedenti: le scorciatoie di debug sono tenute come
-nell'originale.
+None beyond those of the previous parts: the debug shortcuts are kept as in the original.
 
-### Limiti
+### Limitations
 
-- Si vedono solo le basi degli edifici, piatte a terra: niente altezza, niente strade, alberi o
-  auto.
-- I poligoni sono disegnati nell'ordine dell'array, non dal più lontano al più vicino: un edificio
-  vicino può finire sotto uno lontano.
-- Un edificio che attraversa il campo visivo senza avere vertici dentro, come uno lungo visto di
-  fianco, viene scartato da `containsPoly` e sparisce.
-- Il campo visivo è un triangolo, non un settore di cerchio: dritto davanti arriva a circa 707
-  (1000 · cos 45°), non a 1000.
-- Un punto proprio vicino alla camera ha profondità quasi nulla e finisce lontanissimo sullo
-  schermo.
-- Con `started = true` le AI partono prima del GO!, ma `frameCount` torna a zero al GO!: i tempi
-  della classifica non contano i secondi del conto alla rovescia.
+- You see only the bases of the buildings, flat on the ground: no height, no roads, trees or
+  cars.
+- The polygons are drawn in the order of the array, not from farthest to nearest: a near building
+  can end up under a far one.
+- A building that crosses the field of view without having vertices inside, like a long one seen
+  from the side, is discarded by `containsPoly` and disappears.
+- The field of view is a triangle, not a circular sector: straight ahead it reaches about 707
+  (1000 · cos 45°), not 1000.
+- A point very close to the camera has almost zero depth and ends up very far away on the screen.
+- With `started = true` the AI cars start before the GO!, but `frameCount` goes back to zero at the
+  GO!: the ranking times don't count the seconds of the countdown.
 
-### Come provarlo
+### How to try it
 
-Apri `race.html` dal server locale e guida con le frecce. Sopra vedi il triangolo blu della camera
-e gli edifici che inquadra; sotto le loro basi in prospettiva, che si allargano e scendono man mano
-che ti avvicini. Gli urti sono disattivati, quindi puoi attraversare gli edifici e guardare la
-proiezione da ogni lato.
+Open `race.html` from the local server and drive with the arrow keys. Above you see the blue
+triangle of the camera and the buildings it frames; below, their bases in perspective, which widen
+and move down as you get closer. Collisions are disabled, so you can drive through the buildings
+and look at the projection from every side.
 
-## Parte 7. Camera Part 2
+## Part 7. Camera Part 2
 
-La camera diventa la vista del gioco. Le basi piatte della Parte 6 vengono estruse in solidi: gli
-edifici si alzano, i bordi del corridoio diventano muretti e l'auto diventa un box. La camera non
-sta più sull'auto ma la insegue da dietro, con un po' di ritardo, e occupa tutta la finestra.
+The camera becomes the game view. The flat bases of Part 6 are extruded into solids: the
+buildings rise, the borders of the corridor become low walls and the car becomes a box. The camera
+is no longer on the car but chases it from behind, with a bit of delay, and takes up the whole
+window.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `camera.js` | Camera dietro l'auto con inseguimento morbido; estrusione di edifici, bordi e auto |
-| `world/js/primitives/point.js` | Terza coordinata `z`, 0 se non indicata |
-| `world/js/primitives/polygon.js` | `containsPoint` usa un punto esterno molto più lontano |
-| `race.js` | Vista dall'alto nascosta, camera a tutto schermo; via le scorciatoie della Parte 6 |
-| `car.js` | Il costruttore chiama subito `update`; `#assessDamage` torna a funzionare |
+| `camera.js` | Camera behind the car with smooth chasing; extrusion of buildings, borders and cars |
+| `world/js/primitives/point.js` | Third coordinate `z`, 0 if not given |
+| `world/js/primitives/polygon.js` | `containsPoint` uses a much farther outer point |
+| `race.js` | Top view hidden, full-screen camera; the shortcuts of Part 6 are gone |
+| `car.js` | The constructor calls `update` right away; `#assessDamage` works again |
 
-### Una coordinata in più
+### One more coordinate
 
 ```js
 constructor(x, y, z = 0) {
 ```
 
-`Point` accetta una `z` facoltativa. Tutti i punti che esistevano già, dal grafo agli edifici,
-restano a `z = 0`, cioè a terra, e il codice 2D non se ne accorge. Come per la y del canvas, anche
-qui l'asse è rovesciato: l'alto è la z negativa. La camera sta a `z = -40` e il tetto di un edificio
-alto 200 sta a `z = -200`.
+`Point` accepts an optional `z`. All the points that already existed, from the graph to the
+buildings, stay at `z = 0`, that is on the ground, and the 2D code doesn't notice. As for the y of
+the canvas, here too the axis is flipped: up is negative z. The camera is at `z = -40` and the
+roof of a building 200 tall is at `z = -200`.
 
-### La camera dietro l'auto
+### The camera behind the car
 
 ```js
 this.x = lerp(this.x, x + this.distanceBehind * Math.sin(angle), t);
@@ -847,17 +854,18 @@ this.y = lerp(this.y, y + this.distanceBehind * Math.cos(angle), t);
 this.angle = lerp(this.angle, angle, t);
 ```
 
-Il punto di arrivo è 150 unità (`distanceBehind`) dietro l'auto: sono le formule del movimento
-dell'auto con il segno cambiato. La camera però non ci salta: a ogni frame percorre il 10% della
-distanza che manca (`t = 0.1`), e lo stesso fa con l'angolo. Quando l'auto accelera o curva, la
-camera resta un po' indietro e la si vede di tre quarti; quando si ferma, la camera la raggiunge
-rallentando man mano. È lo stesso `lerp` di sempre, usato frame dopo frame come filtro.
+The destination point is 150 units (`distanceBehind`) behind the car: they are the car's movement
+formulas with the sign flipped. The camera, however, doesn't jump there: at every frame it covers
+10% of the remaining distance (`t = 0.1`), and does the same with the angle. When the car
+accelerates or turns, the camera lags a bit behind and you see the car in three-quarter view; when
+it stops, the camera catches up with it, slowing down gradually. It is the same old `lerp`, used
+frame after frame as a filter.
 
-`moveSimple` fa gli stessi calcoli senza `lerp` e serve al costruttore. `lerp` parte dalla
-posizione attuale della camera: al primo frame, senza una posizione iniziale, `this.x` sarebbe
-`undefined` e tutti i conti darebbero `NaN`.
+`moveSimple` does the same computations without `lerp` and is used by the constructor. `lerp`
+starts from the current position of the camera: on the first frame, without an initial position,
+`this.x` would be `undefined` and all the computations would give `NaN`.
 
-### Dall'impronta al solido
+### From footprint to solid
 
 ```js
 const ceiling = new Polygon(
@@ -865,126 +873,129 @@ const ceiling = new Polygon(
 );
 ```
 
-`#extrude` prende un poligono a terra e ne costruisce una copia alla quota `-height`, il soffitto.
-Poi, per ogni lato, aggiunge una faccia di quattro punti: i due estremi del lato a terra e gli
-stessi due sul soffitto. Le facce e il soffitto sono `Polygon` normali con punti 3D, e il resto del
-codice li tratta come gli altri poligoni.
+`#extrude` takes a polygon on the ground and builds a copy of it at height `-height`, the ceiling.
+Then, for each side, it adds a face of four points: the two ends of the side on the ground and the
+same two on the ceiling. The faces and the ceiling are normal `Polygon`s with 3D points, and the
+rest of the code treats them like the other polygons.
 
-`#getPolys` estrude tre cose, dopo averle filtrate con il campo visivo:
+`#getPolys` extrudes three things, after filtering them with the field of view:
 
-| Cosa | Da dove | Altezza |
+| What | From where | Height |
 |------|---------|---------|
-| Edifici | `world.buildings`, le basi | 200 |
-| Auto | `world.bestCar.polygon`, che in gara è sempre `myCar` | 10 |
-| Bordi | `world.corridor.borders`, ogni segmento come poligono di 2 punti | 10 |
+| Buildings | `world.buildings`, the bases | 200 |
+| Car | `world.bestCar.polygon`, which in the race is always `myCar` | 10 |
+| Borders | `world.corridor.borders`, each segment as a 2-point polygon | 10 |
 
-Il poligono dell'auto è fatto di oggetti `{x, y}`, non di `Point`: senza `z` la proiezione darebbe
-`NaN`, quindi `#getPolys` li ricostruisce con `new Point(p.x, p.y)`.
+The car polygon is made of `{x, y}` objects, not `Point`s: without `z` the projection would give
+`NaN`, so `#getPolys` rebuilds them with `new Point(p.x, p.y)`.
 
-### Il filtro, rifatto
+### The filter, redone
 
-Nella Parte 6 un edificio passava il filtro solo se aveva almeno un vertice nel campo visivo.
-Adesso il primo controllo è `intersectsPoly`: se il poligono attraversa il bordo del triangolo
-viene spezzato e ritagliato come prima; altrimenti passa solo se `containsPoly` lo trova dentro.
-Un edificio lungo visto di fianco, con tutti i vertici fuori ma i lati che tagliano il triangolo,
-adesso compare.
+In Part 6 a building passed the filter only if it had at least one vertex in the field of view.
+Now the first check is `intersectsPoly`: if the polygon crosses the edge of the triangle it is
+split and clipped as before; otherwise it passes only if `containsPoly` finds it inside. A long
+building seen from the side, with all its vertices outside but its sides cutting the triangle,
+now shows up.
 
-### L'altezza nella proiezione
+### Height in the projection
 
 ```js
 const y = (p.z - this.z) / distance(this, p1);
 ```
 
-Nella Parte 6 la y usava solo l'altezza della camera, perché tutti i punti stavano a terra. Ora
-conta la differenza di quota tra il punto e l'occhio, sempre divisa per la profondità. Un punto a
-terra sta 40 sotto la camera e cade sotto l'orizzonte; il tetto di un edificio sta 160 sopra e
-sale verso l'alto dello schermo. Più il punto è lontano, più entrambi si schiacciano sulla linea
-dell'orizzonte.
+In Part 6 the y used only the camera height, because all the points were on the ground. Now what
+counts is the height difference between the point and the eye, still divided by the depth. A point
+on the ground is 40 below the camera and falls below the horizon; the roof of a building is 160
+above and rises toward the top of the screen. The farther the point, the more both get squashed
+onto the horizon line.
 
-### Il punto esterno
+### The outer point
 
 ```js
 const outerPoint = new Point(-100000, -100000);
 ```
 
-`containsPoint` traccia un segmento dal punto da controllare a un punto sicuramente fuori dal
-poligono e conta quante volte attraversa i lati: dispari vuol dire dentro. Con `(-1000, -1000)`
-quel punto "sicuramente fuori" non lo era più: questo mondo ha coordinate oltre −1000 (per esempio
-y = −1148), e un poligono in quella zona poteva contenerlo e falsare il conteggio. Ora la camera
-usa `containsPoint` a ogni frame su punti di tutto il mondo, e l'errore si vedrebbe.
+`containsPoint` draws a segment from the point to check to a point surely outside the polygon and
+counts how many times it crosses the sides: odd means inside. With `(-1000, -1000)` that "surely
+outside" point no longer was: this world has coordinates beyond −1000 (for example y = −1148), and
+a polygon in that area could contain it and skew the count. Now the camera uses `containsPoint` at
+every frame on points from the whole world, and the error would show.
 
-### La gara torna normale
+### The race goes back to normal
 
 In `race.js`:
 
-- `carCanvas.height = 0`: la vista dall'alto c'è ancora, ma è alta zero, e il canvas della camera
-  prende tutta la finestra. La minimappa e la classifica restano sopra;
-- `world.draw` e `camera.draw` su `carCtx` sono commentati: disegnerebbero su un canvas invisibile;
-- `let started = false`: le auto aspettano di nuovo il GO!.
+- `carCanvas.height = 0`: the top view is still there, but it is zero tall, and the camera canvas
+  takes the whole window. The minimap and the ranking stay on top;
+- `world.draw` and `camera.draw` on `carCtx` are commented out: they would draw on an invisible
+  canvas;
+- `let started = false`: the cars wait for the GO! again.
 
-In `car.js` torna il controllo degli urti. Il costruttore, poi, chiama subito `this.update([], [])`.
-Durante il conto alla rovescia `race.js` non aggiorna le auto, quindi `this.polygon` non
-esisterebbe ancora, e la camera lo usa già dal primo frame per disegnare l'auto. Con i comandi
-tutti spenti e velocità zero, quel primo `update` calcola poligono e sensori senza spostare l'auto.
+In `car.js` the collision check is back. The constructor, then, calls `this.update([], [])` right
+away. During the countdown `race.js` doesn't update the cars, so `this.polygon` wouldn't exist yet,
+and the camera already uses it from the first frame to draw the car. With all the controls off and
+zero speed, that first `update` computes polygon and sensors without moving the car.
 
-### Differenze dall'originale
+### Differences from the original
 
-Nessuna oltre a quelle delle parti precedenti.
+None beyond those of the previous parts.
 
-### Limiti
+### Limitations
 
-- I poligoni sono disegnati nell'ordine edifici, auto, bordi, non dal più lontano al più vicino:
-  i muretti del corridoio stanno sempre sopra tutto, anche quando sono dietro un edificio. Il
-  riempimento semitrasparente rende la scena leggibile, ma non corretta.
-- Un bordo è un poligono di 2 punti, quindi ha due lati, avanti e ritorno: ogni muretto viene
-  disegnato due volte e il suo "soffitto" è una linea.
-- Si vede solo l'auto del giocatore: le auto AI non vengono estruse né disegnate.
-- `t = 0.1` vale per frame: su uno schermo a 120 Hz la camera raggiunge l'auto in metà tempo.
-- Le facce molto vicine all'occhio hanno profondità quasi nulla e finiscono fuori dallo schermo,
-  per esempio quando la camera, che sta 150 dietro l'auto, passa attraverso un edificio.
-- Alberi e segnaletica non compaiono nella vista.
+- The polygons are drawn in the order buildings, car, borders, not from farthest to nearest: the
+  low walls of the corridor are always on top of everything, even when they are behind a
+  building. The semi-transparent fill makes the scene readable, but not correct.
+- A border is a 2-point polygon, so it has two sides, there and back: each low wall is drawn twice
+  and its "ceiling" is a line.
+- Only the player's car is visible: the AI cars are neither extruded nor drawn.
+- `t = 0.1` is per frame: on a 120 Hz screen the camera catches up with the car in half the time.
+- Faces very close to the eye have almost zero depth and end up off the screen, for example when
+  the camera, which is 150 behind the car, passes through a building.
+- Trees and road markings don't appear in the view.
 
-### Come provarlo
+### How to try it
 
-Apri `race.html` dal server locale. Durante il conto alla rovescia vedi già il circuito in 3D, con
-l'auto davanti alla camera. Dopo il GO! guida con le frecce: in curva la camera si sposta di lato e
-poi si riallinea dietro l'auto. Gli urti sono di nuovo attivi, quindi un edificio ti ferma.
+Open `race.html` from the local server. During the countdown you already see the track in 3D,
+with the car in front of the camera. After the GO! drive with the arrow keys: in a curve the camera
+moves to the side and then realigns behind the car. Collisions are active again, so a building
+stops you.
 
-## Parte 8. Phone Input
+## Part 8. Phone Input
 
-Il telefono diventa il volante. Una terza pagina, `phone.html`, è la gara della Parte 7 con un
-altro modo di guidare: l'auto accelera da sola, si sterza inclinando il telefono e si tiene il
-dito sullo schermo per andare in retromarcia. La vista si raddrizza a ogni inclinazione, come se
-l'orizzonte restasse fermo mentre il telefono gira.
+The phone becomes the steering wheel. A third page, `phone.html`, is the race of Part 7 with
+another way of driving: the car accelerates by itself, you steer by tilting the phone and keep
+your finger on the screen to go in reverse. The view straightens at every tilt, as if the horizon
+stayed still while the phone turns.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `phoneControls.js` | Nuovo: la classe `PhoneControls`, che legge accelerometro e tocchi |
-| `phone.html` | Nuova pagina: la gara con i controlli del telefono e la sola vista della camera |
-| `car.js` | Se i controlli hanno un `tilt`, lo sterzo è proporzionale all'inclinazione |
+| `phoneControls.js` | New: the `PhoneControls` class, which reads accelerometer and touches |
+| `phone.html` | New page: the race with the phone controls and only the camera view |
+| `car.js` | If the controls have a `tilt`, the steering is proportional to the tilt |
 
-### Una pagina in più
+### One more page
 
-`phone.html` è `race.html` con tre differenze:
+`phone.html` is `race.html` with three differences:
 
-- il canvas della camera è centrato con `position: absolute` e `top`/`left` al 50%: la
-  `translate(-50%, -50%)` che completa la centratura arriva dalla rotazione, insieme all'angolo;
-- minimappa e classifica sono nascoste con `display: none`: sul telefono non c'è spazio, ma
-  `race.js` continua ad aggiornarle;
-- uno script in fondo, dopo `race.js`, sostituisce i controlli dell'auto:
+- the camera canvas is centered with `position: absolute` and `top`/`left` at 50%: the
+  `translate(-50%, -50%)` that completes the centering comes from the rotation, together with the
+  angle;
+- minimap and ranking are hidden with `display: none`: on the phone there is no room, but
+  `race.js` keeps updating them;
+- a script at the bottom, after `race.js`, replaces the car controls:
 
 ```js
 myCar.controls = new PhoneControls(cameraCanvas);
 ```
 
-`race.js` crea `myCar` con i controlli da tastiera, poi questa riga li rimpiazza. `car.js` non sa
-chi lo guida: legge solo i campi `forward`, `reverse`, `left`, `right` e ora `tilt`, quindi va bene
-qualunque oggetto che li abbia. L'auto resta di tipo `"KEYS"`, e continua ad avere motore ed
-esplosione.
+`race.js` creates `myCar` with the keyboard controls, then this line replaces them. `car.js`
+doesn't know who is driving it: it only reads the `forward`, `reverse`, `left`, `right` and now
+`tilt` fields, so any object that has them will do. The car stays of type `"KEYS"`, and still has
+engine and explosion.
 
-### L'inclinazione
+### The tilt
 
 ```js
 this.tilt = Math.atan2(
@@ -993,34 +1004,35 @@ this.tilt = Math.atan2(
 );
 ```
 
-L'evento `devicemotion` riporta l'accelerazione del telefono lungo i suoi tre assi, gravità
-compresa. Con il telefono fermo è solo la gravità, e la sua direzione nel piano dello schermo dice
-quanto è ruotato: `atan2(y, x)` la trasforma in un angolo. Con il telefono in orizzontale la
-gravità sta tutta sulla x e `tilt` vale 0; ruotandolo come un volante cresce da una parte o
-dall'altra.
+The `devicemotion` event reports the acceleration of the phone along its three axes, gravity
+included. With the phone still it is only gravity, and its direction in the plane of the screen
+says how much it is rotated: `atan2(y, x)` turns it into an angle. With the phone held horizontally
+gravity is all on x and `tilt` is 0; rotating it like a steering wheel it grows to one side or the
+other.
 
-Il blocco commentato sopra è un primo tentativo con `deviceorientation` e l'angolo `beta`: resta
-nel codice come nell'originale.
+The commented-out block above is a first attempt with `deviceorientation` and the `beta` angle: it
+stays in the code as in the original.
 
-### Lo schermo che si raddrizza
+### The screen that straightens
 
 ```js
 const newCanvasAngle = -this.tilt;
 this.canvasAngle = this.canvasAngle * 0.6 + newCanvasAngle * 0.4;
 ```
 
-Il canvas della camera ruota di `-tilt`: il telefono gira da una parte, il disegno dall'altra, e
-l'orizzonte resta parallelo al pavimento. L'accelerometro però trema, e ruotare il canvas su ogni
-lettura farebbe vibrare l'immagine. Per questo l'angolo nuovo pesa solo il 40%: è una media
-mobile esponenziale, lo stesso `lerp` della camera con `t = 0.4`, applicato a un altro segnale.
+The camera canvas rotates by `-tilt`: the phone turns one way, the drawing the other, and the
+horizon stays parallel to the floor. The accelerometer, however, jitters, and rotating the canvas
+on every reading would make the image shake. That's why the new angle weighs only 40%: it is an
+exponential moving average, the same `lerp` as the camera with `t = 0.4`, applied to another
+signal.
 
-### Avanti e indietro
+### Forward and back
 
-`forward` parte a `true`: l'auto accelera sempre, appena il conto alla rovescia lo permette.
-`touchstart` in qualunque punto della pagina passa alla retromarcia, `touchend` torna avanti.
-Come con la freccia giù, la retromarcia prima frena e poi fa andare l'auto all'indietro.
+`forward` starts at `true`: the car always accelerates, as soon as the countdown allows it.
+`touchstart` anywhere on the page switches to reverse, `touchend` goes back to forward. As with the
+down arrow, reverse first brakes and then makes the car go backward.
 
-### Lo sterzo in `car.js`
+### The steering in `car.js`
 
 ```js
 if(this.controls.tilt){
@@ -1028,195 +1040,198 @@ if(this.controls.tilt){
 }else{
 ```
 
-Con le frecce lo sterzo è tutto o niente: 0.03 rad per frame. Con il telefono è proporzionale:
-inclinato di 0.3 rad, il telefono fa sterzare l'auto di 0.009 rad per frame. Quando `tilt` è
-`undefined`, come per la tastiera e le auto AI, o esattamente 0, si passa al ramo di sempre.
+With the arrow keys the steering is all or nothing: 0.03 rad per frame. With the phone it is
+proportional: tilted by 0.3 rad, the phone makes the car steer by 0.009 rad per frame. When `tilt`
+is `undefined`, as for the keyboard and the AI cars, or exactly 0, it falls back to the usual
+branch.
 
-### Differenze dall'originale
+### Differences from the original
 
-`phone.html` è costruita da `race.html` di questa cartella, quindi ne eredita le differenze:
-`lang` e `charset`, l'ordine degli script del capitolo 11, niente righe commentate dei mondi
-alternativi.
+`phone.html` is built from `race.html` of this folder, so it inherits its differences:
+`lang` and `charset`, the script order of chapter 11, no commented-out lines of the alternative
+worlds.
 
-### Limiti
+### Limitations
 
-- Non l'ho provato su un telefono vero: inclinazione e tocchi li ho simulati nel browser del
-  computer con eventi `DeviceMotionEvent` e `touchstart`/`touchend`.
-- I browser dei telefoni possono non mandare `devicemotion` a una pagina servita in HTTP da un
-  indirizzo di rete locale, e iOS chiede un permesso esplicito che il codice non richiede.
-- `tilt` è 0 solo in orizzontale, con un lato preciso verso il basso. In verticale vale circa
-  ±π/2 e l'auto gira su sé stessa; capovolto è vicino a ±π e salta da un segno all'altro.
-- Lo sterzo non ha `flip`: in retromarcia non si inverte come con le frecce.
-- Su un computer non c'è accelerometro: Chrome manda un solo `devicemotion` con `x` e `y` a
-  `null`, `atan2(null, null)` vale 0, il canvas viene centrato e l'auto va sempre dritta.
-- Il canvas ruotato ha le dimensioni della finestra, calcolate al caricamento: ruotando, gli
-  angoli escono dallo schermo e si vede il grigio dello sfondo.
-- Basta sollevare un dito per tornare avanti, anche se un altro è ancora sullo schermo.
+- I haven't tried it on a real phone: I simulated tilt and touches in the computer's browser with
+  `DeviceMotionEvent` and `touchstart`/`touchend` events.
+- Phone browsers may not send `devicemotion` to a page served over HTTP from a local network
+  address, and iOS asks for an explicit permission that the code doesn't request.
+- `tilt` is 0 only when horizontal, with one specific side down. Held vertically it is about
+  ±π/2 and the car spins in place; upside down it is close to ±π and jumps from one sign to the
+  other.
+- The steering has no `flip`: in reverse it isn't inverted as with the arrow keys.
+- On a computer there is no accelerometer: Chrome sends a single `devicemotion` with `x` and `y`
+  set to `null`, `atan2(null, null)` is 0, the canvas gets centered and the car always goes
+  straight.
+- The rotated canvas has the size of the window, computed on load: when rotating, the corners go
+  off the screen and you see the gray of the background.
+- Lifting one finger is enough to go back to forward, even if another one is still on the screen.
 
-### Come provarlo
+### How to try it
 
-Servi la cartella in modo che il telefono la raggiunga, apri `phone.html` e tieni il telefono in
-orizzontale. Dopo il GO! l'auto parte da sola: ruota il telefono come un volante per sterzare e
-tieni il dito sullo schermo per frenare e fare retromarcia. Se l'auto va solo dritta, il browser
-non sta mandando i dati dell'accelerometro alla pagina.
+Serve the folder so that the phone can reach it, open `phone.html` and hold the phone
+horizontally. After the GO! the car starts by itself: rotate the phone like a steering wheel to
+steer and keep your finger on the screen to brake and reverse. If the car only goes straight, the
+browser is not sending the accelerometer data to the page.
 
-## Parte 9. Marker Detector
+## Part 9. Marker Detector
 
-Prima di guidare con la webcam serve un modo per vedere il volante. Questa parte non tocca la
-gara: aggiunge una classe che cerca nell'immagine due oggetti blu, i marker, e una pagina di prova
-che mostra la webcam con i pixel trovati colorati. Il volante sarà un oggetto con un marker blu
-a ogni estremità, tenuto davanti alla webcam: la Parte 10 userà la linea che li unisce per
-sterzare e la loro grandezza per capire se il volante si avvicina o si allontana.
+Before driving with the webcam we need a way to see the steering wheel. This part doesn't touch
+the race: it adds a class that looks for two blue objects in the image, the markers, and a test
+page that shows the webcam with the found pixels colored. The steering wheel will be an object
+with a blue marker at each end, held in front of the webcam: Part 10 will use the line that joins
+them to steer and their size to tell whether the steering wheel is getting closer or farther.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `markerDetector.js` | Nuovo: la classe `MarkerDetector`, che trova i due marker in un'immagine |
-| `markers.html` | Nuova pagina di prova: webcam, rilevamento e pixel dei marker colorati |
+| `markerDetector.js` | New: the `MarkerDetector` class, which finds the two markers in an image |
+| `markers.html` | New test page: webcam, detection and marker pixels colored |
 
-### Una pagina di prova
+### A test page
 
-`markers.html` non carica nient'altro della cartella: solo `markerDetector.js` e uno script suo.
-Chiede la webcam con `getUserMedia`, la collega a un elemento `<video>` che non viene mai aggiunto
-alla pagina e, appena arriva il primo fotogramma, dà al canvas le dimensioni del video. Poi, a
-ogni frame:
+`markers.html` doesn't load anything else from the folder: only `markerDetector.js` and a script
+of its own. It asks for the webcam with `getUserMedia`, connects it to a `<video>` element that is
+never added to the page and, as soon as the first frame arrives, gives the canvas the size of the
+video. Then, at every frame:
 
-1. disegna il fotogramma sul canvas;
-2. ne legge i pixel con `getImageData`;
-3. passa i pixel al detector;
-4. colora di rosso, un pixel alla volta, i punti del marker di sinistra e di giallo quelli di destra.
+1. it draws the frame on the canvas;
+2. it reads its pixels with `getImageData`;
+3. it passes the pixels to the detector;
+4. it colors, one pixel at a time, the points of the left marker in red and those of the right
+   one in yellow.
 
-La funzione `distance` che il detector usa è definita in questa pagina: gli script condividono lo
-scope globale, quindi la classe la trova al momento della chiamata. Se la webcam non è
-disponibile o il permesso viene negato, un `alert` mostra l'errore.
+The `distance` function the detector uses is defined in this page: the scripts share the global
+scope, so the class finds it at call time. If the webcam is not available or the permission is
+denied, an `alert` shows the error.
 
-### Quanto è blu un pixel
+### How blue a pixel is
 
 ```js
 const blueness = b - Math.max(r, g);
 if (blueness > this.threshold.value) {
 ```
 
-`getImageData` restituisce un array piatto di quattro byte per pixel, nell'ordine rosso, verde,
-blu e alfa. Per ogni pixel il detector misura di quanto il blu supera il più forte degli altri due
-canali. Un bianco o un grigio hanno i tre canali simili e restano vicini a 0, anche se sono
-chiarissimi; un blu acceso supera la soglia. Dall'indice nell'array si ricavano le coordinate:
-`i / 4` è il numero del pixel, il resto della divisione per la larghezza è la x, il quoziente è
-la y.
+`getImageData` returns a flat array of four bytes per pixel, in the order red, green, blue and
+alpha. For each pixel the detector measures how much the blue exceeds the stronger of the other
+two channels. A white or a gray have the three channels similar and stay close to 0, even if they
+are very light; a bright blue exceeds the threshold. The coordinates come from the index in the
+array: `i / 4` is the pixel number, the remainder of the division by the width is the x, the
+quotient is the y.
 
-La soglia vale 50 ed è il `value` di un `<input type="range">` da 0 a 255. Lo slider viene creato
-ma non aggiunto alla pagina, quindi per ora non si può spostare: è lì per la Parte 10. Il valore di
-un input è una stringa, `"50"`, e il confronto con `>` la converte in numero.
+The threshold is 50 and it is the `value` of an `<input type="range">` from 0 to 255. The slider
+is created but not added to the page, so for now it can't be moved: it's there for Part 10. The
+value of an input is a string, `"50"`, and the comparison with `>` converts it to a number.
 
-### Due gruppi
+### Two groups
 
-I punti blu sono un unico elenco: bisogna dividerli tra i due marker. Il detector usa k-means con
-k = 2, scritto a mano:
+The blue points are a single list: they have to be split between the two markers. The detector
+uses k-means with k = 2, written by hand:
 
-1. due centroidi di partenza: il primo punto trovato e l'ultimo. La scansione va per righe
-   dall'alto, quindi sono il punto più in alto e quello più in basso, quasi sempre in due marker
-   diversi;
-2. ogni punto va nel gruppo del centroide più vicino;
-3. ogni centroide si sposta nella media dei punti del suo gruppo;
-4. si ripetono i passi 2 e 3, dieci volte in tutto.
+1. two starting centroids: the first point found and the last one. The scan goes row by row from
+   the top, so they are the topmost point and the bottommost one, almost always in two different
+   markers;
+2. each point goes into the group of the nearest centroid;
+3. each centroid moves to the mean of the points of its group;
+4. steps 2 and 3 are repeated, ten times in all.
 
-Le iterazioni sono sempre dieci: il ciclo non si ferma prima, anche quando i gruppi non cambiano
-più. Alla fine il gruppo con il centroide più a sinistra diventa `leftMarker`, l'altro
+There are always ten iterations: the loop doesn't stop earlier, even when the groups no longer
+change. At the end the group with the leftmost centroid becomes `leftMarker`, the other
 `rightMarker`.
 
-### Centro e grandezza
+### Center and size
 
-Per ogni marker il detector restituisce il centroide, l'elenco dei punti e un raggio:
+For each marker the detector returns the centroid, the list of points and a radius:
 
 ```js
 const size1 = Math.sqrt(group1.length);
 const radius1 = size1 / 2;
 ```
 
-`size` è il lato di un quadrato con tanti pixel quanti ne ha il marker, e il raggio ne è la metà.
-Per un cerchio esce un po' più piccolo del vero: circa 0.89 volte il raggio. Nel test un cerchio
-di raggio 20 ha dato 17.9, uno di raggio 30 ha dato 26.8. Non conta, perché questo valore serve
-solo per confronti: un marker che si rimpicciolisce si sta allontanando.
+`size` is the side of a square with as many pixels as the marker has, and the radius is half of
+it. For a circle it comes out a bit smaller than the real one: about 0.89 times the radius. In the
+test a circle of radius 20 gave 17.9, one of radius 30 gave 26.8. It doesn't matter, because this
+value is used only for comparisons: a marker that shrinks is moving away.
 
-### Differenze dall'originale
+### Differences from the original
 
-Nell'originale questa parte è una cartella a sé, con la pagina chiamata `index.html`. Qui vive
-nella cartella della gara come `markers.html`: la Parte 10 aggiunge `markerDetector.js` accanto
-agli altri script, e un `index.html` in mezzo a `race.html`, `phone.html` e `sim.html` farebbe
-pensare alla pagina principale. Come nelle altre pagine ci sono `lang` e `charset`.
+In the original this part is a folder of its own, with the page called `index.html`. Here it
+lives in the race folder as `markers.html`: Part 10 adds `markerDetector.js` next to the other
+scripts, and an `index.html` among `race.html`, `phone.html` and `sim.html` would suggest the main
+page. As in the other pages there are `lang` and `charset`.
 
-### Limiti
+### Limitations
 
-- Non l'ho provato con una webcam vera. Ho caricato la pagina con uno stream finto: un canvas con
-  due cerchi blu e un rettangolo rosso. I centroidi sono venuti a mezzo pixel dai centri
-  disegnati e il rettangolo è stato ignorato.
-- Se nell'immagine non c'è niente di blu, il detector non restituisce `null`: restituisce due
-  marker senza punti, con i centroidi a `NaN`. La pagina non va in errore, semplicemente non
-  colora niente.
-- Con un solo marker in vista, k-means divide comunque i suoi punti in due metà. Qualsiasi altro
-  oggetto blu nell'inquadratura finisce in uno dei due gruppi e sposta il centroide.
-- Il video non è specchiato: il marker che si tiene con la mano sinistra compare a destra
-  nell'immagine e diventa `rightMarker`. La Parte 10 disegna il fotogramma ribaltato.
-- L'immagine è analizzata alla risoluzione piena della webcam, e a ognuna delle dieci iterazioni
-  si calcolano quattro distanze per ogni punto blu. La Parte 10 rimpicciolisce l'immagine di quattro volte
-  per lato prima di analizzarla.
-- La soglia è fissa a 50: con una luce diversa può essere troppo alta o troppo bassa.
+- I haven't tried it with a real webcam. I loaded the page with a fake stream: a canvas with two
+  blue circles and a red rectangle. The centroids came out within half a pixel of the drawn
+  centers and the rectangle was ignored.
+- If there is nothing blue in the image, the detector doesn't return `null`: it returns two
+  markers without points, with the centroids at `NaN`. The page doesn't error out, it simply
+  doesn't color anything.
+- With only one marker in view, k-means still splits its points into two halves. Any other blue
+  object in the frame ends up in one of the two groups and moves the centroid.
+- The video is not mirrored: the marker held with the left hand appears on the right in the image
+  and becomes `rightMarker`. Part 10 draws the frame flipped.
+- The image is analyzed at the full resolution of the webcam, and at each of the ten iterations
+  four distances are computed for each blue point. Part 10 shrinks the image four times per side
+  before analyzing it.
+- The threshold is fixed at 50: with different lighting it can be too high or too low.
 
-### Come provarlo
+### How to try it
 
-La webcam funziona solo in un contesto sicuro: `localhost` va bene, un indirizzo di rete in HTTP
-no. Servi la cartella, apri `markers.html` su `localhost` e consenti l'accesso alla
-webcam. Metti davanti alla camera due oggetti blu ben separati: i loro pixel diventano rossi
-quello a sinistra nell'immagine, gialli quello a destra.
+The webcam works only in a secure context: `localhost` is fine, a network address over HTTP is
+not. Serve the folder, open `markers.html` on `localhost` and allow access to the webcam. Put two
+well-separated blue objects in front of the camera: the pixels of the one on the left in the image
+turn red, those of the one on the right yellow.
 
-## Parte 10. Camera Input
+## Part 10. Camera Input
 
-Il detector della Parte 9 diventa un volante. Una quarta pagina, `camera.html`, è la gara con i
-controlli presi dalla webcam: si tiene davanti alla camera un oggetto con un marker blu a ogni
-estremità e lo si ruota come un volante. Allontanarlo dalla camera mette la retromarcia. In un
-riquadro semitrasparente in alto a sinistra si vede cosa sta guardando il gioco.
+The detector of Part 9 becomes a steering wheel. A fourth page, `camera.html`, is the race with
+the controls taken from the webcam: you hold in front of the camera an object with a blue marker
+at each end and rotate it like a steering wheel. Moving it away from the camera engages reverse.
+In a semi-transparent box at the top left you see what the game is looking at.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `cameraControls.js` | Nuovo: la classe `CameraControls`, che trasforma i marker in sterzo e marcia |
-| `camera.html` | Nuova pagina: la gara con i controlli della webcam e il riquadro `ironManCanvas` |
-| `markerDetector.js` | La soglia si può cambiare con `updateThreshold` e resta salvata nel `localStorage` |
-| `style.css` | Posizione e aspetto del riquadro della webcam |
+| `cameraControls.js` | New: the `CameraControls` class, which turns the markers into steering and gear |
+| `camera.html` | New page: the race with the webcam controls and the `ironManCanvas` box |
+| `markerDetector.js` | The threshold can be changed with `updateThreshold` and stays saved in `localStorage` |
+| `style.css` | Position and look of the webcam box |
 
-### La pagina
+### The page
 
-`camera.html` è `race.html` con un canvas in più, `ironManCanvas`, e uno script in fondo che
-sostituisce i controlli dell'auto:
+`camera.html` is `race.html` with one more canvas, `ironManCanvas`, and a script at the bottom
+that replaces the car controls:
 
 ```js
 const controls = new CameraControls(ironManCanvas);
 myCar.controls = controls;
 ```
 
-È lo stesso schema di `phone.html`: `car.js` legge `forward`, `reverse` e `tilt`, e non sa da dove
-arrivano. Il codice dell'auto non cambia. A differenza di `phone.html`, minimappa e classifica
-restano visibili.
+It is the same pattern as `phone.html`: `car.js` reads `forward`, `reverse` and `tilt`, and
+doesn't know where they come from. The car code doesn't change. Unlike `phone.html`, minimap and
+ranking stay visible.
 
-### Il fotogramma allo specchio
+### The mirrored frame
 
-Appena la webcam manda il primo fotogramma, `CameraControls` dà al riquadro un quarto della
-larghezza e un quarto dell'altezza del video: i pixel da analizzare diventano un sedicesimo. Il
-CSS poi lo allarga a 300 pixel sullo schermo. A ogni frame il fotogramma viene disegnato
-ribaltato:
+As soon as the webcam sends the first frame, `CameraControls` gives the box a quarter of the width
+and a quarter of the height of the video: the pixels to analyze become a sixteenth. The CSS then
+enlarges it to 300 pixels on the screen. At every frame the frame is drawn flipped:
 
 ```js
 this.ctx.translate(this.canvas.width, 0);
 this.ctx.scale(-1, 1);
 ```
 
-La webcam riprende la scena dal suo punto di vista, quindi la mano sinistra comparirebbe a
-destra. Ribaltato, il riquadro funziona come uno specchio: la mano sinistra sta a sinistra,
-`leftMarker` è davvero il marker di sinistra e il volante gira dalla parte giusta.
+The webcam films the scene from its own point of view, so the left hand would appear on the
+right. Flipped, the box works like a mirror: the left hand is on the left, `leftMarker` really is
+the left marker and the steering wheel turns the right way.
 
-### Il volante
+### The steering wheel
 
 ```js
 this.tilt = Math.atan2(
@@ -1225,18 +1240,18 @@ this.tilt = Math.atan2(
 );
 ```
 
-`tilt` è l'angolo della linea che va dal marker di sinistra a quello di destra: 0 con il volante
-dritto, positivo quando il marker di destra scende (la y del canvas cresce verso il basso). In
-`car.js` passa per il ramo aggiunto nella Parte 8, `this.angle -= tilt * 0.03`: girando il volante
-a destra `tilt` diventa positivo e l'auto gira a destra, con uno sterzo proporzionale
-all'inclinazione come per il telefono.
+`tilt` is the angle of the line that goes from the left marker to the right one: 0 with the
+steering wheel straight, positive when the right marker goes down (the canvas y grows downward). In
+`car.js` it goes through the branch added in Part 8, `this.angle -= tilt * 0.03`: turning the
+steering wheel to the right `tilt` becomes positive and the car turns right, with steering
+proportional to the tilt as for the phone.
 
-### Avanti e indietro
+### Forward and back
 
-Il raggio dei marker dice quanto è lontano il volante. Durante il conto alla rovescia, quando
-`started` di `race.js` è ancora falso, `initializing` è vero e la grandezza media dei due marker
-viene salvata in `expectedSize` a ogni frame. Al GO! il valore si ferma: è la distanza di
-riferimento.
+The radius of the markers says how far the steering wheel is. During the countdown, when
+`started` of `race.js` is still false, `initializing` is true and the average size of the two
+markers is saved in `expectedSize` at every frame. At the GO! the value freezes: it is the
+reference distance.
 
 ```js
 if (size < this.expectedSize * 0.85) {
@@ -1245,21 +1260,21 @@ if (size < this.expectedSize * 0.85) {
 }
 ```
 
-Dopo la partenza, se i marker scendono sotto l'85% di quella grandezza, il volante è stato tirato
-indietro e l'auto va in retromarcia; riavvicinandolo torna avanti. Come col telefono non c'è un
-pedale del gas: l'auto accelera sempre, appena il conto alla rovescia lo permette.
+After the start, if the markers drop below 85% of that size, the steering wheel has been pulled
+back and the car goes in reverse; bringing it closer again goes back to forward. As with the
+phone there is no gas pedal: the car always accelerates, as soon as the countdown allows it.
 
-### Cosa si vede nel riquadro
+### What you see in the box
 
-Sopra il fotogramma ribaltato `CameraControls` disegna un cerchio che ha per diametro la linea tra
-i due marker: blu quando l'auto va avanti, rosso in retromarcia. Poi rimette sopra solo i pixel
-dei marker: azzera l'alfa di tutti i pixel letti, lo riporta a 255 per quelli trovati dal detector,
-copia il risultato su un canvas di appoggio con `putImageData` e lo ridisegna sopra il cerchio
-con `drawImage`. Il canvas di appoggio serve perché `putImageData` sostituisce i pixel invece di
-sovrapporli: scritta direttamente nel riquadro, l'immagine quasi tutta trasparente cancellerebbe
-il fotogramma e il cerchio.
+Over the flipped frame `CameraControls` draws a circle whose diameter is the line between the two
+markers: blue when the car goes forward, red in reverse. Then it puts back on top only the marker
+pixels: it zeroes the alpha of all the pixels read, sets it back to 255 for those found by the
+detector, copies the result to a helper canvas with `putImageData` and redraws it over the circle
+with `drawImage`. The helper canvas is needed because `putImageData` replaces the pixels instead
+of overlaying them: written directly into the box, the almost entirely transparent image would
+erase the frame and the circle.
 
-### La soglia con la rotella
+### The threshold with the mouse wheel
 
 ```js
 updateThreshold(delta) {
@@ -1268,71 +1283,70 @@ updateThreshold(delta) {
 }
 ```
 
-La rotella del mouse sopra il riquadro cambia la soglia del detector di 1 a scatto: verso l'alto
-la alza e lascia passare meno pixel, verso il basso la abbassa. Il valore viene salvato nella
-chiave `markerThreshold` e riletto al caricamento, quindi non va regolato di nuovo a ogni partita.
-Lo slider della Parte 9 serve qui: non si vede, ma un `<input type="range">` riporta da solo tra 0
-e 255 ogni valore fuori dai limiti, quindi la soglia non può uscire dall'intervallo.
+The mouse wheel over the box changes the detector threshold by 1 per notch: up raises it and lets
+fewer pixels through, down lowers it. The value is saved in the `markerThreshold` key and read
+back on load, so it doesn't have to be adjusted again at every game. The slider of Part 9 is used
+here: it isn't visible, but an `<input type="range">` brings any out-of-bounds value back between
+0 and 255 by itself, so the threshold can't leave the range.
 
-### Differenze dall'originale
+### Differences from the original
 
-`camera.html` è costruita da `race.html` di questa cartella, quindi ne eredita le differenze,
-come `phone.html`: `lang` e `charset`, l'ordine degli script del capitolo 11, niente righe
-commentate dei mondi alternativi.
+`camera.html` is built from `race.html` of this folder, so it inherits its differences, like
+`phone.html`: `lang` and `charset`, the script order of chapter 11, no commented-out lines of the
+alternative worlds.
 
-### Limiti
+### Limitations
 
-- Non l'ho provato con una webcam vera. Al posto di `getUserMedia` ho dato alla pagina lo stream
-  di un canvas con due cerchi blu, che potevo inclinare e rimpicciolire: `tilt` ha seguito
-  l'inclinazione, i cerchi rimpiccioliti hanno messo la retromarcia e la rotella ha spostato la
-  soglia.
-- La grandezza di riferimento è quella dell'ultimo frame prima del GO!. Se in quel momento il
-  volante si sta muovendo, o non è inquadrato, il riferimento è sbagliato per tutta la partita.
-- Se i marker escono dall'inquadratura, centroidi e raggio diventano `NaN`. `tilt` vale `NaN`, che
-  in `car.js` conta come falso, e il confronto con `expectedSize` è falso: l'auto va dritta e in
-  avanti.
-- Restano i limiti del detector: un solo marker viene diviso in due, e ogni altro oggetto blu
-  nell'inquadratura sposta i centroidi.
-- Con il volante in verticale `tilt` vale circa ±π/2 e l'auto gira su sé stessa, come con il
-  telefono.
-- La chiave `markerThreshold` è condivisa con `markers.html`, che la legge ma non ha la rotella
-  per cambiarla.
-- Se la webcam non è disponibile, o il permesso viene negato, un `alert` mostra l'errore. I
-  controlli da tastiera sono già stati sostituiti e `forward` parte a `true`: dopo il GO! l'auto
-  va dritta senza che si possa sterzare.
+- I haven't tried it with a real webcam. In place of `getUserMedia` I gave the page the stream of
+  a canvas with two blue circles, which I could tilt and shrink: `tilt` followed the tilt, the
+  shrunken circles engaged reverse and the mouse wheel moved the threshold.
+- The reference size is the one of the last frame before the GO!. If at that moment the steering
+  wheel is moving, or is not in the frame, the reference is wrong for the whole game.
+- If the markers leave the frame, centroids and radius become `NaN`. `tilt` is `NaN`, which in
+  `car.js` counts as false, and the comparison with `expectedSize` is false: the car goes straight
+  and forward.
+- The limitations of the detector remain: a single marker is split in two, and any other blue
+  object in the frame moves the centroids.
+- With the steering wheel held vertically `tilt` is about ±π/2 and the car spins in place, as
+  with the phone.
+- The `markerThreshold` key is shared with `markers.html`, which reads it but doesn't have the
+  mouse wheel to change it.
+- If the webcam is not available, or the permission is denied, an `alert` shows the error. The
+  keyboard controls have already been replaced and `forward` starts at `true`: after the GO! the
+  car goes straight without any way to steer.
 
-### Come provarlo
+### How to try it
 
-Servi la cartella, apri `camera.html` su `localhost` e consenti l'accesso alla webcam. Tieni
-davanti alla camera due oggetti blu alla stessa altezza, uno per mano, e tienili fermi durante il
-conto alla rovescia. Dopo il GO! ruotali come un volante per sterzare e allontanali dalla camera
-per la retromarcia. Se nel riquadro i marker sono pieni di buchi, o compaiono pixel blu altrove,
-regola la soglia con la rotella sopra il riquadro.
+Serve the folder, open `camera.html` on `localhost` and allow access to the webcam. Hold two blue
+objects in front of the camera at the same height, one per hand, and keep them still during the
+countdown. After the GO! rotate them like a steering wheel to steer and move them away from the
+camera to reverse. If in the box the markers are full of holes, or blue pixels show up elsewhere,
+adjust the threshold with the mouse wheel over the box.
 
-## Parte 11. Fine Tuning
+## Part 11. Fine Tuning
 
-L'ultima parte non aggiunge meccaniche nuove, rifinisce quelle che ci sono. Il box dell'auto
-diventa una carrozzeria con quattro ruote che girano e sterzano; tutte le auto lasciano un'ombra a
-terra; gli edifici diventano trasparenti e le cose lontane sfumano. Toccare un muro non distrugge
-più l'auto: la respinge verso il centro della strada. La minimappa mostra solo il percorso, con un
-pallino per ogni auto.
+The last part doesn't add new mechanics, it polishes the existing ones. The car box becomes a car
+body with four wheels that turn and steer; all the cars leave a shadow on the ground; the
+buildings become transparent and far things fade out. Touching a wall no longer destroys the car:
+it pushes it back toward the center of the road. The minimap shows only the path, with a dot for
+each car.
 
-### File
+### Files
 
-| File | Cosa cambia |
+| File | What changes |
 |------|-------------|
-| `camera.js` | `#extrudeCar` con ruote; ombre delle auto; edifici trasparenti; dissolvenza con la distanza; camera più vicina |
-| `race.js` | `handleCollisionWithRoadBorder` rimette in strada le auto; minimappa del corridoio che ruota con l'auto |
-| `miniMap.js` | Riceve le auto e le disegna come pallini grigi; zoom raddoppiato |
-| `sim.js` | Passa le auto alla minimappa |
-| `style.css` | Cielo sfumato dietro la vista 3D; classifica senza barra di scorrimento |
+| `camera.js` | `#extrudeCar` with wheels; car shadows; transparent buildings; fade with distance; closer camera |
+| `race.js` | `handleCollisionWithRoadBorder` puts the cars back on the road; minimap of the corridor that rotates with the car |
+| `miniMap.js` | Receives the cars and draws them as gray dots; zoom doubled |
+| `sim.js` | Passes the cars to the minimap |
+| `style.css` | Gradient sky behind the 3D view; ranking without a scrollbar |
 
-### La carrozzeria
+### The car body
 
-`#extrudeCar` prende i quattro vertici del poligono dell'auto, nell'ordine di `#createPolygon`:
-avanti a destra, avanti a sinistra, dietro a sinistra, dietro a destra. Su ogni fianco aggiunge il
-punto a metà e i due punti a un quarto, e ne esce una base di 10 punti. Poi stringe il muso del 20%
-per lato e il retro del 10%, con `#moveInward`, che avvicina due punti tra loro:
+`#extrudeCar` takes the four vertices of the car polygon, in the order of `#createPolygon`: front
+right, front left, rear left, rear right. On each side it adds the midpoint and the two quarter
+points, and the result is a base of 10 points. Then it narrows the nose by 20% per side and the
+rear by 10%, with `#moveInward`, which brings two points closer to each other:
 
 ```js
 #moveInward(p1, p2, percent = 0.3) {
@@ -1340,27 +1354,28 @@ per lato e il retro del 10%, con `#moveInward`, che avvicina due punti tra loro:
    const new_p2 = lerp2D(p2, p1, percent);
 ```
 
-Dalla base nascono altri due anelli di 10 punti, uno a metà altezza e uno sul tetto, e tra un anello
-e l'altro una fascia di facce, come nell'estrusione della Parte 7. Il tetto però non è piatto:
+From the base come two more rings of 10 points, one at half height and one on the roof, and
+between one ring and the next a band of faces, as in the extrusion of Part 7. The roof, however,
+is not flat:
 
-| Punti del tetto | Quota | Cosa diventa |
+| Roof points | Height | What it becomes |
 |-----------------|-------|--------------|
-| Muso | −15 + 7 = −8 | Il cofano, appena sopra la linea di metà |
-| Quarto anteriore | −15 + 6 = −9 | La fine del cofano |
-| Metà e quarto posteriore | −15 | Il tetto dell'abitacolo |
-| Coda | −15 + 4 = −11 | Il bagagliaio |
+| Nose | −15 + 7 = −8 | The hood, just above the half line |
+| Front quarter | −15 + 6 = −9 | The end of the hood |
+| Middle and rear quarter | −15 | The roof of the cabin |
+| Tail | −15 + 4 = −11 | The trunk |
 
-Con il 30% di `#moveInward` da ogni lato il tetto è anche più stretto della base, e muso e coda si
-avvicinano del 10%: la fascia superiore si inclina verso l'interno, come i finestrini. Quattro
-facce chiudono il tetto, dal cofano al lunotto.
+With the 30% of `#moveInward` from each side the roof is also narrower than the base, and nose and
+tail come 10% closer: the upper band slopes inward, like the windows. Four faces close the roof,
+from the hood to the rear window.
 
-Tutta la base sta a `z = -5`, cioè alzata di `wheelRadius`. I punti a un quarto del fianco sono gli
-stessi oggetti che finiscono nella base, quindi si alzano anche loro, e sono i centri delle ruote:
-una ruota di raggio 5 centrata a quota 5 tocca terra. I centri vengono calcolati prima di stringere
-muso e coda, quindi le ruote restano sulla larghezza piena dell'auto: sono centrate sul bordo
-della carrozzeria e ne sporgono per metà dello spessore.
+The whole base is at `z = -5`, that is raised by `wheelRadius`. The quarter points of the side
+are the same objects that end up in the base, so they are raised too, and they are the centers of
+the wheels: a wheel of radius 5 centered at height 5 touches the ground. The centers are computed
+before narrowing nose and tail, so the wheels stay on the full width of the car: they are centered
+on the edge of the body and stick out by half their thickness.
 
-### Le ruote
+### The wheels
 
 ```js
 for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) {
@@ -1375,17 +1390,17 @@ for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) {
 }
 ```
 
-Ogni fianco di una ruota è un poligono di 16 punti su un cerchio verticale. `support` è il segmento
-che va dal centro della ruota a un punto distante `radius` nella direzione in cui punta la ruota:
-`lerp` con `Math.cos(angle)` si sposta avanti e indietro lungo quel segmento, `Math.sin(angle)` su e
-giù. Con un `lerp` oltre l'intervallo da 0 a 1 (qui da −1 a 1) si ottiene un cerchio orientato
-come la ruota senza scrivere una matrice di rotazione. I due fianchi stanno a 2 unità dal centro, da
-una parte e dall'altra, e 16 facce li uniscono nel battistrada.
+Each side of a wheel is a polygon of 16 points on a vertical circle. `support` is the segment that
+goes from the center of the wheel to a point at distance `radius` in the direction the wheel is
+pointing: `lerp` with `Math.cos(angle)` moves back and forth along that segment, `Math.sin(angle)`
+up and down. With a `lerp` beyond the range from 0 to 1 (here from −1 to 1) you get a circle
+oriented like the wheel without writing a rotation matrix. The two sides are 2 units from the
+center, one on each side, and 16 faces join them into the tread.
 
-`distance` è la `fittness` dell'auto, cioè la strada percorsa: aggiunta all'angolo fa girare i 16
-punti, e la ruota rotola. In retromarcia `fittness` cala e la ruota gira all'indietro.
+`distance` is the car's `fittness`, that is the road covered: added to the angle it makes the 16
+points turn, and the wheel rolls. In reverse `fittness` decreases and the wheel turns backward.
 
-Le ruote posteriori puntano come l'auto; le anteriori sterzano:
+The rear wheels point like the car; the front ones steer:
 
 ```js
 if (carInfo.controls.tilt) {
@@ -1396,109 +1411,111 @@ if (carInfo.controls.tilt) {
    }
 ```
 
-Con telefono e webcam l'angolo delle ruote segue l'inclinazione; con le frecce è fisso a ±0.3.
-`carInfo` è `world.bestCar`, che in gara è `myCar`.
+With phone and webcam the angle of the wheels follows the tilt; with the arrow keys it is fixed at
+±0.3. `carInfo` is `world.bestCar`, which in the race is `myCar`.
 
-### Ombre, trasparenze e dissolvenza
+### Shadows, transparency and fade
 
-`#getPolys` aggiunge le impronte di **tutte** le auto (`world.cars`), piatte a terra, grigio chiaro
-e senza contorno: sono le ombre. È anche il primo modo in cui le auto AI compaiono nella vista 3D.
-Gli edifici diventano grigi con trasparenza 0.2, quasi vetro, e non nascondono più la strada.
-L'ordine è ombre, edifici, auto, bordi: le ombre vanno disegnate per prime, sotto tutto il resto.
+`#getPolys` adds the footprints of **all** the cars (`world.cars`), flat on the ground, light gray
+and without outline: they are the shadows. It is also the first way in which the AI cars appear in
+the 3D view. The buildings become gray with 0.2 transparency, almost glass, and no longer hide the
+road. The order is shadows, buildings, cars, borders: the shadows must be drawn first, under
+everything else.
 
 ```js
 const dist = polys[i].distanceToPoint(this);
 ctx.globalAlpha = (1 - dist / this.range) ** 2;
 ```
 
-`render` dà a ogni poligono un'opacità che cala con la distanza dalla camera: 1 sotto il naso, 0.25
-a metà del campo visivo, 0 al limite dei 1000. Il quadrato fa sparire le cose lontane più in
-fretta di una retta: è una nebbia, che nasconde anche il momento in cui un edificio entra nel campo
-visivo e prima sarebbe comparso di colpo. La distanza è calcolata sul poligono 3D originale, non su
-quello proiettato. `fill` e `stroke` vengono passati a `draw` solo quando il poligono li ha: quelli
-dell'auto e dei bordi sono `undefined`, e `draw` usa il blu predefinito.
+`render` gives each polygon an opacity that decreases with the distance from the camera: 1 right
+under your nose, 0.25 at half the field of view, 0 at the 1000 limit. The square makes far things
+disappear faster than a straight line: it is a fog, which also hides the moment a building enters
+the field of view, where before it would have appeared all of a sudden. The distance is computed
+on the original 3D polygon, not on the projected one. `fill` and `stroke` are passed to `draw`
+only when the polygon has them: those of the car and of the borders are `undefined`, and `draw`
+uses the default blue.
 
-La camera si è avvicinata, da 150 a 100 dietro l'auto, e insegue più in fretta: `t = 0.15`, il 15%
-della distanza a ogni frame.
+The camera has moved closer, from 150 to 100 behind the car, and chases faster: `t = 0.15`, 15% of
+the distance at every frame.
 
-### Niente più schianti
+### No more crashes
 
 ```js
 const correctors = car.polygon.map((p) => {
    const proj = seg.projectPoint(p);
 ```
 
-Dopo l'`update` di tutte le auto, `race.js` passa quelle danneggiate a
-`handleCollisionWithRoadBorder`. Lì si cerca il segmento dello scheletro del corridoio più vicino
-all'auto, cioè la linea centrale della strada, e ogni vertice dell'auto viene proiettato su quel
-segmento (sugli estremi, se cade fuori). Il vettore da un vertice alla sua proiezione dice quanto e
-in che direzione quel vertice è lontano dal centro; il più lungo appartiene all'angolo che ha
-toccato il muro. L'auto viene spostata di 1 unità in quella direzione e ruotata di 0.1:
+After the `update` of all the cars, `race.js` passes the damaged ones to
+`handleCollisionWithRoadBorder`. There it looks for the segment of the corridor skeleton nearest
+to the car, that is the center line of the road, and each vertex of the car is projected onto that
+segment (onto the ends, if it falls outside). The vector from a vertex to its projection says how
+far and in which direction that vertex is from the center; the longest one belongs to the corner
+that touched the wall. The car is moved by 1 unit in that direction and rotated by 0.1:
 
-- avanti a destra (0) o dietro a sinistra (2): l'auto gira a sinistra;
-- avanti a sinistra (1) o dietro a destra (3): l'auto gira a destra.
+- front right (0) or rear left (2): the car turns left;
+- front left (1) or rear right (3): the car turns right.
 
-In tutti e due i casi l'angolo che ha toccato ruota via dal muro. Infine `damaged` torna `false` e al frame
-dopo l'auto riparte. Vale per tutte le auto, anche le AI: nessuna resta più ferma contro un bordo.
+In both cases the corner that touched rotates away from the wall. Finally `damaged` goes back to
+`false` and on the next frame the car starts again. It applies to all the cars, the AI ones too:
+none stays stuck against a border anymore.
 
-### La minimappa
+### The minimap
 
-In `race.js` la minimappa riceve un grafo nuovo, fatto dei soli segmenti di
-`world.corridor.skeleton`: si vede il percorso da fare, non tutte le strade del mondo. Per questo
-viene creata dopo il corridoio. `MiniMap` riceve anche le auto e disegna un pallino grigio per
-ognuna; lo zoom passa da 0.05 a 0.1.
+In `race.js` the minimap receives a new graph, made only of the segments of
+`world.corridor.skeleton`: you see the path to drive, not all the roads of the world. That's why
+it is created after the corridor. `MiniMap` also receives the cars and draws a gray dot for each
+one; the zoom goes from 0.05 to 0.1.
 
 ```js
 miniMapCanvas.style.transform = "rotate(" + myCar.angle + "rad)";
 ```
 
-A ogni frame il canvas della minimappa ruota, via CSS, dello stesso angolo dell'auto. Nel disegno
-la direzione dell'auto è ruotata di `angle` in senso antiorario rispetto all'alto; `rotate` del CSS
-gira in senso orario e la riporta in alto. La minimappa funziona come un navigatore: davanti è
-sempre su. `sim.html` usa lo stesso `MiniMap`, con le sue 500 auto e tutto il grafo, senza
-rotazione.
+At every frame the minimap canvas rotates, via CSS, by the same angle as the car. In the drawing
+the direction of the car is rotated by `angle` counterclockwise from up; the CSS `rotate` turns
+clockwise and brings it back up. The minimap works like a sat nav: forward is always up.
+`sim.html` uses the same `MiniMap`, with its 500 cars and the whole graph, without rotation.
 
-### Classifica e cielo
+### Ranking and sky
 
-Nella classifica i nomi delle auto AI diventano bianchi, quello del giocatore resta del suo colore
-su sfondo bianco. `overflow:hidden` toglie la barra di scorrimento: si vedono solo le prime righe.
-Dietro la vista 3D, `#cameraCanvas` ha uno sfondo sfumato da azzurro a bianco: il canvas è
-trasparente dove non si disegna, e il cielo compare sopra l'orizzonte.
+In the ranking the names of the AI cars become white, the player's one keeps its color on a white
+background. `overflow:hidden` removes the scrollbar: only the first rows are visible. Behind the 3D
+view, `#cameraCanvas` has a background fading from light blue to white: the canvas is transparent
+where nothing is drawn, and the sky shows above the horizon.
 
-### Differenze dall'originale
+### Differences from the original
 
-Nessuna oltre a quelle delle parti precedenti.
+None beyond those of the previous parts.
 
-### Limiti
+### Limitations
 
-- Quando l'auto tocca un muro, `car.js` fa ancora quello che faceva prima: velocità a zero e, per
-  la tua auto, `explode()`. La correzione la sblocca, ma solo dopo. Spingendo contro un muro l'auto
-  si ferma e riparte a scatti: nel test, in 3 secondi di strusciata, l'esplosione è suonata 13
-  volte.
-- `damaged` torna `false` nello stesso frame, quindi il 💀 della classifica non compare più.
-- La correzione usa lo scheletro, non il muro vero: funziona perché il corridoio è centrato sullo
-  scheletro. Dove due tratti del percorso passano vicini, il segmento più vicino può essere quello
-  sbagliato.
-- `carAngle`, l'angolo di tutte le ruote, viene calcolato dal fianco sinistro dopo aver stretto
-  muso e coda in modo diverso (6 unità contro 3). Il fianco non è più parallelo all'auto, e le
-  ruote sono storte di circa 3,4°.
-- `distance / 20`: una ruota di raggio 5 dovrebbe girare di `distance / 5` per non slittare, quindi
-  gira a un quarto della velocità giusta.
-- I poligoni non sono ordinati per distanza, come nella Parte 7: trasparenze e dissolvenza rendono
-  la scena più leggibile, ma un muretto dietro l'auto può ancora finirle sopra.
-- `#extrudeCar` prende il primo poligono uscito dal filtro e ne usa i primi quattro punti. Va bene
-  finché l'auto è tutta nel campo visivo; se il filtro la tagliasse, i punti non sarebbero più i
-  quattro angoli.
-- Con la classifica senza scorrimento, se sei oltre le prime righe non vedi la tua posizione.
-- Senza Target non c'è il corridoio: oltre a `updateCarProgress` (Parte 4), ora va in errore anche
-  la creazione della minimappa.
-- `globalAlpha` resta all'ultimo valore usato dopo `render`; non dà problemi solo perché quel canvas
-  lo usa soltanto la camera.
+- When the car touches a wall, `car.js` still does what it did before: speed to zero and, for your
+  car, `explode()`. The correction unblocks it, but only afterwards. Pushing against a wall the car
+  stops and starts again in jerks: in the test, in 3 seconds of scraping, the explosion played 13
+  times.
+- `damaged` goes back to `false` in the same frame, so the 💀 of the ranking no longer appears.
+- The correction uses the skeleton, not the real wall: it works because the corridor is centered
+  on the skeleton. Where two stretches of the path pass close to each other, the nearest segment
+  can be the wrong one.
+- `carAngle`, the angle of all the wheels, is computed from the left side after narrowing nose and
+  tail differently (6 units against 3). The side is no longer parallel to the car, and the wheels
+  are crooked by about 3.4°.
+- `distance / 20`: a wheel of radius 5 should turn by `distance / 5` so as not to slip, so it turns
+  at a quarter of the right speed.
+- The polygons are not sorted by distance, as in Part 7: transparency and fade make the scene more
+  readable, but a low wall behind the car can still end up on top of it.
+- `#extrudeCar` takes the first polygon out of the filter and uses its first four points. It's
+  fine as long as the car is entirely in the field of view; if the filter clipped it, the points
+  would no longer be the four corners.
+- With the ranking without scrolling, if you are beyond the first rows you don't see your position.
+- Without a Target there is no corridor: besides `updateCarProgress` (Part 4), now the creation of
+  the minimap errors out too.
+- `globalAlpha` stays at the last value used after `render`; it causes no problems only because
+  that canvas is used only by the camera.
 
-### Come provarlo
+### How to try it
 
-Apri `race.html` dal server locale. Durante il conto alla rovescia guarda l'auto: ruote, cofano e
-tetto. Dopo il GO! sterza e guarda le ruote anteriori, poi buttati contro un muro: senti
-l'esplosione, ma l'auto viene spinta indietro e riparte. Le auto AI le vedi come ombre grigie e
-come pallini nella minimappa, che gira con te. Con `camera.html` o `phone.html` le ruote seguono
-l'inclinazione del volante o del telefono.
+Open `race.html` from the local server. During the countdown look at the car: wheels, hood and
+roof. After the GO! steer and look at the front wheels, then throw yourself against a wall: you
+hear the explosion, but the car is pushed back and starts again. You see the AI cars as gray
+shadows and as dots in the minimap, which turns with you. With `camera.html` or `phone.html` the
+wheels follow the tilt of the steering wheel or of the phone.

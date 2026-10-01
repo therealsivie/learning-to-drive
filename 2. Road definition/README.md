@@ -1,18 +1,18 @@
 # 2. Road definition
 
-In questo capitolo la macchina ha finalmente una strada: tre corsie, bordi laterali e una camera
-che la segue mentre sale. La fisica dell'auto e i controlli sono identici al capitolo 1.
+In this chapter the car finally has a road: three lanes, side borders and a camera that follows it
+as it goes up. The car physics and the controls are identical to chapter 1.
 
-## Cosa cambia rispetto al capitolo 1
+## What changes compared to chapter 1
 
-| File | Novità |
+| File | What's new |
 |------|--------|
-| `utils.js` | Nuovo, contiene solo `lerp` |
-| `road.js` | Nuovo, classe `Road` |
-| `main.js` | Crea la strada, mette l'auto nella corsia centrale e trasla il canvas per seguirla |
-| `index.html` | Carica `utils.js` e `road.js` prima degli altri script |
+| `utils.js` | New, contains only `lerp` |
+| `road.js` | New, `Road` class |
+| `main.js` | Creates the road, puts the car in the middle lane and translates the canvas to follow it |
+| `index.html` | Loads `utils.js` and `road.js` before the other scripts |
 
-`car.js`, `controls.js` e `style.css` non cambiano.
+`car.js`, `controls.js` and `style.css` don't change.
 
 ## lerp
 
@@ -22,11 +22,11 @@ function lerp(A,B,t){
 }
 ```
 
-Interpolazione lineare: con `t=0` restituisce A, con `t=1` restituisce B, con valori intermedi un
-punto in mezzo. Sembra banale, ma da qui in avanti viene usata ovunque: per le corsie, per
-distribuire i raggi dei sensori, per i punti di intersezione, per posizionare i nodi della rete nel
-visualizer e perfino per mutare i pesi della rete nel capitolo 8. È la funzione più riutilizzata
-del progetto.
+Linear interpolation: with `t=0` it returns A, with `t=1` it returns B, with values in between a
+point in the middle. It looks trivial, but from here on it is used everywhere: for the lanes, to
+spread the sensor rays, for the intersection points, to position the network nodes in the
+visualizer and even to mutate the network weights in chapter 8. It is the most reused function of
+the project.
 
 ## Road
 
@@ -34,16 +34,16 @@ del progetto.
 constructor(x,width,laneCount=3)
 ```
 
-In `main.js` viene creata così:
+In `main.js` it is created like this:
 
 ```js
 const road=new Road(canvas.width/2,canvas.width*0.9);
 ```
 
-Con il canvas largo 200 px: centro a x=100 e larghezza 180, quindi bordo sinistro a 10 e destro a
-190. Il 10% che avanza lascia un po' di margine ai lati.
+With the canvas 200 px wide: center at x=100 and width 180, so left border at 10 and right border
+at 190. The leftover 10% leaves some margin on the sides.
 
-### La strada "infinita"
+### The "infinite" road
 
 ```js
 const infinity=1000000;
@@ -51,15 +51,15 @@ this.top=-infinity;
 this.bottom=infinity;
 ```
 
-La strada va da y=-1000000 a y=1000000. Non è davvero infinita, ma per una macchina che va a meno
-di 3 px per frame lo è in pratica: servirebbero ore per arrivare in fondo.
+The road goes from y=-1000000 to y=1000000. It isn't really infinite, but for a car going less
+than 3 px per frame it is in practice: it would take hours to reach the end.
 
-Ho notato che non viene usato `Infinity` di JavaScript, ed è voluto. Nel capitolo 3 i bordi
-diventano segmenti su cui calcolare intersezioni, e i calcoli con `Infinity` producono facilmente
-`NaN` (per esempio `Infinity - Infinity` o `0 * Infinity`). Un numero grande ma finito evita il
-problema.
+I noticed that JavaScript's `Infinity` isn't used, and that's on purpose. In chapter 3 the borders
+become segments on which intersections are computed, and calculations with `Infinity` easily
+produce `NaN` (for example `Infinity - Infinity` or `0 * Infinity`). A large but finite number
+avoids the problem.
 
-### I bordi come segmenti
+### The borders as segments
 
 ```js
 this.borders=[
@@ -68,12 +68,12 @@ this.borders=[
 ];
 ```
 
-I bordi sono salvati come array di segmenti, ogni segmento è una coppia di punti `{x,y}`. In questo
-capitolo servono solo per disegnarli, ma questa struttura è pensata già per il futuro: sensori e
-collisioni lavoreranno proprio su questi segmenti. Questa scelta permetterebbe anche di avere bordi
-non dritti, ed è quello che succede nel capitolo 10.
+The borders are stored as an array of segments, each segment is a pair of `{x,y}` points. In this
+chapter they are only needed for drawing, but this structure is already designed for the future:
+sensors and collisions will work precisely on these segments. This choice would also allow
+non-straight borders, and that's what happens in chapter 10.
 
-### Centro delle corsie
+### Lane centers
 
 ```js
 getLaneCenter(laneIndex){
@@ -83,19 +83,19 @@ getLaneCenter(laneIndex){
 }
 ```
 
-Con 3 corsie larghe 60 px i centri sono a x=40, 100 e 160. Il `Math.min` fa in modo che chiedendo
-una corsia che non esiste (per esempio la 5) si ottenga l'ultima invece di una posizione fuori
-strada. Gli indici negativi però non sono gestiti.
+With 3 lanes 60 px wide the centers are at x=40, 100 and 160. The `Math.min` makes sure that
+asking for a lane that doesn't exist (for example lane 5) gives the last one instead of a position
+off the road. Negative indices, however, are not handled.
 
-### Disegno
+### Drawing
 
-- Le linee tra le corsie sono tratteggiate con `setLineDash([20,20])` (20 px pieni, 20 vuoti) e
-  posizionate con `lerp(left,right,i/laneCount)`.
-- Prima di disegnare i bordi si fa `setLineDash([])` per tornare alla linea continua. Senza questo
-  reset anche i bordi verrebbero tratteggiati, perché lo stile resta nel contesto.
-- Spessore 5 px, colore bianco.
+- The lines between the lanes are dashed with `setLineDash([20,20])` (20 px solid, 20 empty) and
+  positioned with `lerp(left,right,i/laneCount)`.
+- Before drawing the borders `setLineDash([])` is called to go back to a solid line. Without this
+  reset the borders would be dashed too, because the style stays in the context.
+- Width 5 px, color white.
 
-## La camera
+## The camera
 
 ```js
 ctx.save();
@@ -105,17 +105,18 @@ car.draw(ctx);
 ctx.restore();
 ```
 
-Non è la macchina a stare ferma, è il mondo a spostarsi. A ogni frame si trasla il canvas in
-verticale in modo che l'auto finisca sempre al 70% dell'altezza dello schermo, cioè un po' sotto il
-centro. Così si vede più strada davanti che dietro, che è quello che serve guidando.
+It isn't the car that stays still, it's the world that moves. On every frame the canvas is
+translated vertically so that the car always ends up at 70% of the screen height, that is a bit
+below the center. That way you see more road ahead than behind, which is what you need when
+driving.
 
-La traslazione è solo verticale: se la macchina va a destra o a sinistra si vede spostarsi
-lateralmente, e la strada resta ferma in orizzontale.
+The translation is only vertical: if the car goes right or left you see it move sideways, and the
+road stays still horizontally.
 
-La macchina ora parte da `road.getLaneCenter(1)`, cioè la corsia centrale, e non più da x=100
-scritto a mano (anche se il risultato è lo stesso).
+The car now starts from `road.getLaneCenter(1)`, that is the middle lane, and no longer from a
+hard-coded x=100 (even though the result is the same).
 
-## Come provarlo
+## How to try it
 
-Apri `index.html` e guida con le frecce. Si può ancora attraversare i bordi senza conseguenze:
-le collisioni arrivano nel capitolo 4.
+Open `index.html` and drive with the arrow keys. You can still cross the borders without
+consequences: collisions come in chapter 4.
