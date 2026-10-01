@@ -151,18 +151,11 @@ of each other, as if they were just one.
 💾 and 🗑️ work as in folder 11, but with the `"raceBestBrain"` key. If the key exists, each car
 receives a new copy from `JSON.parse` and all but the first are mutated.
 
-### Differences from the original
+### Notes
 
 - The brain is saved in `"raceBestBrain"` instead of `"bestBrain"`, without falling back on
   another key: the `[5,6,4]` networks of the previous chapters have 5 inputs and don't work here.
-- `main.js` removes the old loading from `localStorage` instead of commenting it out.
 - The editor's `save()` no longer writes `"world"` to `localStorage`, because nobody reads it.
-- `big.world` and `big_with_target.world` were not brought over, two 5-6 MB worlds that the
-  original leaves commented out.
-- The fixes of folder 11 that the original doesn't have remain: `GraphEditor` draws with
-  `this.ctx` and the `Viewport` listens to the `wheel` event instead of the old `mousewheel`.
-- The two pages keep `<meta charset="utf-8">`, `index.html` also `<html lang="en">`, and the
-  world scripts stay in the order of folder 11.
 
 ### Limitations
 
@@ -258,19 +251,15 @@ The listener is on `window`, not on the canvas, because the canvas doesn't recei
 events. It is added and removed together with the other editor listeners, so in another mode the
 keys do nothing.
 
-### Differences from the original
+### Notes
 
-- The original draws the links of the path with `point.prev`, which however `getShortestPath` has
-  already deleted: only the blue points were visible. Here the line joins the consecutive points
-  of the path.
-- The original adds the `keydown` listener at every `enable()` without ever removing it, and every
-  mode change piled up another one. Here it is a `boundKeyDown` removed in `#removeEventListeners`.
-- Deleting the start or end point, or emptying the graph with 🗑️, resets start and end. In the
-  original `getShortestPath` looked for a point no longer in the graph, threw an error inside the
-  draw loop and the editor froze.
-- The original switches to `big_with_target.world`, widens the canvas to 1000 pixels and comments
-  out `world.generate()` so as not to regenerate a huge world; with `path_finding.world` it isn't
-  needed, and the 600 canvas and the regeneration stay.
+- The line joins the consecutive points of the path. `point.prev` can't be used for it, because
+  `getShortestPath` deletes it before returning the path.
+- The `keydown` listener is a `boundKeyDown`, removed in `#removeEventListeners`: adding it at
+  every `enable()` without removing it, every mode change would pile up another one.
+- Deleting the start or end point, or emptying the graph with 🗑️, resets start and end. Otherwise
+  `getShortestPath` would look for a point no longer in the graph, throw an error inside the draw
+  loop and freeze the editor.
 
 ### Limitations
 
@@ -349,8 +338,8 @@ from the points of the graph. As soon as both are there, the key calls `world.ge
 and `World.draw` draws the corridor with red lines. The computation happens once, when the key is
 pressed, and not at every frame like the path of Part 2.
 
-`GraphEditor` uses the global variable `world` directly, as in the original: the graph editor
-doesn't know the world, but finds it in the global scope of the page.
+`GraphEditor` uses the global variable `world` directly: the graph editor doesn't know the world,
+but finds it in the global scope of the page.
 
 ### In the simulation
 
@@ -376,11 +365,10 @@ of the corridor, makes a U-turn and comes back. Without a Target everything stay
 `N` goes from 100 to 500. Until a brain is saved the cars stay identical copies (see Part 1), but
 with a saved brain there are five times more mutations per generation.
 
-### Differences from the original
+### Notes
 
-- The choices of Part 2 on the `keydown` listener, added and removed with the others, remain. The
-  resets of start and end in `#removePoint` and `dispose` are no longer needed instead: start and
-  end are no longer points of the graph, and they were removed.
+The resets of start and end in `#removePoint` and `dispose` were removed: start and end are no
+longer points of the graph.
 
 ### Limitations
 
@@ -483,7 +471,7 @@ The camera always follows your car: `world.bestCar = myCar`, and the viewport ce
 but doesn't call `update`: the cars stand still on the start line.
 
 `counter` and `statistics` are never declared in `race.js`: the browser creates a global variable
-for each element with an `id`, and the original relies on it.
+for each element with an `id`, and the code relies on it.
 
 ### Who is in the lead
 
@@ -526,12 +514,10 @@ them to color the rows and tell yours apart.
 The drawing of the sensors is commented out, so the rays are no longer visible either in the race
 or in the simulator. The `drawSensor` parameter remains, but it no longer has any effect.
 
-### Differences from the original
+### Notes
 
-- `race.js` also uses the `raceBestBrain` key instead of `bestBrain`, like `sim.js` since Part 1:
-  the simulator saves the brain, the race reads it.
-- `race.html` has the same `<meta charset>`, `lang` and script order as `sim.html`, without the
-  commented-out lines of the alternative worlds.
+`race.js` also uses the `raceBestBrain` key instead of `bestBrain`, like `sim.js` since Part 1: the
+simulator saves the brain, the race reads it.
 
 ### Limitations
 
@@ -665,10 +651,6 @@ the crash. The check on the type limits it to your car: a hundred explosions fro
 drown out everything else. For the same reason `sim.html` doesn't load `sound.js`: there the cars
 are all AI and none calls `explode()`.
 
-### Differences from the original
-
-None: the code of this part is the original's.
-
 ### Limitations
 
 - Each sound creates an `AudioContext` and none is ever closed. In a race there are about ten, so
@@ -785,17 +767,13 @@ arrive as a parameter: `render` takes it from the global scope of `race.js`.
 
 ### Two temporary shortcuts
 
-The original, in this part, works around two things to try the camera more comfortably:
+This part works around two things to try the camera more comfortably:
 
 - `#assessDamage` begins with `return false;`: no car breaks anymore, and you can drive through
   buildings and lawns. It also applies to `sim.html`, which uses the same `car.js`;
 - `let started = true;`: the cars move right away, during the countdown.
 
 The code after the `return` stays there, unreachable. Part 7 removes both shortcuts.
-
-### Differences from the original
-
-None beyond those of the previous parts: the debug shortcuts are kept as in the original.
 
 ### Limitations
 
@@ -936,10 +914,6 @@ away. During the countdown `race.js` doesn't update the cars, so `this.polygon` 
 and the camera already uses it from the first frame to draw the car. With all the controls off and
 zero speed, that first `update` computes polygon and sensors without moving the car.
 
-### Differences from the original
-
-None beyond those of the previous parts.
-
 ### Limitations
 
 - The polygons are drawn in the order buildings, car, borders, not from farthest to nearest: the
@@ -1010,8 +984,8 @@ says how much it is rotated: `atan2(y, x)` turns it into an angle. With the phon
 gravity is all on x and `tilt` is 0; rotating it like a steering wheel it grows to one side or the
 other.
 
-The commented-out block above is a first attempt with `deviceorientation` and the `beta` angle: it
-stays in the code as in the original.
+The commented-out block above is a first attempt with `deviceorientation` and the `beta` angle, left
+in the code.
 
 ### The screen that straightens
 
@@ -1044,12 +1018,6 @@ With the arrow keys the steering is all or nothing: 0.03 rad per frame. With the
 proportional: tilted by 0.3 rad, the phone makes the car steer by 0.009 rad per frame. When `tilt`
 is `undefined`, as for the keyboard and the AI cars, or exactly 0, it falls back to the usual
 branch.
-
-### Differences from the original
-
-`phone.html` is built from `race.html` of this folder, so it inherits its differences:
-`lang` and `charset`, the script order of chapter 11, no commented-out lines of the alternative
-worlds.
 
 ### Limitations
 
@@ -1155,12 +1123,11 @@ it. For a circle it comes out a bit smaller than the real one: about 0.89 times 
 test a circle of radius 20 gave 17.9, one of radius 30 gave 26.8. It doesn't matter, because this
 value is used only for comparisons: a marker that shrinks is moving away.
 
-### Differences from the original
+### Notes
 
-In the original this part is a folder of its own, with the page called `index.html`. Here it
-lives in the race folder as `markers.html`: Part 10 adds `markerDetector.js` next to the other
-scripts, and an `index.html` among `race.html`, `phone.html` and `sim.html` would suggest the main
-page. As in the other pages there are `lang` and `charset`.
+The page is `markers.html`, in the race folder: Part 10 adds `markerDetector.js` next to the other
+scripts, and an `index.html` among `race.html`, `phone.html` and `sim.html` would look like the
+main page.
 
 ### Limitations
 
@@ -1288,12 +1255,6 @@ fewer pixels through, down lowers it. The value is saved in the `markerThreshold
 back on load, so it doesn't have to be adjusted again at every game. The slider of Part 9 is used
 here: it isn't visible, but an `<input type="range">` brings any out-of-bounds value back between
 0 and 255 by itself, so the threshold can't leave the range.
-
-### Differences from the original
-
-`camera.html` is built from `race.html` of this folder, so it inherits its differences, like
-`phone.html`: `lang` and `charset`, the script order of chapter 11, no commented-out lines of the
-alternative worlds.
 
 ### Limitations
 
@@ -1481,10 +1442,6 @@ In the ranking the names of the AI cars become white, the player's one keeps its
 background. `overflow:hidden` removes the scrollbar: only the first rows are visible. Behind the 3D
 view, `#cameraCanvas` has a background fading from light blue to white: the canvas is transparent
 where nothing is drawn, and the sky shows above the horizon.
-
-### Differences from the original
-
-None beyond those of the previous parts.
 
 ### Limitations
 

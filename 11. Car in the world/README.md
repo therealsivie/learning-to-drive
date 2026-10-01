@@ -200,9 +200,8 @@ Moving a point also moves the segments touching it, because a `Segment` holds re
 The `contextmenu` listener with `preventDefault()` stops the browser from opening its menu on right
 click.
 
-A small difference from the original: in `display()` the dashed segment is drawn with `this.ctx`
-instead of the global `ctx` from `index.html`. The result is identical, but the class uses only the
-canvas it receives in the constructor.
+In `display()` the dashed segment is drawn with `this.ctx` and not with the global `ctx` from
+`index.html`: the class uses only the canvas it receives in the constructor.
 
 ### index.html
 
@@ -308,12 +307,9 @@ The 🗑️ button calls `graphEditor.dispose()`, which empties the graph and al
 and `hovered`: without the reset the next click would connect a point that no longer exists. The
 saved graph stays in `localStorage` until 💾 is pressed again.
 
-### Differences from the original
+### Notes
 
-- The wheel event is `wheel` instead of `mousewheel`, which isn't standard and never arrives in
-  Firefox.
-- The order of the `<script>` tags in `index.html` stayed the one from the previous parts. It
-  changes nothing, because the inline script starts after all the files have been loaded.
+The wheel event is `wheel` and not `mousewheel`, which isn't standard and never arrives in Firefox.
 
 ### How to try it
 
@@ -758,8 +754,7 @@ The editors receive `world.laneGuides` and `world.markings` in the constructor a
   `null` and `#updateLights` throws an error every frame.
 - The tick counts frames, not seconds: on a 120 Hz screen the traffic lights go twice as fast.
 - `Light` ignores the height it receives and always uses 18.
-- The editors use the global variable `world` in `createMarking` instead of `this.world`, and the
-  function is called `dissableEditors`: both are kept as in the original.
+- The editors use the global variable `world` in `createMarking` instead of `this.world`.
 
 ### How to try it
 
@@ -894,7 +889,7 @@ same reason, without a marking the cars start heading down.
 On the straight road the best car was the one furthest ahead, the one with the smallest `y`. In a
 world where the start can point in any direction that criterion would reward the northernmost car,
 so each car accumulates `fittness += speed` every frame and the one that has covered the most road
-wins. The name `fittness` is the original's.
+wins.
 
 ### View and drawing
 
@@ -906,13 +901,12 @@ buildings and trees, so the fake 3D covers them when they pass behind.
 The `Viewport` keeps its listeners: the wheel changes the zoom, while panning with the middle
 button is overwritten on the next frame.
 
-### Differences from the original
+### Notes
 
 - The brain is saved with the `"worldBestBrain"` key. If it's empty it starts from `"bestBrain"`,
   the brain trained on the straight road of folder 9, which stays untouched.
 - `index.html` keeps the `<html lang="en">` and `<meta charset="utf-8">` from folder 9 and loads
   the world's scripts in the same order as `world/index.html`.
-- `visualizer.js` is in UTF-8 as in folder 9; in the original it's in UTF-16.
 - `world/index.html` declares `<meta charset="utf-8">`. Without it, a server that doesn't send the
   charset in the header, like `python3 -m http.server`, makes the page be read as Windows-1252 and
   the button emoji turn into unreadable characters.
@@ -1010,13 +1004,6 @@ the canvas. `World.draw` discards the buildings and trees whose base is more tha
 (1000) away from the viewpoint, before sorting. Roads, markings and borders all stay: they're
 simple lines and without them you'd see holes in the network.
 
-### What wasn't carried over
-
-- `miniMap.js` in the root: in the original it's a sketch of the next part, interrupted halfway
-  and not loaded by any page.
-- `world/saves/big.world`: a 6 MB sample world, which can be replaced by a `.world` file you
-  generate yourself.
-
 ### Limits
 
 - `oneWay` is written to the file but `Graph.load` doesn't read it: after a load all the roads go
@@ -1076,15 +1063,6 @@ the road network around the best car, scaled down, in the box below the neural n
 `window.innerHeight - 300` tall. The `div` is an item of the body's flex: the car canvas,
 `innerWidth - 330` wide, leaves little room, the `div` shrinks to the minimum width of 300 and the
 two canvases, which are inline, wrap one below the other.
-
-### Differences from the original
-
-- The world is still loaded from `localStorage`. The original comments out that code and loads
-  `world/saves/big.world` with a `<script>` tag: it's a hand-written JS file,
-  `const world = World.load({...})`, which isn't here (see Part 10). The editor's 💾 saves plain
-  JSON, which can't be loaded that way.
-- `world/js/math/utils.js` stays in UTF-8. In the original this part converts it to UTF-16
-  without changing its content.
 
 ### Limits
 

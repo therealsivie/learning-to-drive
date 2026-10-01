@@ -97,13 +97,6 @@ A curiosity: on the very first call (`animate()` launched by hand) `time` is `un
 offset is `NaN`. The canvas ignores invalid values, so nothing bad happens, and from the next frame
 the time is the right one.
 
-## A note on the file
-
-In the original repository `visualizer.js` was saved in UTF-16 with CRLF line endings, unlike all
-the other files. The browser read it anyway thanks to the BOM, but git treated it as binary (no
-diff, no preview). I converted it to UTF-8 with LF without touching the code: the label arrows are
-Unicode characters and work the same.
-
 ## How to try it
 
 Open `index.html`. On the left the car with its random network, on the right the network. Reload a
