@@ -73,7 +73,7 @@ ys.forEach(y=>{
 ## Collisions with polylines
 
 In chapter 4 `polysIntersect` closed the polygons with the modulo, connecting the last vertex to
-the first. On a border of 1000 points this would add a segment going from the bottom of the road to
+the first. On a border of 103 points this would add a segment going from the bottom of the road to
 the top, a straight line that cuts across the whole roadway. Now the function works on open
 polylines:
 

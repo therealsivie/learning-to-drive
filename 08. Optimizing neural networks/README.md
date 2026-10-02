@@ -144,5 +144,6 @@ blue on mouse hover.
 3. Press 💾 and reload. Repeat until the best car gets past all the traffic.
 4. If the training goes in a wrong direction, 🗑️ and start over.
 
-Watch out: `localStorage` is shared by all the pages of the same origin. If I open chapters 8, 9
-and 10 from the same server (or all from `file://`), they all use the same `bestBrain` key.
+Watch out: `localStorage` is shared by all the pages of the same origin. If I open chapters 8 and
+9 from the same server (or both from `file://`), they use the same `bestBrain` key. Chapter 10
+saves in a key of its own, `curvedRoadBestBrain`, because its network has a different shape.
