@@ -13,22 +13,22 @@ commit that closes that part.
 
 | Part | What it adds |
 |-------|---------------|
-| 1. Starting Codebase | World and trained car loaded from files, speed among the network inputs |
-| 2. Dijkstra Part 1 | Shortest path between two points of the graph, chosen in the editor with s and e |
-| 3. Dijkstra Part 2 | Corridor from the start to the Target: the cars see only the borders of the path |
-| 4. Racing Game | Race page: you against 100 AI cars, with countdown and ranking |
-| 5. Procedural Sound | Sounds synthesized with Web Audio: start beep, engine, explosion and finish |
-| 6. Camera Part 1 | First-person camera: the building bases projected in perspective |
-| 7. Camera Part 2 | Full-screen 3D view: buildings, borders and cars extruded, camera chasing from behind |
-| 8. Phone Input | `phone.html` page: you steer by tilting the phone, a tap engages reverse |
-| 9. Marker Detector | `markers.html` page: finds two blue objects in the webcam, with center and size |
-| 10. Camera Input | `camera.html` page: you drive with a steering wheel of two blue markers in front of the webcam |
-| 11. Fine Tuning | 3D car with steering wheels, shadows and fade; walls push back instead of destroying |
+| 1. Trained car in the world | World and trained car loaded from files, speed among the network inputs |
+| 2. Shortest path | Shortest path between two points of the graph, chosen in the editor with s and e |
+| 3. Race corridor | Corridor from the start to the Target: the cars see only the borders of the path |
+| 4. The race | Race page: you against 100 AI cars, with countdown and ranking |
+| 5. Synthesized sounds | Sounds synthesized with Web Audio: start beep, engine, explosion and finish |
+| 6. First-person camera | First-person camera: the building bases projected in perspective |
+| 7. 3D view | Full-screen 3D view: buildings, borders and cars extruded, camera chasing from behind |
+| 8. Phone steering | `phone.html` page: you steer by tilting the phone, a tap engages reverse |
+| 9. Marker detection | `markers.html` page: finds two blue objects in the webcam, with center and size |
+| 10. Webcam steering wheel | `camera.html` page: you drive with a steering wheel of two blue markers in front of the webcam |
+| 11. Finishing touches | 3D car with steering wheels, shadows and fade; walls push back instead of destroying |
 
 The two styles of folder 11 remain: the world code (`world/`) is indented with 3 spaces, with
 spaces around operators; the car code with 4 spaces, compact.
 
-## Part 1. Starting Codebase
+## Part 1. Trained car in the world
 
 The starting point is folder 11 with two changes of habit. The world no longer goes from the
 editor to the simulation through `localStorage`: it is a file in the project, loaded with a
@@ -174,7 +174,7 @@ in dead ends comes back. The network on the right has 3 inputs, the two rays and
 `world/index.html` opens the same world. After a change, 💾 downloads `name.world`: rename it to
 `path_finding.world`, put it in `world/saves/` and reload the simulation.
 
-## Part 2. Dijkstra Part 1
+## Part 2. Shortest path
 
 The road graph, so far used only to generate envelopes and borders, becomes a map in which to
 search for the shortest path between two points. For now the search is visible only in the
@@ -274,7 +274,7 @@ Open `world/index.html` from the local server, in 🌐 mode. Hover over a point 
 over another and press e: the shortest path appears in blue. Try dragging an intermediate point
 to lengthen a road and watch the path change.
 
-## Part 3. Dijkstra Part 2
+## Part 3. Race corridor
 
 The path becomes a road: from the shortest path we build a **corridor**, that is the borders of a
 road that follows only that path. In the simulation, if the world has a Target, the cars drive
@@ -389,7 +389,7 @@ Open `index.html`: the red lines are the corridor, and the cars drive along it f
 the Target without entering the side roads. In the editor, in 🌐 mode, press s with the mouse on
 a road and e on another: the red corridor connects them along the shortest path.
 
-## Part 4. Racing Game
+## Part 4. The race
 
 The world becomes a game. Next to the simulator, which is used for training, a second page is
 born where you drive with the arrow keys against 100 AI cars, from the Start to the Target, with
@@ -540,7 +540,7 @@ Open `race.html` from the local server. After the 3, 2, 1, GO! drive with the ar
 to beat the AI cars to the Target: the ranking on the right updates while you race. `sim.html` is
 the simulator from before, without the sensor rays.
 
-## Part 5. Procedural Sound
+## Part 5. Synthesized sounds
 
 The race gets a voice. There are no audio files: each sound is built on the fly with the Web Audio
 API, starting from oscillators and adjusting the volume over time.
@@ -670,7 +670,7 @@ Open `race.html` from the local server, with the audio on, and click on the page
 countdown ends. You hear the beeps of 3, 2, 1 and GO!, then the engine rising in pitch as you
 accelerate. Hit a border to hear the explosion, or reach the Target for the ta-daa.
 
-## Part 6. Camera Part 1
+## Part 6. First-person camera
 
 First step toward the view from the driver's seat. A camera mounted on the car looks ahead, picks
 the buildings in front of it and projects them in perspective onto a second canvas. For now it
@@ -796,7 +796,7 @@ triangle of the camera and the buildings it frames; below, their bases in perspe
 and move down as you get closer. Collisions are disabled, so you can drive through the buildings
 and look at the projection from every side.
 
-## Part 7. Camera Part 2
+## Part 7. 3D view
 
 The camera becomes the game view. The flat bases of Part 6 are extruded into solids: the
 buildings rise, the borders of the corridor become low walls and the car becomes a box. The camera
@@ -934,7 +934,7 @@ with the car in front of the camera. After the GO! drive with the arrow keys: in
 moves to the side and then realigns behind the car. Collisions are active again, so a building
 stops you.
 
-## Part 8. Phone Input
+## Part 8. Phone steering
 
 The phone becomes the steering wheel. A third page, `phone.html`, is the race of Part 7 with
 another way of driving: the car accelerates by itself, you steer by tilting the phone and keep
@@ -1043,7 +1043,7 @@ horizontally. After the GO! the car starts by itself: rotate the phone like a st
 steer and keep your finger on the screen to brake and reverse. If the car only goes straight, the
 browser is not sending the accelerometer data to the page.
 
-## Part 9. Marker Detector
+## Part 9. Marker detection
 
 Before driving with the webcam we need a way to see the steering wheel. This part doesn't touch
 the race: it adds a class that looks for two blue objects in the image, the markers, and a test
@@ -1153,7 +1153,7 @@ not. Serve the folder, open `markers.html` on `localhost` and allow access to th
 well-separated blue objects in front of the camera: the pixels of the one on the left in the image
 turn red, those of the one on the right yellow.
 
-## Part 10. Camera Input
+## Part 10. Webcam steering wheel
 
 The detector of Part 9 becomes a steering wheel. A fourth page, `camera.html`, is the race with
 the controls taken from the webcam: you hold in front of the camera an object with a blue marker
@@ -1284,7 +1284,7 @@ countdown. After the GO! rotate them like a steering wheel to steer and move the
 camera to reverse. If in the box the markers are full of holes, or blue pixels show up elsewhere,
 adjust the threshold with the mouse wheel over the box.
 
-## Part 11. Fine Tuning
+## Part 11. Finishing touches
 
 The last part doesn't add new mechanics, it polishes the existing ones. The car box becomes a car
 body with four wheels that turn and steer; all the cars leave a shadow on the ground; the
