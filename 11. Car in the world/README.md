@@ -837,7 +837,7 @@ the trees in the same spots. With 📁 you can load another `.world` file.
 ## Part 9. Integration
 
 The two codebases meet. The editor from parts 1-8 moves to `world/`, the car from the
-"9. Fine-tuning" folder arrives in the root of the folder, and the cars, instead of the straight
+"09. Fine-tuning" folder arrives in the root of the folder, and the cars, instead of the straight
 road, drive in the world drawn with the editor.
 
 ### Files

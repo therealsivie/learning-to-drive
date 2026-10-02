@@ -12,20 +12,20 @@ with a detailed explanation of what changes compared to the previous chapter. Fo
 each bring together several parts, in the same code: each part is a series of commits, and the
 folder's README explains them one by one.
 
-| # | Folder | What it adds |
-|---|----------|---------------|
-| 1 | [Car driving mechanics](1.%20Car%20driving%20mechanics) | A car driven with the arrow keys: acceleration, friction, steering, reverse |
-| 2 | [Road definition](2.%20Road%20definition) | Three-lane road with borders and a camera that follows the car |
-| 3 | [Artificial sensors](3.%20Artificial%20sensors) | Five rays that measure the distance from the borders, segment intersection |
-| 4 | [Collision detection](4.%20Collision%20detection) | The car becomes a polygon and gets damaged if it touches a border |
-| 5 | [Traffic simulation](5.%20Traffic%20simulation) | "DUMMY" cars that go straight, to be seen with the sensors and avoided |
-| 6 | [Neural network](6.%20Neural%20network) | `[5,6,4]` neural network that turns the sensor readings into controls |
-| 7 | [Visualizing neural networks](7.%20Visualizing%20neural%20networks) | Real-time drawing of the network next to the road |
-| 8 | [Optimizing neural networks](8.%20Optimizing%20neural%20networks) | Many cars in parallel, mutation, saving the best network |
-| 9 | [Fine-tuning](9.%20Fine-tuning) | 100 cars, a colored sprite for each car, multicolor traffic |
-| 10 | [Curved road](10.%20Curved%20road) | Curved road made of polylines and a network without a hidden layer |
-| 11 | [Car in the world](11.%20Car%20in%20the%20world) | Editor of a virtual world (roads, buildings, road markings, import from OpenStreetMap) where the cars drive |
-| 12 | [Race in the world](12.%20Race%20in%20the%20world) | Race against the AI cars on a path found with Dijkstra, synthesized sounds, 3D view, driving with the phone or the webcam |
+| # | Folder | What it adds | Demo |
+|---|----------|---------------|------|
+| 1 | [Car driving mechanics](01.%20Car%20driving%20mechanics) | A car driven with the arrow keys: acceleration, friction, steering, reverse | [open](https://therealsivie.github.io/learning-to-drive/01.%20Car%20driving%20mechanics/) |
+| 2 | [Road definition](02.%20Road%20definition) | Three-lane road with borders and a camera that follows the car | [open](https://therealsivie.github.io/learning-to-drive/02.%20Road%20definition/) |
+| 3 | [Artificial sensors](03.%20Artificial%20sensors) | Five rays that measure the distance from the borders, segment intersection | [open](https://therealsivie.github.io/learning-to-drive/03.%20Artificial%20sensors/) |
+| 4 | [Collision detection](04.%20Collision%20detection) | The car becomes a polygon and gets damaged if it touches a border | [open](https://therealsivie.github.io/learning-to-drive/04.%20Collision%20detection/) |
+| 5 | [Traffic simulation](05.%20Traffic%20simulation) | "DUMMY" cars that go straight, to be seen with the sensors and avoided | [open](https://therealsivie.github.io/learning-to-drive/05.%20Traffic%20simulation/) |
+| 6 | [Neural network](06.%20Neural%20network) | `[5,6,4]` neural network that turns the sensor readings into controls | [open](https://therealsivie.github.io/learning-to-drive/06.%20Neural%20network/) |
+| 7 | [Visualizing neural networks](07.%20Visualizing%20neural%20networks) | Real-time drawing of the network next to the road | [open](https://therealsivie.github.io/learning-to-drive/07.%20Visualizing%20neural%20networks/) |
+| 8 | [Optimizing neural networks](08.%20Optimizing%20neural%20networks) | Many cars in parallel, mutation, saving the best network | [open](https://therealsivie.github.io/learning-to-drive/08.%20Optimizing%20neural%20networks/) |
+| 9 | [Fine-tuning](09.%20Fine-tuning) | 100 cars, a colored sprite for each car, multicolor traffic | [open](https://therealsivie.github.io/learning-to-drive/09.%20Fine-tuning/) |
+| 10 | [Curved road](10.%20Curved%20road) | Curved road made of polylines and a network without a hidden layer | [open](https://therealsivie.github.io/learning-to-drive/10.%20Curved%20road/) |
+| 11 | [Car in the world](11.%20Car%20in%20the%20world) | Editor of a virtual world (roads, buildings, road markings, import from OpenStreetMap) where the cars drive | [sim](https://therealsivie.github.io/learning-to-drive/11.%20Car%20in%20the%20world/) · [editor](https://therealsivie.github.io/learning-to-drive/11.%20Car%20in%20the%20world/world/) |
+| 12 | [Race in the world](12.%20Race%20in%20the%20world) | Race against the AI cars on a path found with Dijkstra, synthesized sounds, 3D view, driving with the phone or the webcam | [sim](https://therealsivie.github.io/learning-to-drive/12.%20Race%20in%20the%20world/sim.html) · [race](https://therealsivie.github.io/learning-to-drive/12.%20Race%20in%20the%20world/race.html) · [phone](https://therealsivie.github.io/learning-to-drive/12.%20Race%20in%20the%20world/phone.html) · [camera](https://therealsivie.github.io/learning-to-drive/12.%20Race%20in%20the%20world/camera.html) · [editor](https://therealsivie.github.io/learning-to-drive/12.%20Race%20in%20the%20world/world/) |
 
 ## The journey in short
 
@@ -59,7 +59,11 @@ weights.
 
 ## How to run it
 
-There is nothing to install. Just open `index.html` of any folder in the browser.
+Every chapter runs online on GitHub Pages: the links are in the Demo column of the table above.
+It is also the easiest way to try chapter 12 on the phone, because the pages are served over
+HTTPS.
+
+To run it locally there is nothing to install. Just open `index.html` of any folder in the browser.
 
 Alternatively, with a small local server from the repository root:
 
@@ -77,8 +81,10 @@ open the simulation.
 Chapter 12 must also be opened from the server, and it has no `index.html`: the pages are
 `sim.html` (the simulator), `race.html` (the race with the arrow keys), `phone.html` (the race
 driven by the phone), `markers.html` (the marker detector) and `camera.html` (the race driven with
-the webcam). The webcam only works on `localhost`; for the phone the folder must be served on the
-local network. The editor is in `world/index.html`.
+the webcam). Webcam and phone sensors only work in a secure context, `localhost` or HTTPS: on the
+local network over plain HTTP the phone may not send its tilt, so to drive with the phone use the
+online demo (on iOS it still needs a permission the code doesn't request, see chapter 12). The
+editor is in `world/index.html`.
 
 ### Controls
 
@@ -124,3 +130,5 @@ the ones from the previous chapters wouldn't work. The world no longer goes thro
   on a 60 Hz one.
 - The `visualizer.js` files were saved in UTF-16; I converted them to UTF-8 so they can be seen as
   text on git, without changing the code.
+- The code (js, html, css) has CRLF line endings, the Markdown files LF: `.gitattributes` stores
+  them as they are and `.editorconfig` tells the editor which one to use.

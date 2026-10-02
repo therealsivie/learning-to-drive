@@ -1,0 +1,9 @@
+# The code of the chapters (js, html, css) uses CRLF line endings, everything else LF.
+# The code is stored as it is, without conversions: .editorconfig tells the editor which ending to use.
+* text eol=lf
+*.js -text
+*.html -text
+*.css -text
+*.car -text
+*.world -text
+*.png binary
