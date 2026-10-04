@@ -1,0 +1,9 @@
+body{
+   margin:0;
+   background:darkgray;
+   overflow:hidden;
+}
+
+#carCanvas{
+   background:#2a5;
+}
