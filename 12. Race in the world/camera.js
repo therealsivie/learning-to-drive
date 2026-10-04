@@ -336,9 +336,10 @@ class Camera {
          world.corridor.borders.map((s) => new Polygon([s.p1, s.p2]))
       ), 10);
 
-      const carPolys = this.#extrudeCar(this.#filter(
+      const [carPoly] = this.#filter(
          [new Polygon(world.bestCar.polygon.map((p) => new Point(p.x, p.y)))]
-      )[0], world.bestCar);
+      );
+      const carPolys = carPoly ? this.#extrudeCar(carPoly, world.bestCar) : [];
 
       const carShadows = this.#filter(
          world.cars.map(

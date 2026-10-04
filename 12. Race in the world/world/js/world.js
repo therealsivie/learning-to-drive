@@ -101,6 +101,11 @@ class World {
          segs.push(new Segment(path[i - 1], path[i]));
       }
 
+      if (segs.length == 0) {
+         this.corridor = null;
+         return;
+      }
+
       if (extendEnd) {
          const lastSeg = segs[segs.length - 1];
          const lastSegDir = lastSeg.directionVector();
@@ -286,8 +291,12 @@ class World {
    #updateLights() {
       const lights = this.markings.filter((m) => m instanceof Light);
       const controlCenters = [];
+      const intersections = this.#getIntersections();
       for (const light of lights) {
-         const point = getNearestPoint(light.center, this.#getIntersections());
+         const point = getNearestPoint(light.center, intersections);
+         if (!point) {
+            continue;
+         }
          let controlCenter = controlCenters.find((c) => c.equals(point));
          if (!controlCenter) {
             controlCenter = new Point(point.x, point.y);

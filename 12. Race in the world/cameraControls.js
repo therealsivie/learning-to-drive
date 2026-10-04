@@ -97,6 +97,10 @@ class CameraControls {
 
          this.tmpCtx.putImageData(imgData, 0, 0);
          this.ctx.drawImage(this.tmpCanvas, 0, 0);
+      } else {
+         this.tilt = 0;
+         this.forward = true;
+         this.reverse = false;
       }
       requestAnimationFrame(() => this.#loop());
    }

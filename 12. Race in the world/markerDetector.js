@@ -56,6 +56,10 @@ class MarkerDetector {
          centroid2 = this.#averagePoints(group2);
       }
 
+      if (group1.length == 0 || group2.length == 0) {
+         return null;
+      }
+
       const size1 = Math.sqrt(group1.length);
       const radius1 = size1 / 2;
       const size2 = Math.sqrt(group2.length);

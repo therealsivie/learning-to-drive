@@ -47,14 +47,14 @@ for (let i = 0; i < cars.length; i++) {
    statistics.appendChild(div);
 }
 
-let roadBorders = [];
 const target = world.markings.find((m) => m instanceof Target);
 if (target) {
    world.generateCorridor(myCar, target.center, true);
-   roadBorders = world.corridor.borders.map((s) => [s.p1, s.p2]);
-} else {
-   roadBorders = world.roadBorders.map((s) => [s.p1, s.p2]);
 }
+if (!world.corridor) {
+   throw new Error("The race needs a Target that can be reached from the Start");
+}
+const roadBorders = world.corridor.borders.map((s) => [s.p1, s.p2]);
 
 const miniMapGraph = new Graph([], world.corridor.skeleton);
 const miniMap = new MiniMap(miniMapCanvas, miniMapGraph, rightPanelWidth, cars);

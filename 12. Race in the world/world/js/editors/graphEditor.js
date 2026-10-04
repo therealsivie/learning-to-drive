@@ -44,6 +44,9 @@ class GraphEditor {
    }
 
    #handleKeyDown(evt) {
+      if (evt.target instanceof HTMLInputElement || evt.target instanceof HTMLTextAreaElement) {
+         return;
+      }
       if (evt.key == "s") {
          this.start = this.mouse;
       }

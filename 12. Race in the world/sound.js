@@ -1,54 +1,55 @@
+const audioContext = new
+   (window.AudioContext || window.webkitAudioContext)();
+
+// Browsers keep a context created before any user interaction suspended
+window.addEventListener("keydown", () => audioContext.resume());
+window.addEventListener("pointerdown", () => audioContext.resume());
+
 function taDaa() {
    beep(400, "sawtooth");
    setTimeout(() => beep(600, "sawtooth"), 200);
 }
 
 function explode() {
-   const audioContext = new 
-      (window.AudioContext || window.webkitAudioContext)();
-
+   const now = audioContext.currentTime;
    const numOscillators = 10;
 
    for (let i = 0; i < numOscillators; i++) {
       const osc = audioContext.createOscillator();
       const envelope = audioContext.createGain();
 
-      osc.frequency.setValueAtTime(100 + Math.random() * 200, 0);
+      osc.frequency.setValueAtTime(100 + Math.random() * 200, now);
       osc.connect(envelope);
-      osc.start();
-      osc.stop(1);
+      osc.start(now);
+      osc.stop(now + 1);
 
-      envelope.gain.value = 0;
-      envelope.gain.linearRampToValueAtTime(1, 0.1);
-      envelope.gain.linearRampToValueAtTime(0, 1);
+      envelope.gain.setValueAtTime(0, now);
+      envelope.gain.linearRampToValueAtTime(1, now + 0.1);
+      envelope.gain.linearRampToValueAtTime(0, now + 1);
       envelope.connect(audioContext.destination);
    }
 }
 
 function beep(frequency, waveType = "sine") {
-   const audioContext = new 
-      (window.AudioContext || window.webkitAudioContext)();
+   const now = audioContext.currentTime;
 
    const osc = audioContext.createOscillator();
    const envelope = audioContext.createGain();
 
-   osc.frequency.setValueAtTime(frequency, 0);
+   osc.frequency.setValueAtTime(frequency, now);
    osc.type = waveType;
    osc.connect(envelope);
-   osc.start();
-   osc.stop(0.4);
+   osc.start(now);
+   osc.stop(now + 0.4);
 
-   envelope.gain.value = 0;
-   envelope.gain.linearRampToValueAtTime(1, 0.1);
-   envelope.gain.linearRampToValueAtTime(0, 0.4);
+   envelope.gain.setValueAtTime(0, now);
+   envelope.gain.linearRampToValueAtTime(1, now + 0.1);
+   envelope.gain.linearRampToValueAtTime(0, now + 0.4);
    envelope.connect(audioContext.destination);
 }
 
 class Engine {
    constructor() {
-      const audioContext = new 
-         (window.AudioContext || window.webkitAudioContext)();
-
       const osc = audioContext.createOscillator();
       const masterGain = audioContext.createGain();
 

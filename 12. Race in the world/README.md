@@ -377,7 +377,7 @@ longer points of the graph.
 - The temporary segments are always two-way: if the start or the end fall on a one-way road, the
   first and last stretch ignore it.
 - If the end is not reachable the path has only one point, the corridor is empty and the cars
-  have no borders.
+  have no borders. Fixed after the course, see [Fixes after the course](#fixes-after-the-course).
 - In the editor the corridor doesn't update when the graph is modified, and stays drawn even
   after 🗑️. Pressing s or e with an empty graph gives an error in the console.
 - `World` has no `toJSON`: the editor's 💾 also saves `corridor` in the `.world` file.
@@ -524,7 +524,7 @@ simulator saves the brain, the race reads it.
 - The time is `finishTime / 60`: it assumes 60 frames per second. On a 120 Hz screen the race runs
   at double speed, and the times shown are double the real ones.
 - Without a Target `world.corridor` doesn't exist and `updateCarProgress` errors out on the first
-  frame: the race needs a world with a Target.
+  frame: the race needs a world with a Target. Fixed after the course, see [Fixes after the course](#fixes-after-the-course).
 - Without a saved brain the AI cars are identical copies: they take the same road, arrive together
   and all have the same time.
 - The cars don't see each other and don't collide with each other: each one updates only with the
@@ -585,7 +585,7 @@ Without the envelope the sound would start and stop abruptly, with a "click" at 
 The times passed to `setValueAtTime`, `linearRampToValueAtTime` and `stop` are not durations: they
 are instants on the audio context clock, `audioContext.currentTime`, which starts from 0 when the
 context is created. That's why each function creates a new `AudioContext`: with a clock that has
-just started, "0.4" really means "in 0.4 seconds".
+just started, "0.4" really means "in 0.4 seconds". Fixed after the course, see [Fixes after the course](#fixes-after-the-course).
 
 ### The race sounds
 
@@ -653,15 +653,15 @@ are all AI and none calls `explode()`.
 
 ### Limitations
 
-- Each sound creates an `AudioContext` and none is ever closed. In a race there are about ten, so
-  it doesn't weigh much, but each context holds audio resources as long as the page stays open.
-  The usual way is a single context for the whole page, with the times computed from
-  `currentTime`.
+- Each sound creates an `AudioContext` and none is ever closed. With Part 11, which makes the car
+  explode again at every scrape against a wall, they become dozens, and each one holds audio
+  resources as long as the page stays open. The usual way is a single context for the whole page,
+  with the times computed from `currentTime`. Fixed after the course, see [Fixes after the course](#fixes-after-the-course).
 - Browsers block audio started before a user interaction: an `AudioContext` created like this
   starts `"suspended"` and nobody calls `resume()`. If the page hasn't received a click or a key
   yet, the countdown beeps and the engine, which is created before you touch the arrow keys, may
   stay silent for the whole race. It depends on the browser and on how often you visit the page:
-  in my test the contexts were already active.
+  in my test the contexts were already active. Fixed after the course, see [Fixes after the course](#fixes-after-the-course).
 - The sounds are only in the race.
 
 ### How to try it
@@ -1136,7 +1136,7 @@ main page.
   centers and the rectangle was ignored.
 - If there is nothing blue in the image, the detector doesn't return `null`: it returns two
   markers without points, with the centroids at `NaN`. The page doesn't error out, it simply
-  doesn't color anything.
+  doesn't color anything. Fixed after the course, see [Fixes after the course](#fixes-after-the-course).
 - With only one marker in view, k-means still splits its points into two halves. Any other blue
   object in the frame ends up in one of the two groups and moves the centroid.
 - The video is not mirrored: the marker held with the left hand appears on the right in the image
@@ -1265,7 +1265,8 @@ here: it isn't visible, but an `<input type="range">` brings any out-of-bounds v
   wheel is moving, or is not in the frame, the reference is wrong for the whole game.
 - If the markers leave the frame, centroids and radius become `NaN`. `tilt` is `NaN`, which in
   `car.js` counts as false, and the comparison with `expectedSize` is false: the car goes straight
-  and forward.
+  and forward. If it happens in the last frame before the GO!, `expectedSize` itself becomes `NaN`
+  and reverse never engages for the whole race. Fixed after the course, see [Fixes after the course](#fixes-after-the-course).
 - The limitations of the detector remain: a single marker is split in two, and any other blue
   object in the frame moves the centroids.
 - With the steering wheel held vertically `tilt` is about ±π/2 and the car spins in place, as
@@ -1465,7 +1466,7 @@ where nothing is drawn, and the sky shows above the horizon.
   would no longer be the four corners.
 - With the ranking without scrolling, if you are beyond the first rows you don't see your position.
 - Without a Target there is no corridor: besides `updateCarProgress` (Part 4), now the creation of
-  the minimap errors out too.
+  the minimap errors out too. Fixed after the course, see [Fixes after the course](#fixes-after-the-course).
 - `globalAlpha` stays at the last value used after `render`; it causes no problems only because
   that canvas is used only by the camera.
 
@@ -1476,3 +1477,32 @@ roof. After the GO! steer and look at the front wheels, then throw yourself agai
 hear the explosion, but the car is pushed back and starts again. You see the AI cars as gray
 shadows and as dots in the minimap, which turns with you. With `camera.html` or `phone.html` the
 wheels follow the tilt of the steering wheel or of the phone.
+
+## Fixes after the course
+
+Corrections made after Part 11, not part of the original course. They fix errors and leaks; the
+other limitations described in the parts are still there.
+
+- **Unreachable Target.** If the Target can't be reached from the Start, `getShortestPath` returns
+  only the end and the path has no segments: with `extendEnd` the race errored out reading the
+  last segment. Now `generateCorridor` (`world/js/world.js`) sets `world.corridor` to `null`.
+  `sim.js` then uses the borders of the whole world, as without a Target; `race.js` stops with an
+  explicit error, both without a Target and with an unreachable one, because the race needs a
+  path.
+- **Traffic lights without intersections.** `#updateLights` computes the intersections once per
+  frame instead of once per traffic light, and skips the traffic lights with no intersection to
+  attach to (same fix as folder 11).
+- **Nothing blue in the webcam.** `MarkerDetector.detect` returns `null` when one of the two
+  groups is empty, as the `if (res)` of its callers already expected. `CameraControls` then puts
+  `tilt` to 0 and drives forward, the same behavior as before but explicit, and `expectedSize` is
+  no longer computed from an empty frame.
+- **Car outside the field of view.** In `camera.js` `#getPolys` extrudes the car only if the filter
+  returns a polygon: before, an empty filter passed `undefined` to `#extrudeCar`.
+- **A single audio context.** `sound.js` creates one `AudioContext` for the whole page, and every
+  sound computes its times from `audioContext.currentTime`: with a shared context the clock no
+  longer starts from 0 at each sound. The initial value of the envelope is set with
+  `setValueAtTime(0, now)` instead of `gain.value`, so the ramps start from a scheduled event. The
+  context is resumed at the first key or tap, because browsers keep it suspended until the user
+  interacts with the page.
+- **Keys in the editor.** `GraphEditor` ignores the keys typed in an input or a textarea: writing
+  an `s` or an `e` in the OpenStreetMap box no longer moves the start and the end of the path.

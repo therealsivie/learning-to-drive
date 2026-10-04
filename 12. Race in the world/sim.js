@@ -37,6 +37,8 @@ let roadBorders = [];
 const target = world.markings.find((m) => m instanceof Target);
 if (target) {
    world.generateCorridor(bestCar, target.center);
+}
+if (world.corridor) {
    roadBorders = world.corridor.borders.map((s) => [s.p1, s.p2]);
 } else {
    roadBorders = world.roadBorders.map((s) => [s.p1, s.p2]);

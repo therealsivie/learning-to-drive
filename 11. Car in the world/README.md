@@ -751,7 +751,8 @@ The editors receive `world.laneGuides` and `world.markings` in the constructor a
 - The markings aren't saved: 💾 still saves only the graph.
 - The markings don't follow the graph: moving or deleting a road, they stay where they were.
 - A traffic light in a graph without intersections blocks the drawing: `getNearestPoint` returns
-  `null` and `#updateLights` throws an error every frame.
+  `null` and `#updateLights` throws an error every frame. Fixed after the course, see
+  [Fixes after the course](#fixes-after-the-course).
 - The tick counts frames, not seconds: on a 120 Hz screen the traffic lights go twice as fast.
 - `Light` ignores the height it receives and always uses 18.
 - The editors use the global variable `world` in `createMarking` instead of `this.world`.
@@ -1079,3 +1080,11 @@ two canvases, which are inline, wrap one below the other.
 Save a world from the editor, ideally one imported from OpenStreetMap, and open `index.html` in the
 root. The minimap appears below the network: the blue dot stays at the center and the roads scroll
 by as the best car moves forward.
+
+## Fixes after the course
+
+Corrections made after the last part, not part of the original course.
+
+- `#updateLights` (`world/js/world.js`) computes the intersections once per frame instead of once
+  per traffic light, and skips the traffic lights with no intersection to attach to: a traffic
+  light in a graph without intersections stays as it is instead of blocking the drawing.
