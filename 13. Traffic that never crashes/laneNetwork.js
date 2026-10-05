@@ -1,3 +1,6 @@
+const carSize = { width: 30, length: 50 };
+const idm = { aMax: 0.05, b: 0.08, s0: 12, T: 20, horizon: 300 };
+
 function getBezierPoints(controls, count = 10) {
    const points = [];
    for (let i = 0; i < count; i++) {
@@ -32,6 +35,7 @@ class LanePath {
       this.v0 = v0;
       this.next = [];
       this.turn = "straight";
+      this.occupants = [];
    }
 
    #segmentAt(s) {
@@ -168,6 +172,39 @@ class LaneNetwork {
             this.paths.push(connector);
          }
       }
+   }
+
+   findRoute(start, target) {
+      const dist = new Map([[start, 0]]);
+      const prev = new Map();
+      const done = new Set();
+      while (true) {
+         let current = null;
+         for (const [path, d] of dist) {
+            if (!done.has(path) && (current == null || d < dist.get(current))) {
+               current = path;
+            }
+         }
+         if (current == null) {
+            return null;
+         }
+         if (current == target) {
+            break;
+         }
+         done.add(current);
+         for (const next of current.next) {
+            const d = dist.get(current) + current.length;
+            if (!dist.has(next) || d < dist.get(next)) {
+               dist.set(next, d);
+               prev.set(next, current);
+            }
+         }
+      }
+      const route = [target];
+      while (route[0] != start) {
+         route.unshift(prev.get(route[0]));
+      }
+      return route;
    }
 
    draw(ctx) {

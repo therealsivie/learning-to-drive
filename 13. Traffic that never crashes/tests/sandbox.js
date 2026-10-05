@@ -64,6 +64,13 @@ function createSandbox(files, seed = 1) {
    };
 }
 
+function place(driver, route, s) {
+   driver.route = route;
+   driver.idx = 0;
+   driver.s = s;
+   driver.speed = 0;
+}
+
 function createReport() {
    let failed = 0;
    return {
@@ -79,4 +86,4 @@ function createReport() {
    };
 }
 
-module.exports = { root, worldFiles, pageFiles, mulberry32, createSandbox, createReport };
+module.exports = { root, worldFiles, pageFiles, mulberry32, createSandbox, place, createReport };

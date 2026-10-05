@@ -5,7 +5,7 @@ const carCtx = carCanvas.getContext("2d");
 
 const viewport = new Viewport(carCanvas, world.zoom, world.offset);
 
-const network = new LaneNetwork(world);
+const traffic = new Traffic(world, 10);
 let showLanes = true;
 
 window.addEventListener("keydown", (evt) => {
@@ -17,11 +17,12 @@ window.addEventListener("keydown", (evt) => {
 animate();
 
 function animate() {
+   traffic.update();
    viewport.reset();
    const viewPoint = scale(viewport.getOffset(), -1);
    world.draw(carCtx, viewPoint, false);
    if (showLanes) {
-      network.draw(carCtx);
+      traffic.network.draw(carCtx);
    }
    requestAnimationFrame(animate);
 }
