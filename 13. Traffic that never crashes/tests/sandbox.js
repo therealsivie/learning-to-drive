@@ -72,6 +72,17 @@ function place(driver, route, s) {
    driver.speed = 0;
 }
 
+function ahead(path, length) {
+   const route = [path];
+   let total = path.length;
+   while (total < length) {
+      path = path.next[0];
+      route.push(path);
+      total += path.length;
+   }
+   return route;
+}
+
 function createReport() {
    let failed = 0;
    return {
@@ -87,4 +98,4 @@ function createReport() {
    };
 }
 
-module.exports = { root, worldFiles, pageFiles, mulberry32, createSandbox, place, createReport };
+module.exports = { root, worldFiles, pageFiles, mulberry32, createSandbox, place, ahead, createReport };

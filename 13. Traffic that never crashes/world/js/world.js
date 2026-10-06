@@ -27,8 +27,6 @@ class World {
       this.cars = [];
       this.bestCar = null;
 
-      this.frameCount = 0;
-
       this.generate();
    }
 
@@ -226,7 +224,7 @@ class World {
       return subset;
    }
 
-   #updateLights() {
+   updateLights(tick) {
       const lights = this.markings.filter((m) => m instanceof Light);
       const controlCenters = [];
       const intersections = this.#getIntersections();
@@ -249,9 +247,9 @@ class World {
       for (const center of controlCenters) {
          center.ticks = center.lights.length * (greenDuration + yellowDuration);
       }
-      const tick = Math.floor(this.frameCount / 60);
+      const second = Math.floor(tick / 60);
       for (const center of controlCenters) {
-         const cTick = tick % center.ticks;
+         const cTick = second % center.ticks;
          const greenYellowIndex = Math.floor(
             cTick / (greenDuration + yellowDuration)
          );
@@ -267,12 +265,9 @@ class World {
             }
          }
       }
-      this.frameCount++;
    }
 
    draw(ctx, viewPoint, showStartMarkings = true, renderRadius = 1000) {
-      this.#updateLights();
-
       for (const env of this.envelopes) {
          env.draw(ctx, { fill: "#BBB", stroke: "#BBB", lineWidth: 15 });
       }

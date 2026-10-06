@@ -4,6 +4,7 @@ class Traffic {
       this.random = random;
       this.tick = 0;
       this.collisions = 0;
+      this.violations = 0;
       this.guardHits = 0;
       this.errors = [];
       this.contacts = new Set();
@@ -25,6 +26,7 @@ class Traffic {
 
    update() {
       this.tick++;
+      this.world.updateLights(this.tick);
       for (const path of this.network.paths) {
          path.occupants = [];
       }

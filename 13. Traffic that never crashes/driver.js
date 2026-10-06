@@ -8,6 +8,7 @@ class Driver {
       this.speed = 0;
       this.request = null;
       this.requestTick = 0;
+      this.stillTicks = 0;
       this.frontIdx = 0;
       this.#extendRoute();
 
@@ -64,9 +65,23 @@ class Driver {
       return path.junction.holders.some((h) => h.driver == this && h.path == path);
    }
 
+   hasEntered(path) {
+      const k = this.route.indexOf(path, Math.max(0, this.idx - 1));
+      return k >= 0 && this.frontIdx >= k;
+   }
+
    hasPassed(path) {
       const k = this.route.indexOf(path, Math.max(0, this.idx - 1));
       return k < 0 || this.idx > k + 1 || (this.idx == k + 1 && this.rear >= 0);
+   }
+
+   canStopBefore(path, lineS) {
+      const k = this.route.indexOf(path, this.idx);
+      if (k < 1) {
+         return false;
+      }
+      const dist = this.#offset(k - 1) + lineS - this.front;
+      return (this.speed * this.speed) / (2 * 0.15) < dist;
    }
 
    update() {
@@ -217,8 +232,16 @@ class Driver {
    }
 
    #checkEntry(path) {
-      if (!this.holds(path)) {
-         this.traffic.fail("entered a junction without a reservation", [this]);
+      const { rule, marking } = path.approach;
+      const holder = path.junction.holders.find((h) => h.driver == this && h.path == path);
+      if (rule == "light" && marking.state == "red" && (!holder || holder.state == "red")) {
+         this.traffic.violations++;
+         this.traffic.fail("entered on red", [this]);
+      } else if (!holder) {
+         this.traffic.fail("entered a " + rule + " junction without a reservation", [this]);
+      }
+      if (rule == "stop" && this.stillTicks < 60) {
+         this.traffic.fail("entered a Stop after " + this.stillTicks + " still ticks", [this]);
       }
    }
 
@@ -237,7 +260,13 @@ class Driver {
       if (request?.path != this.request?.path) {
          this.requestTick = this.traffic.tick;
       }
+      if (request?.path.approach != this.request?.path.approach) {
+         this.stillTicks = 0;
+      }
       this.request = request;
+      if (request && request.dist <= idm.s0 + 5 && this.speed < 0.05) {
+         this.stillTicks++;
+      }
    }
 
    #updatePose() {

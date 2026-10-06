@@ -29,7 +29,7 @@ class Junction {
       const trims = new Map();
       for (let round = 0; ; round++) {
          const network = new LaneNetwork(world, trims);
-         const junctions = Junction.#build(network);
+         const junctions = Junction.#build(network, world);
          const keys = round < 10 ? Junction.#findTrims(network) : new Set();
          if (round == 10) {
             console.warn("Junction trims did not converge in 10 rounds");
@@ -43,22 +43,48 @@ class Junction {
       }
    }
 
-   static #build(network) {
+   static #build(network, world) {
       const junctions = [];
       for (const node of network.nodes) {
          const approaches = node.incoming
             .map((lane) => ({
                lane,
                connectors: node.connectors.filter((c) => c.from == lane),
-               lineS: lane.length
+               ...Junction.#findRule(lane, world)
             }))
             .filter((a) => a.connectors.length > 0);
          if (approaches.length == 0) {
             continue;
          }
+         const marked = approaches.some((a) => a.marking);
+         for (const approach of approaches) {
+            if (!approach.marking) {
+               approach.rule = marked ? "main" : "right";
+            }
+         }
          junctions.push(new Junction(node.point, approaches));
       }
       return junctions;
+   }
+
+   static #findRule(lane, world) {
+      const end = lane.points[lane.points.length - 1];
+      const dir = lane.frame.dir;
+      const marking = world.markings.find(
+         (m) =>
+            (m instanceof Light || m instanceof Stop || m instanceof Yield) &&
+            distance(m.center, end) < world.roadWidth &&
+            dot(m.directionVector, dir) < -0.9
+      );
+      if (!marking) {
+         return { lineS: lane.length };
+      }
+      const s = dot(subtract(marking.center, lane.points[0]), dir);
+      return {
+         marking,
+         rule: marking.type,
+         lineS: Math.min(lane.length, s + marking.height / 2)
+      };
    }
 
    static #samples(path, from, to) {
@@ -131,11 +157,18 @@ class Junction {
 
    update(traffic) {
       this.holders = this.holders.filter((h) => !h.driver.hasPassed(h.path));
+      this.holders = this.holders.filter((h) => !this.#mustCancel(h));
 
       const heads = this.#getHeads(traffic);
       const claimed = [];
+      const blocked = [];
+      let granted = false;
       for (const head of heads) {
          if (head.driver.holds(head.path)) {
+            continue;
+         }
+         if (!this.#ruleAllows(head, traffic)) {
+            blocked.push(head);
             continue;
          }
          if (claimed.some((path) => this.#conflict(path, head.path))) {
@@ -147,16 +180,39 @@ class Junction {
          }
          if (this.#hasRoom(head)) {
             this.#grant(head);
+            granted = true;
          }
+      }
+
+      const deadlock =
+         !granted &&
+         this.holders.length == 0 &&
+         blocked.length > 0 &&
+         blocked.length == heads.length &&
+         blocked.every((h) => h.approach.rule == "right" && h.driver.speed < 0.05);
+      if (deadlock && this.#hasRoom(blocked[0])) {
+         this.#grant(blocked[0]);
       }
    }
 
    #grant({ driver, path }) {
-      this.holders.push({ driver, path });
+      this.holders.push({ driver, path, state: path.approach.marking?.state });
    }
 
    #conflict(a, b) {
       return this.conflicts.get(a).has(b);
+   }
+
+   #mustCancel(holder) {
+      const { driver, path } = holder;
+      const { rule, marking, lineS } = path.approach;
+      if (rule != "light" || driver.hasEntered(path)) {
+         return false;
+      }
+      if (marking.state == "red") {
+         return true;
+      }
+      return marking.state == "yellow" && driver.canStopBefore(path, lineS);
    }
 
    #getRequests(traffic) {
@@ -176,6 +232,43 @@ class Junction {
       }
       return [...heads.values()].sort(
          (a, b) => a.driver.requestTick - b.driver.requestTick || a.driver.id - b.driver.id
+      );
+   }
+
+   #ruleAllows(head, traffic) {
+      const { driver, path, approach } = head;
+      switch (approach.rule) {
+         case "light":
+            if (approach.marking.state == "green") {
+               return true;
+            }
+            return approach.marking.state == "yellow" && !driver.canStopBefore(path, approach.lineS);
+         case "stop":
+            if (driver.stillTicks < 60) {
+               return false;
+            }
+            return this.#yieldsTo(head, traffic, (a) => a.rule == "main");
+         case "yield":
+            return this.#yieldsTo(head, traffic, (a) => a.rule == "main");
+         case "right": {
+            const right = perpendicular(approach.lane.frame.dir);
+            return this.#yieldsTo(
+               head,
+               traffic,
+               (a) => dot(a.lane.frame.dir, right) < -0.7
+            );
+         }
+         default:
+            return true;
+      }
+   }
+
+   #yieldsTo(head, traffic, hasPriority) {
+      return !this.#getRequests(traffic).some(
+         (d) =>
+            d != head.driver &&
+            hasPriority(d.request.path.approach) &&
+            this.#conflict(d.request.path, head.path)
       );
    }
 
