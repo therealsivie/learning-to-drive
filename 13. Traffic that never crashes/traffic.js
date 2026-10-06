@@ -4,13 +4,16 @@ class Traffic {
       this.random = random;
       this.tick = 0;
       this.collisions = 0;
+      this.guardHits = 0;
       this.errors = [];
       this.contacts = new Set();
 
-      this.network = new LaneNetwork(world);
+      const { network, junctions } = Junction.createNetwork(world);
+      this.network = network;
+      this.junctions = junctions;
       this.#indexBorders();
 
-      const lanes = this.network.paths.filter((p) => p.kind == "lane");
+      const lanes = network.paths.filter((p) => p.kind == "lane");
       const count = Math.min(carCount, lanes.length);
       this.drivers = [];
       for (let id = 0; id < count; id++) {
@@ -27,6 +30,9 @@ class Traffic {
       }
       for (const driver of this.drivers) {
          driver.register();
+      }
+      for (const junction of this.junctions) {
+         junction.update(this);
       }
       for (const driver of this.drivers) {
          driver.update();

@@ -6,6 +6,9 @@ class Driver {
       this.idx = 0;
       this.s = s;
       this.speed = 0;
+      this.request = null;
+      this.requestTick = 0;
+      this.frontIdx = 0;
       this.#extendRoute();
 
       const p = path.pointAt(s);
@@ -33,6 +36,16 @@ class Driver {
       const half = carSize.length / 2;
       const add = (path, center) => {
          path.occupants.push({ driver: this, center, rear: center - half, front: center + half });
+         for (const twin of path.twins) {
+            if (center - half < twin.until) {
+               twin.path.occupants.push({
+                  driver: this,
+                  center,
+                  rear: center - half,
+                  front: center + half
+               });
+            }
+         }
       };
       add(this.route[this.idx], this.s);
       let center = this.s;
@@ -47,13 +60,24 @@ class Driver {
       }
    }
 
+   holds(path) {
+      return path.junction.holders.some((h) => h.driver == this && h.path == path);
+   }
+
+   hasPassed(path) {
+      const k = this.route.indexOf(path, Math.max(0, this.idx - 1));
+      return k < 0 || this.idx > k + 1 || (this.idx == k + 1 && this.rear >= 0);
+   }
+
    update() {
       this.#extendRoute();
       this.#drive();
+      this.#updateFront();
       while (this.s >= this.route[this.idx].length && this.idx + 1 < this.route.length) {
          this.s -= this.route[this.idx].length;
          this.idx++;
       }
+      this.#updateRequest();
       this.#updatePose();
    }
 
@@ -62,6 +86,7 @@ class Driver {
          const cut = this.idx - 1;
          this.route = this.route.slice(cut);
          this.idx -= cut;
+         this.frontIdx -= cut;
       }
       const { network, random } = this.traffic;
       const lanes = network.paths.filter((p) => p.kind == "lane");
@@ -92,7 +117,7 @@ class Driver {
          gap = Math.min(gap, obstacle.gap);
       }
       const v = Math.max(0, this.speed + acc);
-      const step = Math.min(v, Math.max(0, gap - 2));
+      const step = this.#guard(Math.min(v, Math.max(0, gap - 2)));
       this.s += step;
       this.speed = step;
    }
@@ -122,6 +147,7 @@ class Driver {
    #obstacles() {
       const obstacles = [];
       let cum = 0;
+      let stopFound = false;
       for (let k = this.idx; k < this.route.length && cum - this.front < idm.horizon; k++) {
          const path = this.route[k];
          for (const o of path.occupants) {
@@ -129,12 +155,89 @@ class Driver {
                obstacles.push({ gap: cum + o.rear - this.front, speed: o.driver.speed });
             }
          }
+         if (!stopFound && k > this.frontIdx && path.junction && !this.holds(path)) {
+            const lineS = cum - this.route[k - 1].length + path.approach.lineS;
+            obstacles.push({ gap: lineS - this.front, speed: 0 });
+            stopFound = true;
+         }
          if (k == this.route.length - 1) {
             obstacles.push({ gap: cum + path.length - this.front, speed: 0 });
          }
          cum += path.length;
       }
       return obstacles;
+   }
+
+   #polygonAt(s, margin) {
+      let k = this.idx;
+      while (s > this.route[k].length && k + 1 < this.route.length) {
+         s -= this.route[k].length;
+         k++;
+      }
+      return this.route[k].polygonAt(s, margin);
+   }
+
+   #guard(step) {
+      if (step == 0) {
+         return 0;
+      }
+      const others = this.traffic.drivers.filter(
+         (d) =>
+            d != this &&
+            Math.abs(d.car.x - this.car.x) < 100 &&
+            Math.abs(d.car.y - this.car.y) < 100
+      );
+      for (let i = 0; i <= 6; i++) {
+         const poly = this.#polygonAt(this.s + step, 1);
+         if (!others.some((d) => polysIntersect(poly, d.car.polygon))) {
+            return step;
+         }
+         if (i == 0) {
+            this.traffic.guardHits++;
+         }
+         step /= 2;
+      }
+      return 0;
+   }
+
+   #updateFront() {
+      let f = this.front;
+      let k = this.idx;
+      while (k + 1 < this.route.length && f > this.route[k].length) {
+         f -= this.route[k].length;
+         k++;
+      }
+      for (let j = this.frontIdx + 1; j <= k; j++) {
+         const path = this.route[j];
+         if (path.junction) {
+            this.#checkEntry(path);
+         }
+      }
+      this.frontIdx = Math.max(this.frontIdx, k);
+   }
+
+   #checkEntry(path) {
+      if (!this.holds(path)) {
+         this.traffic.fail("entered a junction without a reservation", [this]);
+      }
+   }
+
+   #updateRequest() {
+      let request = null;
+      let cum = 0;
+      for (let k = this.idx; k < this.route.length; k++) {
+         const path = this.route[k];
+         if (k > this.frontIdx && path.junction) {
+            const lineS = cum - this.route[k - 1].length + path.approach.lineS;
+            request = { path, dist: lineS - this.front };
+            break;
+         }
+         cum += path.length;
+      }
+      if (request?.path != this.request?.path) {
+         this.requestTick = this.traffic.tick;
+      }
+      this.request = request;
    }
 
    #updatePose() {

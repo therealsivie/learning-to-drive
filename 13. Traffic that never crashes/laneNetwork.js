@@ -1,6 +1,21 @@
 const carSize = { width: 30, length: 50 };
 const idm = { aMax: 0.05, b: 0.08, s0: 12, T: 20, horizon: 300 };
 
+function getCarPolygon(center, angle, width = carSize.width, length = carSize.length) {
+   const rad = Math.hypot(width, length) / 2;
+   const alpha = Math.atan2(width, length);
+   const corner = (a) => ({
+      x: center.x - Math.sin(a) * rad,
+      y: center.y - Math.cos(a) * rad
+   });
+   return [
+      corner(angle - alpha),
+      corner(angle + alpha),
+      corner(Math.PI + angle - alpha),
+      corner(Math.PI + angle + alpha)
+   ];
+}
+
 function getBezierPoints(controls, count = 10) {
    const points = [];
    for (let i = 0; i < count; i++) {
@@ -35,7 +50,10 @@ class LanePath {
       this.v0 = v0;
       this.next = [];
       this.turn = "straight";
+      this.junction = null;
+      this.approach = null;
       this.occupants = [];
+      this.twins = [];
    }
 
    #segmentAt(s) {
@@ -58,6 +76,15 @@ class LanePath {
       const i = this.#segmentAt(s);
       const d = subtract(this.points[i], this.points[i - 1]);
       return Math.atan2(-d.x, -d.y);
+   }
+
+   polygonAt(s, margin = 0) {
+      return getCarPolygon(
+         this.pointAt(s),
+         this.angleAt(s),
+         carSize.width + margin * 2,
+         carSize.length + margin * 2
+      );
    }
 
    draw(ctx, color) {
@@ -83,8 +110,9 @@ class LanePath {
 }
 
 class LaneNetwork {
-   constructor(world) {
+   constructor(world, trims = new Map()) {
       this.world = world;
+      this.trims = trims;
       this.paths = [];
       this.nodes = [];
       this.#build();
@@ -116,18 +144,21 @@ class LaneNetwork {
       for (const node of this.nodes) {
          this.#buildConnectors(node);
       }
+
+      this.#findTwins();
    }
 
-   #trim(point) {
+   #trim(point, key) {
       const degree = this.world.graph.getSegmentsWithPoint(point).length;
-      return degree >= 2 ? this.world.roadWidth / 2 : 0;
+      const base = degree >= 2 ? this.world.roadWidth / 2 : 0;
+      return base + (this.trims.get(key) || 0);
    }
 
    #createFrame(from, to, key, segIndex) {
       const dir = normalize(subtract(to, from));
       const right = perpendicular(dir);
-      const trimStart = this.#trim(from);
-      const trimEnd = this.#trim(to);
+      const trimStart = this.#trim(from, key + ":start");
+      const trimEnd = this.#trim(to, key + ":end");
       const start = add(
          add(from, scale(dir, trimStart)),
          scale(right, this.world.roadWidth / 4)
@@ -174,6 +205,35 @@ class LaneNetwork {
       }
    }
 
+   #findTwins() {
+      const groups = new Map();
+      for (const path of this.paths) {
+         const p = path.points[0];
+         const key = p.x.toFixed(1) + "," + p.y.toFixed(1);
+         if (!groups.has(key)) {
+            groups.set(key, []);
+         }
+         groups.get(key).push(path);
+      }
+      for (const group of groups.values()) {
+         for (const p of group) {
+            for (const q of group) {
+               if (p == q) {
+                  continue;
+               }
+               let until = 0;
+               const max = Math.min(p.length, q.length);
+               for (let s = 0; s <= max; s += 2) {
+                  if (distance(p.pointAt(s), q.pointAt(s)) < carSize.width + 4) {
+                     until = s;
+                  }
+               }
+               p.twins.push({ path: q, until });
+            }
+         }
+      }
+   }
+
    findRoute(start, target) {
       const dist = new Map([[start, 0]]);
       const prev = new Map();
@@ -210,7 +270,8 @@ class LaneNetwork {
    draw(ctx) {
       const colors = { lane: "#00F", connector: "#F80" };
       for (const path of this.paths) {
-         path.draw(ctx, colors[path.kind]);
+         const held = path.junction && path.junction.holders.some((h) => h.path == path);
+         path.draw(ctx, held ? "#F00" : colors[path.kind]);
       }
    }
 }

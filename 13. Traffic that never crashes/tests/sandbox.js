@@ -67,6 +67,7 @@ function createSandbox(files, seed = 1) {
 function place(driver, route, s) {
    driver.route = route;
    driver.idx = 0;
+   driver.frontIdx = 0;
    driver.s = s;
    driver.speed = 0;
 }
