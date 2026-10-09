@@ -54,6 +54,24 @@ const code = `
       world.markings.push(new Yield(center, dir, half, half));
    }
 
+   const crossingSegments = [
+      segments.find((s) => s.equals(new Segment(at(1, 1), at(2, 1)))),
+      segments.find((s) => s.equals(new Segment(at(2, 2), at(2, 3))))
+   ];
+   for (const seg of crossingSegments) {
+      world.markings.push(
+         new Crossing(average(seg.p1, seg.p2), seg.directionVector(), world.roadWidth, half)
+      );
+   }
+
+   const baySegments = segments.filter((s) => !crossingSegments.includes(s)).slice(0, 14);
+   baySegments.forEach((seg, i) => {
+      const [p1, p2] = i % 2 == 0 ? [seg.p1, seg.p2] : [seg.p2, seg.p1];
+      const d = normalize(subtract(p2, p1));
+      const center = add(add(p1, scale(d, half + 170)), scale(perpendicular(d), lane));
+      world.markings.push(new Parking(center, scale(d, -1), half, half));
+   });
+
    world.generate();
    world.zoom = 3;
    world.offset = new Point(-750, -750);

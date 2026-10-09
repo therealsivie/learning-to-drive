@@ -2,23 +2,43 @@ class Parking extends Marking {
    constructor(center, directionVector, width, height) {
       super(center, directionVector, width, height);
 
-      this.borders = [this.poly.segments[0], this.poly.segments[2]];
+      this.laneDirection = scale(directionVector, -1);
+      this.right = perpendicular(this.laneDirection);
+      this.bay = new Polygon([
+         this.local(-180, 15),
+         this.local(-80, 65),
+         this.local(80, 65),
+         this.local(180, 15)
+      ]);
       this.type = "parking";
    }
 
+   local(along, lateral) {
+      return add(
+         this.center,
+         add(scale(this.laneDirection, along), scale(this.right, lateral))
+      );
+   }
+
    draw(ctx) {
-      for (const border of this.borders) {
-         border.draw(ctx, { width: 5, color: "white" });
-      }
+      new Segment(this.local(-50, 25), this.local(-50, 65)).draw(ctx, {
+         width: 4,
+         color: "white"
+      });
+      new Segment(this.local(50, 25), this.local(50, 65)).draw(ctx, {
+         width: 4,
+         color: "white"
+      });
+      const p = this.local(0, 45);
       ctx.save();
-      ctx.translate(this.center.x, this.center.y);
-      ctx.rotate(angle(this.directionVector));
+      ctx.translate(p.x, p.y);
+      ctx.rotate(angle(this.right) + Math.PI / 2);
 
       ctx.beginPath();
       ctx.textBaseline = "middle";
       ctx.textAlign = "center";
       ctx.fillStyle = "white";
-      ctx.font = "bold " + this.height * 0.9 + "px Arial";
+      ctx.font = "bold 30px Arial";
       ctx.fillText("P", 0, 3);
 
       ctx.restore();

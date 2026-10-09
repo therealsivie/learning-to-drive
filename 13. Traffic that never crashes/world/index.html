@@ -78,6 +78,7 @@
          };
 
          let oldGraphHash = graph.hash();
+         let oldMarkingCount = world.markings.length;
          let frameCount = 0;
 
          setMode("graph");
@@ -86,9 +87,13 @@
 
          function animate() {
             viewport.reset();
-            if (graph.hash() != oldGraphHash) {
+            if (
+               graph.hash() != oldGraphHash ||
+               world.markings.length != oldMarkingCount
+            ) {
                world.generate();
                oldGraphHash = graph.hash();
+               oldMarkingCount = world.markings.length;
             }
             world.updateLights(frameCount++);
             const viewPoint = scale(viewport.getOffset(), -1);

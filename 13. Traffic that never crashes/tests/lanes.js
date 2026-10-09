@@ -56,13 +56,14 @@ function reach(start, neighbours) {
    return seen;
 }
 
-const previous = new Map(network.paths.map((p) => [p, []]));
-for (const p of network.paths) {
-   for (const next of p.next) {
+const roads = network.paths.filter((p) => !p.bay);
+const previous = new Map(roads.map((p) => [p, []]));
+for (const p of roads) {
+   for (const next of p.next.filter((n) => !n.bay)) {
       previous.get(next).push(p);
    }
 }
-const forward = reach(lanes[0], (p) => p.next);
+const forward = reach(lanes[0], (p) => p.next.filter((n) => !n.bay));
 const backward = reach(lanes[0], (p) => previous.get(p));
 report.check(
    "every lane can reach and be reached from every other lane",

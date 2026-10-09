@@ -4,7 +4,7 @@ const files = pageFiles();
 
 const ticks = Number(process.argv[2]) || 36000;
 const seeds = Number(process.argv[3]) || 5;
-const carCounts = [5, 10, 20];
+const carCounts = [5, 10, Infinity];
 
 function runScenario(carCount, seed) {
    const sandbox = createSandbox(files, seed);
@@ -13,6 +13,11 @@ function runScenario(carCount, seed) {
    const traffic = sandbox.run("new Traffic(world, __carCount, __trafficRandom)");
    while (traffic.tick < ticks && traffic.errors.length == 0) {
       traffic.update();
+   }
+   for (const driver of traffic.drivers) {
+      if (traffic.tick - (driver.lastTripTick ?? 0) >= 36000) {
+         traffic.fail("no trip in 36000 ticks", [driver]);
+      }
    }
    return traffic;
 }
@@ -25,7 +30,7 @@ for (const carCount of carCounts) {
       const seconds = ((Date.now() - start) / 1000).toFixed(1);
       console.log(
          `cars ${traffic.drivers.length} seed ${seed}: ticks ${traffic.tick}, ` +
-            `guard ${traffic.guardHits}, ${seconds}s`
+            `trips ${traffic.trips}, guard ${traffic.guardHits}, ${seconds}s`
       );
       for (const error of traffic.errors.slice(0, 5)) {
          failed = true;

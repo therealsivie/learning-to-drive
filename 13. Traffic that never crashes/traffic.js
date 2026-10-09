@@ -3,6 +3,7 @@ class Traffic {
       this.world = world;
       this.random = random;
       this.tick = 0;
+      this.trips = 0;
       this.collisions = 0;
       this.violations = 0;
       this.guardHits = 0;
@@ -14,12 +15,12 @@ class Traffic {
       this.junctions = junctions;
       this.#indexBorders();
 
-      const lanes = network.paths.filter((p) => p.kind == "lane");
-      const count = Math.min(carCount, lanes.length);
+      const free = [...network.bays];
+      const count = Math.max(0, Math.min(carCount, free.length - 1));
       this.drivers = [];
       for (let id = 0; id < count; id++) {
-         const lane = lanes.splice(Math.floor(random() * lanes.length), 1)[0];
-         this.drivers.push(new Driver(id, this, lane, lane.length / 2));
+         const bay = free.splice(Math.floor(random() * free.length), 1)[0];
+         this.drivers.push(new Driver(id, this, bay));
       }
       world.cars = this.drivers.map((d) => d.car);
    }

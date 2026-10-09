@@ -58,7 +58,10 @@ class World {
          );
       }
 
-      this.roadBorders = Polygon.union(this.envelopes.map((e) => e.poly));
+      this.roadBorders = Polygon.union([
+         ...this.envelopes.map((e) => e.poly),
+         ...this.#getBays().map((b) => new Polygon(b.points))
+      ]);
       this.buildings = this.#generateBuildings();
       this.trees = this.#generateTrees();
 
@@ -90,6 +93,7 @@ class World {
       const illegalPolys = [
          ...this.buildings.map((b) => b.base),
          ...this.envelopes.map((e) => e.poly),
+         ...this.#getBays(),
       ];
 
       const trees = [];
@@ -224,6 +228,12 @@ class World {
       return subset;
    }
 
+   #getBays() {
+      return this.markings
+         .filter((m) => m instanceof Parking)
+         .map((m) => m.bay);
+   }
+
    updateLights(tick) {
       const lights = this.markings.filter((m) => m instanceof Light);
       const controlCenters = [];
@@ -270,6 +280,9 @@ class World {
    draw(ctx, viewPoint, showStartMarkings = true, renderRadius = 1000) {
       for (const env of this.envelopes) {
          env.draw(ctx, { fill: "#BBB", stroke: "#BBB", lineWidth: 15 });
+      }
+      for (const bay of this.#getBays()) {
+         bay.draw(ctx, { fill: "#BBB", stroke: "#BBB", lineWidth: 15 });
       }
       for (const marking of this.markings) {
          if (!(marking instanceof Start) || showStartMarkings) {

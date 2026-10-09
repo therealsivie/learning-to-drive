@@ -1,25 +1,33 @@
 class Driver {
-   constructor(id, traffic, path, s) {
+   constructor(id, traffic, bay) {
       this.id = id;
       this.traffic = traffic;
-      this.route = [path];
+      this.home = bay;
+      bay.occupant = this;
+      this.target = null;
+      this.leaving = false;
+      this.route = [bay.spot];
       this.idx = 0;
-      this.s = s;
+      this.s = bay.spot.length / 2;
       this.speed = 0;
+      this.parked = true;
+      this.departTick = this.#nextDeparture();
       this.request = null;
       this.requestTick = 0;
       this.stillTicks = 0;
+      this.trips = 0;
+      this.lastTripTick = traffic.tick;
+      this.stalledTicks = 0;
       this.frontIdx = 0;
-      this.#extendRoute();
 
-      const p = path.pointAt(s);
+      const p = bay.spot.pointAt(this.s);
       this.car = new Car(
          p.x,
          p.y,
          carSize.width,
          carSize.length,
          "DUMMY",
-         path.angleAt(s),
+         bay.spot.angleAt(this.s),
          3,
          getRandomColor()
       );
@@ -85,34 +93,51 @@ class Driver {
    }
 
    update() {
-      this.#extendRoute();
-      this.#drive();
-      this.#updateFront();
-      while (this.s >= this.route[this.idx].length && this.idx + 1 < this.route.length) {
-         this.s -= this.route[this.idx].length;
-         this.idx++;
+      const traffic = this.traffic;
+      if (this.parked && traffic.tick >= this.departTick) {
+         this.#depart();
       }
-      this.#updateRequest();
+      if (!this.parked) {
+         this.#drive();
+         this.#updateFront();
+         while (this.s >= this.route[this.idx].length && this.idx + 1 < this.route.length) {
+            this.s -= this.route[this.idx].length;
+            this.idx++;
+         }
+         if (this.leaving && (this.idx >= 2 || (this.idx == 1 && this.rear >= 0))) {
+            this.home.occupant = null;
+            this.leaving = false;
+         }
+         this.#updateRequest();
+         this.#checkArrival();
+         this.#checkStall();
+      }
       this.#updatePose();
    }
 
-   #extendRoute() {
-      if (this.idx > 1) {
-         const cut = this.idx - 1;
-         this.route = this.route.slice(cut);
-         this.idx -= cut;
-         this.frontIdx -= cut;
-      }
+   #nextDeparture() {
+      return this.traffic.tick + 180 + Math.floor(this.traffic.random() * 421);
+   }
+
+   #depart() {
       const { network, random } = this.traffic;
-      const lanes = network.paths.filter((p) => p.kind == "lane");
-      while (this.#offset(this.route.length) - this.s < 2 * idm.horizon) {
-         const last = this.route[this.route.length - 1];
-         const target = lanes[Math.floor(random() * lanes.length)];
-         const route = target != last && network.findRoute(last, target);
+      const free = network.bays.filter((b) => b != this.home && !b.occupant && !b.reservedBy);
+      while (free.length > 0) {
+         const bay = free.splice(Math.floor(random() * free.length), 1)[0];
+         const route = network.findRoute(this.home.spot, bay.spot, bay);
          if (route) {
-            this.route.push(...route.slice(1));
+            this.target = bay;
+            bay.reservedBy = this;
+            this.route = route;
+            this.idx = 0;
+            this.frontIdx = 0;
+            this.parked = false;
+            this.leaving = true;
+            this.stalledTicks = 0;
+            return;
          }
       }
+      this.departTick = this.#nextDeparture();
    }
 
    #offset(k) {
@@ -154,6 +179,11 @@ class Driver {
       for (let k = this.idx; k < this.route.length && cum - this.front < idm.horizon; k++) {
          const path = this.route[k];
          vTarget = Math.min(vTarget, brake(path.v0, cum - this.front));
+         for (const limit of path.limits) {
+            if (cum + limit.to > this.rear) {
+               vTarget = Math.min(vTarget, brake(limit.v, cum + limit.from - this.front));
+            }
+         }
          cum += path.length;
       }
       return vTarget;
@@ -176,7 +206,10 @@ class Driver {
             stopFound = true;
          }
          if (k == this.route.length - 1) {
-            obstacles.push({ gap: cum + path.length - this.front, speed: 0 });
+            const end = path == this.target?.spot
+               ? path.length / 2 + carSize.length / 2 + idm.s0
+               : path.length;
+            obstacles.push({ gap: cum + end - this.front, speed: 0 });
          }
          cum += path.length;
       }
@@ -266,6 +299,41 @@ class Driver {
       this.request = request;
       if (request && request.dist <= idm.s0 + 5 && this.speed < 0.05) {
          this.stillTicks++;
+      }
+   }
+
+   #checkArrival() {
+      const spot = this.target.spot;
+      if (
+         this.route[this.idx] != spot ||
+         this.speed >= 0.05 ||
+         spot.length / 2 - this.s > 5
+      ) {
+         return;
+      }
+      this.trips++;
+      this.traffic.trips++;
+      this.home = this.target;
+      this.home.occupant = this;
+      this.home.reservedBy = null;
+      this.target = null;
+      this.parked = true;
+      this.departTick = this.#nextDeparture();
+      this.lastTripTick = this.traffic.tick;
+      this.route = [this.home.spot];
+      this.idx = 0;
+      this.frontIdx = 0;
+      this.request = null;
+   }
+
+   #checkStall() {
+      if (this.parked || this.speed >= 0.01) {
+         this.stalledTicks = 0;
+         return;
+      }
+      this.stalledTicks++;
+      if (this.stalledTicks == 1800) {
+         this.traffic.fail("stalled for 1800 ticks", [this]);
       }
    }
 

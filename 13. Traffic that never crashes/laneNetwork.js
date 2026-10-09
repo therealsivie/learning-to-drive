@@ -49,11 +49,13 @@ class LanePath {
       this.kind = kind;
       this.v0 = v0;
       this.next = [];
+      this.limits = [];
       this.turn = "straight";
       this.junction = null;
       this.approach = null;
       this.occupants = [];
       this.twins = [];
+      this.bay = null;
    }
 
    #segmentAt(s) {
@@ -115,6 +117,7 @@ class LaneNetwork {
       this.trims = trims;
       this.paths = [];
       this.nodes = [];
+      this.bays = [];
       this.#build();
    }
 
@@ -134,17 +137,16 @@ class LaneNetwork {
       });
 
       for (const frame of frames) {
-         const lane = new LanePath([frame.at(0), frame.at(frame.length)], "lane", 2);
-         lane.frame = frame;
-         this.paths.push(lane);
-         nodeOf.get(frame.from).outgoing.push(lane);
-         nodeOf.get(frame.to).incoming.push(lane);
+         const pieces = this.#buildPieces(frame);
+         nodeOf.get(frame.from).outgoing.push(pieces[0]);
+         nodeOf.get(frame.to).incoming.push(pieces[pieces.length - 1]);
       }
 
       for (const node of this.nodes) {
          this.#buildConnectors(node);
       }
 
+      this.#addCrossingLimits(frames);
       this.#findTwins();
    }
 
@@ -165,7 +167,82 @@ class LaneNetwork {
       );
       const length = distance(from, to) - trimStart - trimEnd;
       const at = (s, lateral = 0) => add(add(start, scale(dir, s)), scale(right, lateral));
-      return { from, to, key, segIndex, dir, right, start, length, at };
+      return { from, to, key, segIndex, dir, right, start, length, at, pieces: [] };
+   }
+
+   #frameParkings(frame) {
+      const line = new Segment(frame.at(0), frame.at(frame.length));
+      return this.world.markings
+         .filter(
+            (m) =>
+               m instanceof Parking &&
+               dot(m.directionVector, frame.dir) < -0.9 &&
+               line.distanceToPoint(m.center) < this.world.roadWidth / 4
+         )
+         .map((m) => ({ parking: m, c: dot(subtract(m.center, frame.start), frame.dir) }))
+         .sort((a, b) => a.c - b.c);
+   }
+
+   #buildPieces(frame) {
+      let tails = [];
+      const addMain = (from, to) => {
+         const path = new LanePath([frame.at(from), frame.at(to)], "lane", 2);
+         path.frame = frame;
+         path.frameFrom = from;
+         for (const tail of tails) {
+            tail.next.push(path);
+         }
+         tails = [path];
+         frame.pieces.push(path);
+         this.paths.push(path);
+         return path;
+      };
+
+      let cursor = 0;
+      for (const { parking, c } of this.#frameParkings(frame)) {
+         if (c - 140 < cursor + 1 || c + 140 > frame.length - (carSize.length + idm.s0)) {
+            console.warn("Parking ignored: not enough room on its lane", parking.center);
+            continue;
+         }
+         const local = (along, lateral) => frame.at(c + along, lateral);
+         const bay = { parking, occupant: null, reservedBy: null };
+
+         const l1 = addMain(cursor, c - 140);
+         bay.main = addMain(c - 140, c + 50);
+         bay.enter = new LanePath(
+            getBezierPoints([local(-140, 0), local(-80, 0), local(-110, 40), local(-50, 40)]),
+            "bay",
+            0.8
+         );
+         bay.spot = new LanePath([local(-50, 40), local(50, 40)], "bay", 0.8);
+         l1.next.push(bay.enter);
+         bay.enter.next.push(bay.spot);
+         bay.enter.bay = bay;
+         bay.spot.bay = bay;
+
+         bay.pass = addMain(c + 50, c + 140);
+         bay.exit = new LanePath(
+            getBezierPoints([local(50, 40), local(110, 40), local(80, 0), local(140, 0)]),
+            "connector",
+            0.8
+         );
+         bay.exit.turn = "right";
+         bay.spot.next.push(bay.exit);
+         bay.pass.from = bay.main;
+         bay.exit.from = bay.spot;
+         tails.push(bay.exit);
+         this.paths.push(bay.enter, bay.spot, bay.exit);
+         this.bays.push(bay);
+         cursor = c + 140;
+      }
+      addMain(cursor, frame.length);
+      for (const bay of this.bays) {
+         if (bay.pass.frame == frame && !bay.pass.to) {
+            bay.pass.to = bay.pass.next[0];
+            bay.exit.to = bay.exit.next[0];
+         }
+      }
+      return frame.pieces;
    }
 
    #buildConnectors(node) {
@@ -205,6 +282,29 @@ class LaneNetwork {
       }
    }
 
+   #addCrossingLimits(frames) {
+      const { graph, markings } = this.world;
+      for (const crossing of markings.filter((m) => m instanceof Crossing)) {
+         const seg = getNearestSegment(crossing.center, graph.segments);
+         const segIndex = graph.segments.indexOf(seg);
+         for (const frame of frames.filter((f) => f.segIndex == segIndex)) {
+            const s = dot(subtract(crossing.center, frame.start), frame.dir);
+            const from = s - 80;
+            const to = s + crossing.height / 2;
+            for (const piece of frame.pieces) {
+               const pieceTo = piece.frameFrom + piece.length;
+               if (from < pieceTo && to > piece.frameFrom) {
+                  piece.limits.push({
+                     from: from - piece.frameFrom,
+                     to: to - piece.frameFrom,
+                     v: 1
+                  });
+               }
+            }
+         }
+      }
+   }
+
    #findTwins() {
       const groups = new Map();
       for (const path of this.paths) {
@@ -234,7 +334,7 @@ class LaneNetwork {
       }
    }
 
-   findRoute(start, target) {
+   findRoute(start, target, targetBay = null) {
       const dist = new Map([[start, 0]]);
       const prev = new Map();
       const done = new Set();
@@ -253,6 +353,9 @@ class LaneNetwork {
          }
          done.add(current);
          for (const next of current.next) {
+            if (next.bay && next.bay != targetBay) {
+               continue;
+            }
             const d = dist.get(current) + current.length;
             if (!dist.has(next) || d < dist.get(next)) {
                dist.set(next, d);
@@ -268,7 +371,7 @@ class LaneNetwork {
    }
 
    draw(ctx) {
-      const colors = { lane: "#00F", connector: "#F80" };
+      const colors = { lane: "#00F", connector: "#F80", bay: "#0A0" };
       for (const path of this.paths) {
          const held = path.junction && path.junction.holders.some((h) => h.path == path);
          path.draw(ctx, held ? "#F00" : colors[path.kind]);

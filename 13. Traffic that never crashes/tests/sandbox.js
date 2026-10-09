@@ -70,13 +70,16 @@ function place(driver, route, s) {
    driver.frontIdx = 0;
    driver.s = s;
    driver.speed = 0;
+   driver.parked = false;
+   driver.leaving = false;
+   driver.target = { spot: null };
 }
 
 function ahead(path, length) {
    const route = [path];
    let total = path.length;
    while (total < length) {
-      path = path.next[0];
+      path = path.next.find((next) => !next.bay);
       route.push(path);
       total += path.length;
    }

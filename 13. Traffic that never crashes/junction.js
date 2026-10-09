@@ -64,6 +64,24 @@ class Junction {
          }
          junctions.push(new Junction(node.point, approaches));
       }
+      for (const bay of network.bays) {
+         junctions.push(
+            new Junction(bay.parking.center, [
+               {
+                  lane: bay.main,
+                  connectors: [bay.pass],
+                  rule: "main",
+                  lineS: bay.main.length
+               },
+               {
+                  lane: bay.spot,
+                  connectors: [bay.exit],
+                  rule: "yield",
+                  lineS: bay.spot.length
+               }
+            ])
+         );
+      }
       return junctions;
    }
 
