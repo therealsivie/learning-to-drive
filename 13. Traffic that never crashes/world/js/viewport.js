@@ -1,6 +1,7 @@
 class Viewport {
-   constructor(canvas, zoom = 1, offset = null) {
+   constructor(canvas, zoom = 1, offset = null, dragButton = 1) {
       this.canvas = canvas;
+      this.dragButton = dragButton;
       this.ctx = canvas.getContext("2d");
 
       this.zoom = zoom;
@@ -47,7 +48,7 @@ class Viewport {
    }
 
    #handleMouseDown(evt) {
-      if (evt.button == 1) { // middle button
+      if (evt.button == this.dragButton) {
          this.drag.start = this.getMouse(evt);
          this.drag.active = true;
       }

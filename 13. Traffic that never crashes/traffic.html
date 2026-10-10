@@ -8,6 +8,16 @@
 </head>
 <body>
    <canvas id="carCanvas"></canvas>
+   <canvas id="cameraCanvas"></canvas>
+   <div id="controls">
+      <button id="pauseBtn" onclick="setSpeed(0)">⏸</button>
+      <button id="speed1Btn" onclick="setSpeed(1)">×1</button>
+      <button id="speed2Btn" onclick="setSpeed(2)">×2</button>
+      <button id="speed4Btn" onclick="setSpeed(4)">×4</button>
+      <input id="carSlider" type="range" min="1" step="1" onchange="setCarCount(this.value)">
+      <span id="carCountLabel"></span>
+   </div>
+   <div id="statistics"></div>
 
    <script src="utils.js"></script>
    <script src="world/js/math/utils.js"></script>
@@ -29,6 +39,7 @@
    <script src="world/js/world.js"></script>
    <script src="world/js/viewport.js"></script>
    <script src="world/saves/traffic.world"></script>
+   <script src="camera.js"></script>
    <script src="car.js"></script>
    <script src="laneNetwork.js"></script>
    <script src="junction.js"></script>

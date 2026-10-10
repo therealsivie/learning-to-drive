@@ -219,13 +219,13 @@ class Camera {
       );
 
       let frontWheelAngle = carAngle;
-      if (carInfo.controls.tilt) {
+      if (carInfo.controls?.tilt) {
          frontWheelAngle += carInfo.controls.tilt * 0.5;
       } else {
-         if (carInfo.controls.left) {
+         if (carInfo.controls?.left) {
             frontWheelAngle -= 0.3;
          }
-         if (carInfo.controls.right) {
+         if (carInfo.controls?.right) {
             frontWheelAngle += 0.3;
          }
       }
@@ -333,13 +333,16 @@ class Camera {
       ), 200);
 
       const roadPolys = this.#extrude(this.#filter(
-         world.corridor.borders.map((s) => new Polygon([s.p1, s.p2]))
+         (world.corridor ? world.corridor.borders : world.roadBorders)
+            .map((s) => new Polygon([s.p1, s.p2]))
       ), 10);
 
-      const [carPoly] = this.#filter(
-         [new Polygon(world.bestCar.polygon.map((p) => new Point(p.x, p.y)))]
+      const visibleCars = world.cars
+         .filter((c) => this.poly.containsPoly(new Polygon(c.polygon)))
+         .sort((a, b) => distance(b, this) - distance(a, this));
+      const carPolys = visibleCars.flatMap((c) =>
+         this.#extrudeCar(new Polygon(c.polygon.map((p) => new Point(p.x, p.y))), c)
       );
-      const carPolys = carPoly ? this.#extrudeCar(carPoly, world.bestCar) : [];
 
       const carShadows = this.#filter(
          world.cars.map(
