@@ -45,6 +45,7 @@ class Viewport {
       this.canvas.addEventListener("mousedown", this.#handleMouseDown.bind(this));
       this.canvas.addEventListener("mousemove", this.#handleMouseMove.bind(this));
       this.canvas.addEventListener("mouseup", this.#handleMouseUp.bind(this));
+      window.addEventListener("mouseup", this.#handleMouseUp.bind(this));
    }
 
    #handleMouseDown(evt) {

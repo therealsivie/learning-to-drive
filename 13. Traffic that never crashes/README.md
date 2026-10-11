@@ -4,8 +4,10 @@ Fourth phase of the project. The cars no longer learn and nobody drives them: th
 like the drivers of a driving-school manual. They follow their lane, keep their distance, obey
 traffic lights, Stop and Yield signs and the right-hand rule, slow down at the crossings and park
 in the bays. You only watch, from above or from the 3D camera behind a car. "Never crashes" is not
-an impression: a Node test runs the whole world for ten simulated minutes and fails on the first
-contact.
+an impression, but it is proven for the map that comes with the folder (`world/saves/traffic.world`):
+a Node test runs it for ten simulated minutes, with 5, 10 and 13 cars and five different seeds, and
+fails on the first contact. A world built in the editor follows the same rules and keeps the
+guard, but no test covers it: the Limitations of each part say where the rules fall short.
 
 ## One folder, many parts
 
@@ -266,6 +268,7 @@ reservation, and the junction grants it only if nothing can go wrong.
 | `traffic.html` | Loads `junction.js` |
 | `tests/check.js` | New: the whole world in Node, failing on any collision |
 | `tests/room.js` | New: a car must not enter a junction whose exit is blocked |
+| `tests/short.js` | New: close junctions, a curve made of short segments, a segment shorter than its trims |
 | `tests/sandbox.js` | `place` also resets the front of the car |
 
 ### Which connectors conflict
@@ -290,6 +293,10 @@ The reservation is released when the car's rear leaves the connector. The second
 one that prevents gridlock: a car never stops inside a junction, because it enters only when it
 can leave.
 
+A node with only two roads and no markings is not a junction: it is a bend, and its connectors
+have no reservation, unless they can touch each other. The room of the second condition is then
+counted through the bend, up to the next real junction.
+
 ### Automatic trims
 
 On some angles a connector passes over the front of a car waiting at the end of another lane. When
@@ -311,7 +318,7 @@ width (`twins`), so the car behind it sees it whatever turn it takes.
 
 Before every step the driver checks its polygon, at the new position, against the cars nearby. On
 contact it halves the step, up to 6 times, and counts a `guardHits`. In the checks of this folder
-it never fires: it is there to prove that the rules alone are enough.
+it never fires: on the included map it proves that the rules alone are enough.
 
 ### Notes
 
@@ -320,16 +327,24 @@ it never fires: it is there to prove that the rules alone are enough.
   the road borders. With arguments it runs shorter: `node tests/check.js 6000 2` runs 6000 ticks
   and 2 seeds.
 - In this part every approach is a main road: the first car to arrive goes first.
+- A segment shorter than the trims of its two ends keeps lanes of 1 px, with the warning "N lanes
+  clamped to 1 px: their segments are too short for the junctions".
+- A lane between two junctions with no room for a waiting car, `length + s0`, would let a car
+  enter it and then block the junction behind: the routes avoid it, with the warning "N lanes too
+  short to wait on before a junction: routes avoid them".
 
 ### Limitations
 
 - No signals yet: traffic lights and signs are drawn, but the cars ignore them.
 - First come, first served is fair but not realistic: nobody gives way to the right.
+- The routes avoid the lanes too short to wait on: in a world where such a lane is the only link
+  between two areas, some bays can't be reached.
 
 ### How to try it
 
 ```bash
 node "13. Traffic that never crashes/tests/room.js"
+node "13. Traffic that never crashes/tests/short.js"
 node "13. Traffic that never crashes/tests/check.js" 6000 2
 ```
 
@@ -383,7 +398,7 @@ stop with a deceleration of 0.15.
 At a junction with no signs, four cars that arrive together each have a car on their right, and
 each waits for the other. The junction notices it: if nobody holds a reservation, nobody was
 granted one in this tick, and every waiting car is stopped and blocked by the right-hand rule, the
-one that arrived first goes.
+first one that arrived and has room on its exit goes.
 
 ```js
 const deadlock =
@@ -392,8 +407,9 @@ const deadlock =
    blocked.length > 0 &&
    blocked.length == heads.length &&
    blocked.every((h) => h.approach.rule == "right" && h.driver.speed < 0.05);
-if (deadlock && this.#hasRoom(blocked[0])) {
-   this.#grant(blocked[0]);
+const first = deadlock && blocked.find((h) => this.#hasRoom(h));
+if (first) {
+   this.#grant(first);
 }
 ```
 
@@ -409,6 +425,8 @@ if (deadlock && this.#hasRoom(blocked[0])) {
 - A Stop or a Yield with no main road at the junction behaves like a main road: there is nobody to
   give way to.
 - The lights don't know the traffic: the cycle is fixed, even when a road is empty.
+- Stop and Yield have no gap acceptance: they wait until no car is waiting on the main road, so a
+  steady stream there can keep the minor approach waiting a long time.
 
 ### How to try it
 
@@ -523,7 +541,7 @@ change the speed of the simulation.
 | `style.css` | Replaced: the controls, the statistics and the two canvases |
 | `traffic.html` | The camera canvas, the buttons, the slider and the statistics panel |
 | `camera.js` | Draws all the cars and uses the road borders when there is no corridor |
-| `world/js/viewport.js` | `dragButton` parameter: the page pans with the left button |
+| `world/js/viewport.js` | `dragButton` parameter: the page pans with the left button; a release outside the canvas ends the drag |
 
 ### Selecting a car
 
@@ -543,7 +561,7 @@ camera of folder 12 takes the bottom half. A click on empty space or `Esc` desel
 | `L` | lanes in blue, connectors in orange, bays in green, reserved paths in red |
 
 The statistics show the cars, the trips, the collisions and the red-light violations: the last two
-stay at 0.
+stay at 0 on the included map.
 
 ### Notes
 
@@ -563,6 +581,6 @@ Open `traffic.html` from the server, click a car and follow it in the 3D view, t
 the slider. All the tests of the folder:
 
 ```bash
-for t in lanes follow room signals deadlock bays; do node "13. Traffic that never crashes/tests/$t.js"; done
+for t in lanes follow room signals deadlock bays short; do node "13. Traffic that never crashes/tests/$t.js"; done
 node "13. Traffic that never crashes/tests/check.js"
 ```

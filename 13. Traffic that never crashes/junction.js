@@ -35,6 +35,10 @@ class Junction {
             console.warn("Junction trims did not converge in 10 rounds");
          }
          if (keys.size == 0) {
+            if (network.clamped > 0) {
+               console.warn(network.clamped + " lanes clamped to 1 px: their segments are too short for the junctions");
+            }
+            Junction.#markTraps(network);
             return { network, junctions };
          }
          for (const key of keys) {
@@ -57,6 +61,9 @@ class Junction {
             continue;
          }
          const marked = approaches.some((a) => a.marking);
+         if (!marked && Junction.#isPassThrough(node, world)) {
+            continue;
+         }
          for (const approach of approaches) {
             if (!approach.marking) {
                approach.rule = marked ? "main" : "right";
@@ -83,6 +90,41 @@ class Junction {
          );
       }
       return junctions;
+   }
+
+   static #isPassThrough(node, world) {
+      if (world.graph.getSegmentsWithPoint(node.point).length != 2 || node.connectors.length != 2) {
+         return false;
+      }
+      return !Junction.connectorsConflict(...node.connectors);
+   }
+
+   static #room(path, need) {
+      if (path.junction) {
+         return 0;
+      }
+      if (path.length >= need || path.next.length == 0) {
+         return path.length;
+      }
+      return path.length + Math.min(...path.next.map((next) => Junction.#room(next, need - path.length)));
+   }
+
+   static #markTraps(network) {
+      const need = carSize.length + idm.s0;
+      const shortLanes = new Set();
+      for (const path of network.paths) {
+         if (!path.junction) {
+            continue;
+         }
+         const short = path.next.find((next) => Junction.#room(next, need) < need);
+         if (short) {
+            path.trap = true;
+            shortLanes.add(short);
+         }
+      }
+      if (shortLanes.size > 0) {
+         console.warn(shortLanes.size + " lanes too short to wait on before a junction: routes avoid them");
+      }
    }
 
    static #findRule(lane, world) {
@@ -208,8 +250,9 @@ class Junction {
          blocked.length > 0 &&
          blocked.length == heads.length &&
          blocked.every((h) => h.approach.rule == "right" && h.driver.speed < 0.05);
-      if (deadlock && this.#hasRoom(blocked[0])) {
-         this.#grant(blocked[0]);
+      const first = deadlock && blocked.find((h) => this.#hasRoom(h));
+      if (first) {
+         this.#grant(first);
       }
    }
 

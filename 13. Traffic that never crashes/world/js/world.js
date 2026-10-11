@@ -25,7 +25,6 @@ class World {
       this.markings = [];
 
       this.cars = [];
-      this.bestCar = null;
 
       this.generate();
    }

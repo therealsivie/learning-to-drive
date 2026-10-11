@@ -56,6 +56,7 @@ class LanePath {
       this.occupants = [];
       this.twins = [];
       this.bay = null;
+      this.trap = false;
    }
 
    #segmentAt(s) {
@@ -118,6 +119,7 @@ class LaneNetwork {
       this.paths = [];
       this.nodes = [];
       this.bays = [];
+      this.clamped = 0;
       this.#build();
    }
 
@@ -159,13 +161,20 @@ class LaneNetwork {
    #createFrame(from, to, key, segIndex) {
       const dir = normalize(subtract(to, from));
       const right = perpendicular(dir);
-      const trimStart = this.#trim(from, key + ":start");
-      const trimEnd = this.#trim(to, key + ":end");
+      const span = distance(from, to);
+      let trimStart = this.#trim(from, key + ":start");
+      let trimEnd = this.#trim(to, key + ":end");
+      if (trimStart + trimEnd > span - 1) {
+         const k = (span - 1) / (trimStart + trimEnd);
+         trimStart *= k;
+         trimEnd *= k;
+         this.clamped++;
+      }
       const start = add(
          add(from, scale(dir, trimStart)),
          scale(right, this.world.roadWidth / 4)
       );
-      const length = distance(from, to) - trimStart - trimEnd;
+      const length = span - trimStart - trimEnd;
       const at = (s, lateral = 0) => add(add(start, scale(dir, s)), scale(right, lateral));
       return { from, to, key, segIndex, dir, right, start, length, at, pieces: [] };
    }
@@ -353,7 +362,7 @@ class LaneNetwork {
          }
          done.add(current);
          for (const next of current.next) {
-            if (next.bay && next.bay != targetBay) {
+            if (next.trap || (next.bay && next.bay != targetBay)) {
                continue;
             }
             const d = dist.get(current) + current.length;

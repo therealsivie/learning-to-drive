@@ -80,6 +80,9 @@ carCanvas.addEventListener("mouseup", (evt) => {
    if (mouseDown && distance(mouseDown, new Point(evt.offsetX, evt.offsetY)) < 5) {
       select(findDriverAt(viewport.getMouse(evt)));
    }
+});
+
+window.addEventListener("mouseup", () => {
    mouseDown = null;
 });
 

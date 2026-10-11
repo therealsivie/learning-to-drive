@@ -26,7 +26,7 @@ folder's README explains them one by one.
 | 10 | [Curved road](10.%20Curved%20road) | Curved road made of polylines and a network without a hidden layer | [open](https://therealsivie.github.io/learning-to-drive/10.%20Curved%20road/) |
 | 11 | [Car in the world](11.%20Car%20in%20the%20world) | Editor of a virtual world (roads, buildings, road markings, import from OpenStreetMap) where the cars drive | [sim](https://therealsivie.github.io/learning-to-drive/11.%20Car%20in%20the%20world/) · [editor](https://therealsivie.github.io/learning-to-drive/11.%20Car%20in%20the%20world/world/) |
 | 12 | [Race in the world](12.%20Race%20in%20the%20world) | Race against the AI cars on a path found with Dijkstra, synthesized sounds, 3D view, driving with the phone or the webcam | [sim](https://therealsivie.github.io/learning-to-drive/12.%20Race%20in%20the%20world/sim.html) · [race](https://therealsivie.github.io/learning-to-drive/12.%20Race%20in%20the%20world/race.html) · [phone](https://therealsivie.github.io/learning-to-drive/12.%20Race%20in%20the%20world/phone.html) · [camera](https://therealsivie.github.io/learning-to-drive/12.%20Race%20in%20the%20world/camera.html) · [editor](https://therealsivie.github.io/learning-to-drive/12.%20Race%20in%20the%20world/world/) |
-| 13 | [Traffic that never crashes](13.%20Traffic%20that%20never%20crashes) | Cars driven by rules on a lane network: lights, Stop, Yield, right-hand rule, crossings and parking bays, without a single collision | [sim](https://therealsivie.github.io/learning-to-drive/13.%20Traffic%20that%20never%20crashes/traffic.html) · [editor](https://therealsivie.github.io/learning-to-drive/13.%20Traffic%20that%20never%20crashes/world/) |
+| 13 | [Traffic that never crashes](13.%20Traffic%20that%20never%20crashes) | Cars driven by rules on a lane network: lights, Stop, Yield, right-hand rule, crossings and parking bays, without a single collision on the included map | [sim](https://therealsivie.github.io/learning-to-drive/13.%20Traffic%20that%20never%20crashes/traffic.html) · [editor](https://therealsivie.github.io/learning-to-drive/13.%20Traffic%20that%20never%20crashes/world/) |
 
 ## The journey in short
 
@@ -56,7 +56,7 @@ folder's README explains them one by one.
 8. **Traffic (ch. 13).** No neural network: every car follows its lane with the Intelligent
    Driver Model and enters a junction only with a reservation, granted when its path is free and
    its exit has room. Lights, Stop, Yield and the right-hand rule decide the order. The cars drive
-   from bay to bay, and a Node test runs the whole world to prove they never touch.
+   from bay to bay, and a Node test runs the included world to prove they never touch.
 
 The function that comes back most often is `lerp(A,B,t)`: it is used for the lanes, to spread the
 rays, for the intersection points, to position the nodes in the visualizer and to mutate the
